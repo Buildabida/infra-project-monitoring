@@ -10,7 +10,11 @@ Our Databricks notebooks, one folder per step. Run the folders in this order. Ea
 | 3 | `03_gold` | `03-gold` | Builds the facts and dimensions for the dashboard and Genie |
 | 4 | `04_validation` | `04-validation` | Runs the checks and saves the results |
 
-We add each folder with its first notebook. Try new ideas in your own workspace folder first. Only finished notebooks go here.
+We add each folder with its first notebook. Try new ideas in a scratch file first. Only finished notebooks go here.
+
+## Run a notebook
+
+In VS Code, open the file, click the **Run on Databricks** icon at the top right, then **Run File as Workflow**. The run happens on our team workspace, and the results open in a tab. The setup steps are in [set up VS Code](../docs/vscode-setup.md).
 
 ## Pick a language
 
@@ -33,7 +37,15 @@ In a Python notebook, import our names and links from [`src/config.py`](../src/c
 from src import api, config
 ```
 
-This works because Databricks adds the repo folder to the Python path. Don't copy a link into a notebook. Change it in `config.py`, and every notebook gets the change.
+Put these two lines in the first cell, so the import works from VS Code and from a Git folder:
+
+```python
+import sys
+
+sys.path.append("../..")
+```
+
+Don't copy a link into a notebook. Change it in `config.py`, and every notebook gets the change.
 
 ## Notebook names
 
