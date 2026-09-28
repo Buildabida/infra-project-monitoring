@@ -1,6 +1,6 @@
 # How we work
 
-These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, and Databricks for notebooks. Work on the Databricks website or in VS Code. Both are fine. The VS Code steps are in [set up VS Code](docs/vscode-setup.md).
+These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, VS Code for writing code, and our Databricks team workspace for running it.
 
 The details of our tables, checks and choices live in [`docs`](docs/README.md). This guide links to them instead of copying them.
 
@@ -8,11 +8,8 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
 
 1. Accept your invite to the [Buildabida org](https://github.com/Buildabida) on GitHub. No invite yet? Ask Nadine, our org owner.
 2. Accept the invite to our Databricks team workspace. It comes by email from Nadine.
-3. In Databricks, click your profile picture, then **Settings**, then **Linked accounts**.
-4. Click **Add Git credential** and pick **GitHub**. Then click **Link Git account** and **Authorize Databricks**.
-5. Add the repo as a Git folder. The steps are in the [quickstart](README.md#quickstart).
-
-Nadine installed the Databricks GitHub app on Buildabida on Sep 28, so Databricks can push to our repo. If a push fails, ask her to check the app.
+3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/vscode-setup.md).
+4. Run `00_setup_workspace` once as a workflow, so you know your setup works.
 
 ## Make a change
 
@@ -22,8 +19,8 @@ Nadine installed the Databricks GitHub app on Buildabida on Sep 28, so Databrick
    - `feature/issue-6-bronze-dpwh-projects` for new work
    - `fix/issue-14-silver-dates` for a fix
    - `docs/issue-9-source-cards` for docs
-4. **Test in your own workspace.** Run your notebook there before you open a pull request.
-5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Databricks Git dialog, check the list of changed files. Commit only the files you meant to change.
+4. **Run it before you push.** Run the notebook as a workflow and check the results. Keep test runs small. The team workspace has one daily quota for all of us.
+5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Source Control view, check the list of changed files. Commit only the files you meant to change.
 6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`.
 7. **Get a review** from the reviewer named in the issue. Then Kinah merges.
 8. **Pull again** after a merge, so you have the latest `main`.
@@ -36,7 +33,7 @@ The `main` branch only takes pull requests that pass our checks, have one approv
 - Take the card before you start, so two people never edit the same notebook at the same time.
 - Don't mix moving or renaming files with changes to the logic. Put them in separate pull requests.
 - Keep each piece of logic in one place. Don't copy it into a second notebook. Shared Python goes in `src`.
-- Try new ideas in your own workspace folder. Only finished notebooks go in `notebooks`.
+- Try new ideas in a scratch file outside the repo, or in a branch. Only finished notebooks go in `notebooks`.
 
 ## Write issues and pull requests
 

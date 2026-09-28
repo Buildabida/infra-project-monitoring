@@ -69,16 +69,14 @@ Python loads the sources into `bronze`. SQL does the rest. The dashboard shows t
 
 ## Quickstart
 
-We build in our team workspace on [Databricks Free Edition](https://www.databricks.com/learn/free-edition). Nadine adds you, and you accept the invite by email. You can also try things in your own Free Edition workspace.
+We write code in VS Code and run it on our team workspace on [Databricks Free Edition](https://www.databricks.com/learn/free-edition). Nadine adds you to the workspace, and you accept the invite by email.
 
-1. In Databricks, click **Workspace**, then open your **Home** folder.
-2. Click **Create**, then **Git folder**.
-3. Paste `https://github.com/Buildabida/infra-project-monitoring.git`, then click **Create Git folder**.
-4. Open `notebooks/00_setup/00_setup_workspace`, then click **Run all**.
+1. Install VS Code with the **Databricks** and **Python** extensions.
+2. Clone `https://github.com/Buildabida/infra-project-monitoring.git` and open the folder.
+3. Click the **Databricks** icon, sign in with **OAuth (user to machine)** and pick **Serverless**.
+4. Open `notebooks/00_setup/00_setup_workspace.sql`, click **Run on Databricks**, then **Run File as Workflow**.
 
-The last cell lists the five schemas. Next, run `01_check_sources` to see which sources Databricks can reach.
-
-To commit from Databricks, link your GitHub account first. The steps are in [how we work](CONTRIBUTING.md#before-you-start). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md). Prefer VS Code? See [set up VS Code](docs/vscode-setup.md).
+The last cell lists the five schemas. Next, run `01_check_sources.py` the same way to see which sources Databricks can reach. The full steps are in [set up VS Code](docs/vscode-setup.md). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md).
 
 ## Data sources
 
@@ -100,7 +98,7 @@ Two things to know:
 ## Known limits
 
 - **Some sites block Databricks.** Free Edition can only reach some websites. On Sep 28, our source check reached the DPWH API, the flood control map layer, the BetterGov portal, HDX and Hugging Face. The PSA website said no (HTTP 403). So we download the PSGC and census files by hand, upload them to the `00-source.landing` volume, and write the download date in the source card.
-- **One workspace runs the final pipeline.** Our team workspace runs the final pipeline and the dashboard. That is decision [D-01](docs/decisions.md). Free Edition gives one workspace per account, so we also test in our own workspaces and share code through this repo.
+- **One workspace runs the final pipeline.** Our team workspace runs the final pipeline and the dashboard. That is decision [D-01](docs/decisions.md). It has one daily quota for all of us, so we keep test runs small and share code through this repo.
 
 ## Find your way around
 
@@ -119,8 +117,9 @@ Two things to know:
 ├── docs/              data model, checks, decisions and style guide
 ├── dashboard/         the dashboard file, once we build it
 ├── tests/             tests for the code in src
-├── resources/         Databricks bundle settings, if we set one up
+├── resources/         job settings for our Databricks bundle, later
 ├── assets/            the banner at the top of this page
+├── databricks.yml     points VS Code at our team workspace
 └── .github/           issue and pull request forms, and our checks
 ```
 
