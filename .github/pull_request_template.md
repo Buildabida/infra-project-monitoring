@@ -1,34 +1,65 @@
-## What changed
+## Summary
 
-<!-- One or two lines. What does this pull request add or fix? -->
+<!-- What changed and why, in two or three lines. -->
 
-## Layer
+## Related issue
 
-- [ ] bronze
-- [ ] silver
-- [ ] gold
-- [ ] validation
-- [ ] dashboard
-- [ ] docs
+Closes #
 
-## How I tested it
+Related to #
 
-<!-- What did you run? What did you check? A screenshot of the result is great. -->
+## Changes made
+
+-
+-
+
+## Validation performed
+
+<!-- What did you run or check? -->
+
+- [ ] I tested the change
+- [ ] It is safe to run twice, if it loads data
+- [ ] I checked row counts and duplicates, if it loads data
+- [ ] No rows are dropped without a reason
+- [ ] No keys, tokens or passwords are in the code
+- [ ] Not needed: this only changes docs or setup
+
+### Evidence
+
+<!-- Run date, notebook, row counts and check results. Link screenshots from our Drive folder. Say what is still not checked. -->
+
+-
+
+## Documentation updates
+
+- [ ] I updated the docs this change affects
+- [ ] No docs change needed
+
+Docs affected:
+
+-
 
 ## AI help
 
 - [ ] No AI help on this one
 - [ ] AI helped, and it passed all four gates: data, AI, output and accountability
+- [ ] If AI helped: it works, it scales, it is safe, we can rerun it and trace it, and I can defend every line
 
 <!-- If AI helped, say what it helped with in one line. -->
 
-## Checklist
+## Reviewer notes
 
-- [ ] I pulled `main` before I started
-- [ ] No keys, tokens or passwords in the code
-- [ ] My tables pass their data quality checks, or I explained why not
-- [ ] I updated the data dictionary if I added or renamed a column
-- [ ] I updated the docs in this pull request, if they needed it
-- [ ] If AI helped: it works, it scales, it is safe, we can rerun it and trace it, and I can defend every line
+Please check:
 
-Closes #
+-
+
+Known limits or follow-up work:
+
+-
+
+## Acceptance criteria
+
+- [ ] The issue's acceptance evidence is met
+- [ ] The validation evidence is in this pull request
+- [ ] Review comments are answered
+- [ ] Ready to merge
