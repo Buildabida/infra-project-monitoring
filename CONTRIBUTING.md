@@ -7,11 +7,12 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
 ## Before you start
 
 1. Accept your invite to the [Buildabida org](https://github.com/Buildabida) on GitHub. No invite yet? Ask Nadine, our org owner.
-2. In Databricks, click your profile picture, then **Settings**, then **Linked accounts**.
-3. Click **Add Git credential** and pick **GitHub**. Then click **Link Git account** and **Authorize Databricks**.
-4. Add the repo as a Git folder. The steps are in the [quickstart](README.md#quickstart).
+2. Accept the invite to our Databricks team workspace. It comes by email from Nadine.
+3. In Databricks, click your profile picture, then **Settings**, then **Linked accounts**.
+4. Click **Add Git credential** and pick **GitHub**. Then click **Link Git account** and **Authorize Databricks**.
+5. Add the repo as a Git folder. The steps are in the [quickstart](README.md#quickstart).
 
-An org owner installs the Databricks GitHub app on Buildabida once. Without it, Databricks can't push to our repo.
+Nadine installed the Databricks GitHub app on Buildabida on Sep 28, so Databricks can push to our repo. If a push fails, ask her to check the app.
 
 ## Make a change
 
