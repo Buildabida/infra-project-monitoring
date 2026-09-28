@@ -1,0 +1,23 @@
+name: "Data bug"
+description: "Something in a table or notebook looks wrong."
+labels: ["bug"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: "Where"
+      placeholder: "Notebook or table name, like silver.projects"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: "What happened"
+      placeholder: "What you ran, what you expected and what you got."
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: "Proof"
+      placeholder: "Paste the query and a screenshot of the result."

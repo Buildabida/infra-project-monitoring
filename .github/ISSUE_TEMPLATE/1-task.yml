@@ -1,0 +1,42 @@
+name: "Task"
+description: "A piece of work for the board. Keep it small enough to finish in a day or two."
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for adding a task. Say what needs to be done and how we know it's done.
+  - type: textarea
+    id: what
+    attributes:
+      label: "What needs to be done"
+      placeholder: "Load the DPWH projects from the API into bronze.dpwh_projects."
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: "Layer"
+      options:
+        - bronze
+        - silver
+        - gold
+        - validation
+        - dashboard
+        - docs
+        - story
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: "Done when"
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: "Links and notes"
+      placeholder: "Links to the source card, the notebook or a screenshot."
