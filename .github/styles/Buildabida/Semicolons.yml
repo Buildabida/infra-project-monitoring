@@ -1,0 +1,6 @@
+extends: existence
+message: "Split this into two sentences instead of using a semicolon."
+level: warning
+nonword: true
+tokens:
+  - "\u003B"

@@ -1,0 +1,8 @@
+extends: existence
+message: "Use a period or a comma instead of a dash."
+level: warning
+nonword: true
+tokens:
+  - "\u2014"
+  - "\u2013"
+  - " -- "

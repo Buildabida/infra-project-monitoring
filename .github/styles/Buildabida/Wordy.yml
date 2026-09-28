@@ -1,0 +1,12 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: suggestion
+ignorecase: true
+swap:
+  a number of: some
+  at this point in time: now
+  facilitate: help
+  in order to: to
+  leverage: use
+  prior to: before
+  utilize: use
