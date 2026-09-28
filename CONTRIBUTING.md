@@ -13,19 +13,46 @@ An org owner installs the Databricks GitHub app on Buildabida once. Without it, 
 
 ## Make a change
 
-1. **Pull first.** Pull `main` before you start any work.
-2. **Make a branch** named for the work:
-   - `feature/bronze-dpwh-projects` for new work
-   - `fix/silver-dates` for a fix
-   - `docs/source-cards` for docs
-
-   If the name is taken, add your name, like `feature/bronze-dpwh-projects-bri`.
-3. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`.
-4. **Open a pull request** into `main`. Fill in the form, and link the issue with `Closes #12`.
-5. **Get a review.** One teammate reads it and approves. Then Kinah merges.
-6. **Pull again** after a merge, so you have the latest `main`.
+1. **Pick an issue.** Take a card on the [project board](https://github.com/orgs/Buildabida/projects/1). Check that it has an owner and a reviewer, and that nothing blocks it.
+2. **Pull first.** Pull `main` before you start any work.
+3. **Make a branch** named `<type>/issue-<number>-<short-name>`:
+   - `feature/issue-6-bronze-dpwh-projects` for new work
+   - `fix/issue-14-silver-dates` for a fix
+   - `docs/issue-9-source-cards` for docs
+4. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`.
+5. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`.
+6. **Get a review** from the reviewer named in the issue. Then Kinah merges.
+7. **Pull again** after a merge, so you have the latest `main`.
 
 The `main` branch only takes pull requests that have one approval and pass our checks. Everyone commits from their own account, so the history shows who did what.
+
+## Write issues and pull requests
+
+We write each issue like a small plan, so anyone can pick it up or review it without guessing. The issue forms ask for these parts:
+
+| Part | What to write |
+| --- | --- |
+| Outcome | What works when the issue is done |
+| Why | Why we need it, and what waits on it |
+| Scope | What the issue covers, and what it leaves out |
+| Prerequisites | Issues that block it, and related issues |
+| Acceptance evidence | The proof we need before we close it |
+| Ownership | The owner, the reviewer and the docs it changes |
+
+Start each title with its layer in capitals, like `[BRONZE] Load DPWH projects`.
+
+The pull request form asks for a summary, the related issue, the changes and how you tested them. It also asks for evidence, doc updates, AI help, notes for the reviewer and the acceptance criteria. Good evidence has the run date, the notebook, row counts and check results. Say what you still did not check.
+
+## Labels
+
+| Label | Use it for |
+| --- | --- |
+| `layer:setup`, `layer:bronze`, `layer:silver`, `layer:gold`, `layer:validation`, `layer:dashboard` | The part of the pipeline the issue changes |
+| `layer:docs`, `layer:story` | Docs, source cards, slides and the demo |
+| `type:decision` | A choice we need to make and log |
+| `status:blocked` | The issue waits on another issue or person |
+
+The board has fields for Status, Priority, Size, Start date and Target date. Set them when you take a card.
 
 ## Names
 
@@ -104,7 +131,7 @@ If AI suggests a data quality check, add it to `validation.dq_results`. Don't ju
 | What | Where |
 | --- | --- |
 | Code, notebooks and docs | This repo |
-| Tasks and who is on what | Issues and our [project board](https://github.com/orgs/Buildabida/projects/1) |
+| Tasks, owners and reviewers | Issues and our [project board](https://github.com/orgs/Buildabida/projects/1) |
 | Big choices | Our [decisions](docs/decisions.md) and the team Doc |
 | Screenshots, files and links | Our Drive folder, Docs and Sheets |
 | Meetings and work sessions | Gather |
