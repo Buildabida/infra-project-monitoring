@@ -13,6 +13,10 @@ Related to #
 -
 -
 
+Tables, jobs or dashboards affected:
+
+-
+
 ## Validation performed
 
 <!-- What did you run or check? -->
