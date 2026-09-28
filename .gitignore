@@ -1,0 +1,19 @@
+# Data stays in Databricks, not in the repo
+data/
+*.csv
+*.parquet
+*.xlsx
+*.xls
+*.zip
+*.geojson
+*.shp
+
+# Secrets
+.env
+*.pem
+*.key
+
+# Local clutter
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
