@@ -1,11 +1,14 @@
 name: "Source card"
-description: "Add or update a data source we plan to use."
-labels: ["docs"]
+description: "Describe a data source we plan to use."
+type: "Task"
+labels: ["layer:docs"]
+projects: ["Buildabida/1"]
 body:
   - type: markdown
     attributes:
       value: |
         A source card tells the team what a dataset is, where it lives and what can go wrong. Copy the final card into the team Doc too.
+        Start the title with `[SOURCE]`, like `[SOURCE] DPWH projects API`.
   - type: input
     id: name
     attributes:
@@ -60,3 +63,27 @@ body:
     attributes:
       label: "What can go wrong"
       placeholder: "Missing map points, place names that do not match PSGC, duplicates"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Acceptance evidence"
+      value: |
+        - [ ] The card is filled in here and in the team Doc
+        - [ ] 01_check_sources shows if Databricks can reach it
+        - [ ] We looked at a few sample rows
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: "Owner"
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: "Reviewer"
+      placeholder: "@username"
+    validations:
+      required: true

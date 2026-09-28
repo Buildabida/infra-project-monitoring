@@ -1,0 +1,64 @@
+name: "Decision"
+description: "A choice the team needs to make and log."
+type: "Task"
+labels: ["type:decision"]
+projects: ["Buildabida/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start the title with the next decision ID, like `[D-11] How do we match a project to a place?`.
+  - type: textarea
+    id: question
+    attributes:
+      label: "Question"
+      description: "What do we need to decide?"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: "Why"
+      description: "Why it matters, and what waits on it."
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: "Options"
+      description: "Each option, with what is good and bad about it."
+      value: |
+        1. Option:
+           - Good:
+           - Bad:
+        2. Option:
+           - Good:
+           - Bad:
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: "Recommendation"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Acceptance evidence"
+      value: |
+        - [ ] The team agreed in a meeting or in the comments
+        - [ ] The decision is logged in docs/decisions.md and the team Doc
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: "Owner"
+      description: "Who makes sure we decide."
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: due
+    attributes:
+      label: "Decide by"
+      placeholder: "Oct 1"

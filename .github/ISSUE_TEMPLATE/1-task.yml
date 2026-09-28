@@ -1,42 +1,77 @@
 name: "Task"
-description: "A piece of work for the board. Keep it small enough to finish in a day or two."
+description: "One piece of work for the board, small enough to finish in a few days."
+type: "Task"
+projects: ["Buildabida/1"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for adding a task. Say what needs to be done and how we know it's done.
+        Write the issue like a small plan, so anyone can pick it up and review it without guessing.
+        Start the title with the layer, like `[BRONZE] Load DPWH projects`. Then add labels for the layer.
   - type: textarea
-    id: what
+    id: outcome
     attributes:
-      label: "What needs to be done"
-      placeholder: "Load the DPWH projects from the API into bronze.dpwh_projects."
-    validations:
-      required: true
-  - type: dropdown
-    id: layer
-    attributes:
-      label: "Layer"
-      options:
-        - bronze
-        - silver
-        - gold
-        - validation
-        - dashboard
-        - docs
-        - story
+      label: "Outcome"
+      description: "What works when this is done?"
+      placeholder: "bronze.dpwh_projects holds every DPWH project from the API, with the load time."
     validations:
       required: true
   - type: textarea
-    id: done
+    id: why
     attributes:
-      label: "Done when"
+      label: "Why"
+      description: "Why do we need it? What waits on it?"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: "Scope"
+      description: "What this issue covers, and what it leaves out."
       value: |
-        - [ ] 
-        - [ ] 
+        In scope:
+        -
+
+        Out of scope:
+        -
     validations:
       required: true
   - type: textarea
-    id: notes
+    id: prerequisites
     attributes:
-      label: "Links and notes"
-      placeholder: "Links to the source card, the notebook or a screenshot."
+      label: "Prerequisites"
+      description: "Issues that must be done first, and issues that are related."
+      value: |
+        - Blocked by: none
+        - Related to:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Acceptance evidence"
+      description: "The proof we need before we close this issue."
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: input
+    id: owner
+    attributes:
+      label: "Owner"
+      description: "Who does the work."
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: reviewer
+    attributes:
+      label: "Reviewer"
+      description: "Who checks the pull request. Pick someone other than the owner."
+      placeholder: "@username"
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: "Docs affected"
+      placeholder: "README.md, docs/data-model.md"
