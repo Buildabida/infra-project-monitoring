@@ -18,5 +18,6 @@ data/
 
 # Local clutter
 .DS_Store
+.databricks/
 __pycache__/
 .ipynb_checkpoints/

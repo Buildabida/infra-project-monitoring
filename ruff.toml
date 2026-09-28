@@ -5,4 +5,4 @@ builtins = ["spark", "dbutils", "display", "displayHTML"]
 
 [format]
 # Databricks saves notebooks in its own layout, so we only format our modules.
-exclude = ["pipelines/**"]
+exclude = ["notebooks/**"]

@@ -1,6 +1,6 @@
 # How we work
 
-These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, and Databricks for notebooks. You don't need VS Code.
+These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, and Databricks for notebooks. Work on the Databricks website or in VS Code. Both are fine. The VS Code steps are in [set up VS Code](docs/vscode-setup.md).
 
 The details of our tables, checks and choices live in [`docs`](docs/README.md). This guide links to them instead of copying them.
 
@@ -33,9 +33,10 @@ The `main` branch only takes pull requests that pass our checks, have one approv
 ### Keep each change small
 
 - Use one branch for one issue.
+- Take the card before you start, so two people never edit the same notebook at the same time.
 - Don't mix moving or renaming files with changes to the logic. Put them in separate pull requests.
-- Keep each piece of logic in one place. Don't copy it into a second notebook. Shared Python goes in `buildabida`.
-- Try new ideas in your own workspace folder. Only finished notebooks go in `pipelines`.
+- Keep each piece of logic in one place. Don't copy it into a second notebook. Shared Python goes in `src`.
+- Try new ideas in your own workspace folder. Only finished notebooks go in `notebooks`.
 
 ## Write issues and pull requests
 
@@ -89,11 +90,11 @@ Use the same names in code, docs and diagrams.
 | Thing | Pattern | Example |
 | --- | --- | --- |
 | Notebook | `NN_layer_source` | `01_bronze_dpwh_projects` |
-| Schema | The layer name | `bronze`, `silver`, `gold`, `validation` |
-| Table | What it holds, in snake_case | `silver.projects` |
+| Schema | The step number and the layer name | `01-bronze`, `02-silver`, `03-gold`, `04-validation` |
+| Table | What it holds, in snake_case | `02-silver.projects` |
 | Column | snake_case, no spaces | `contract_id`, `amount_paid` |
 
-Every table lives in our `buildabida` catalog. Our rules for writing and code are in the [style guide](docs/style-guide.md).
+Every table lives in our `buildabida-capstone` catalog. The names have hyphens, so SQL needs backticks around them. Our rules for writing and code are in the [style guide](docs/style-guide.md).
 
 ## Data quality
 
@@ -140,7 +141,7 @@ The pull request form asks these too.
 
 ### Turn AI tips into real checks
 
-If AI suggests a data quality check, add it to `validation.dq_results`. Don't just trust a chat that says the data looks fine.
+If AI suggests a data quality check, add it to `04-validation.dq_results`. Don't just trust a chat that says the data looks fine.
 
 ## Keep it safe
 
