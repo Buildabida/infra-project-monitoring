@@ -14,7 +14,7 @@ We log each big choice with an ID, the date and why we made it. We keep old rows
 | D-08 | Sep 28 | Python loads the sources into `bronze`. SQL does the rest, from `silver` on. | Most of us know SQL best. Python is better for APIs, web pages and Excel files. |
 | D-09 | Sep 28 | Our code lives in a fresh repo in the Buildabida GitHub org | The team owns it, not one person, and everyone gets the same access |
 | D-10 | Sep 28 | Meetings happen in Gather. Files, screenshots and links go in Drive. | Each kind of thing has one home, and we skip extra tools like VS Code |
-| D-11 | Sep 28 | VS Code is optional, next to the Databricks website. This changes the VS Code part of D-10. | Bri and Nadine ran out of workspace usage in past projects. Git work in VS Code does not use Databricks. |
+| D-11 | Sep 28 | We write code in VS Code, with the Databricks extension. Our team workspace runs it. This changes the VS Code part of D-10. | Free Edition limits us. In VS Code we can use our own tools and AI help without those limits, and Git work does not use the workspace. |
 | D-12 | Sep 28 | Our folders are `notebooks`, `src`, `docs`, `dashboard`, `resources` and `tests` | Nadine and Bri know this layout from past teams. The folders are ready, so anyone can jump in. |
 | D-13 | Sep 28 | Our catalog is `buildabida-capstone`. Schemas are numbered in run order: `00-source`, `01-bronze`, `02-silver`, `03-gold`, `04-validation`. This replaces the catalog name in D-07. | Nadine set up the team workspace this way and prefers numbers. The words match our class and our docs. |
 
