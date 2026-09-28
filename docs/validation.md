@@ -1,6 +1,10 @@
 # Data quality checks
 
-Every run checks the data before it moves to the next layer.
+Every run checks the data before it moves to the next layer:
+
+1. Silver runs only after bronze passes its checks.
+2. Gold runs only after silver passes.
+3. The dashboard and Genie use only gold tables that passed.
 
 | Check | Example | If it fails |
 | --- | --- | --- |
@@ -12,7 +16,7 @@ Every run checks the data before it moves to the next layer.
 | Place match | Every project has a PSGC code | Flag and report the match rate |
 | Money | `amount_paid` is not more than `budget` | Flag the row |
 
-Don't skip a failed check to make the run pass.
+Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. Keep the results of failed runs, so we can see what went wrong.
 
 ## Where the results go
 
