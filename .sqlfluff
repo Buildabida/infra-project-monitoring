@@ -1,0 +1,20 @@
+# SQLFluff checks our SQL notebooks on every pull request.
+
+[sqlfluff]
+dialect = databricks
+rules = capitalisation.keywords, capitalisation.functions, capitalisation.literals, aliasing.table, aliasing.column, ambiguous.join, ambiguous.union, convention.not_equal, structure.subquery
+# Skip lines SQLFluff can't read yet, like notebook widgets, instead of failing.
+ignore = parsing
+max_line_length = 0
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper
+
+[sqlfluff:rules:ambiguous.join]
+fully_qualify_join_types = inner

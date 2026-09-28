@@ -1,0 +1,8 @@
+# Ruff checks our Python code on every pull request.
+
+# Databricks gives every notebook these names, so they are not mistakes.
+builtins = ["spark", "dbutils", "display", "displayHTML"]
+
+[format]
+# Databricks saves notebooks in its own layout, so we only format our modules.
+exclude = ["pipelines/**"]
