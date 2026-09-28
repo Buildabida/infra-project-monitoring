@@ -7,9 +7,12 @@ data/
 *.zip
 *.geojson
 *.shp
+*.db
+*.duckdb
 
 # Secrets
 .env
+.databrickscfg
 *.pem
 *.key
 
