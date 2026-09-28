@@ -120,6 +120,8 @@ Every pull request runs these checks. A red X means a check found a problem. Cli
 - [Diátaxis](https://diataxis.fr/), for how we split our docs
 - [Plain language guide](https://digital.gov/guides/plain-language/)
 - [Write the Docs guide](https://www.writethedocs.org/guide/)
+- [GitHub issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms), for our issue and pull request forms
+- [NYC Mobility Pipeline](https://github.com/hyenalouise/nyc-mobility-pipeline), a class repo Bri shared, for issues that read like small plans
 - [dbt SQL style guide](https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql) and [SQLFluff](https://docs.sqlfluff.com/)
 - [Databricks SQL formatting](https://docs.databricks.com/aws/en/sql/user/sql-editor/custom-format) and [Genie best practices](https://docs.databricks.com/aws/en/genie/best-practices)
 - [Where PySpark and Spark SQL fit best](https://community.databricks.com/t5/technical-blog/where-pyspark-and-sparksql-fit-best-in-the-enterprise/ba-p/111021)
