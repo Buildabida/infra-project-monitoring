@@ -9,7 +9,7 @@ Every run checks the data before it moves to the next layer:
 | Check | Example | If it fails |
 | --- | --- | --- |
 | Not null | `contract_id` is never empty | Stop the run |
-| Unique | One row per `contract_id` in `silver.projects` | Stop the run |
+| Unique | One row per `contract_id` in `02-silver.projects` | Stop the run |
 | Row counts | Bronze, silver and gold totals match, after known drops | Stop the run |
 | Valid range | `progress` is from 0 to 100 | Flag the row |
 | Map point | The point is inside the Philippines | Flag the row |
@@ -20,7 +20,7 @@ Never skip a failed check, mark it as passed by hand or edit a table by hand to 
 
 ## Where the results go
 
-Each run saves its results in `validation.dq_results`. We use the same columns as in Week 9:
+Each run saves its results in `04-validation.dq_results`. We use the same columns as in Week 9:
 
 | column | data_quality_check | failed_rows | total_rows | percentage | status |
 | --- | --- | --- | --- | --- | --- |

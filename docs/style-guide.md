@@ -13,7 +13,7 @@ Short rules for how we write and code. They come from the guides listed at the e
 7. **Put the condition first.** Write "If the check fails, stop the run", not the other way around.
 8. **Write headings in sentence case.** Start a task heading with a verb, like "Run the pipeline".
 9. **Make links say where they go.** Never write "click here".
-10. **Put code in code font.** File names, tables, columns and commands go in backticks, like `silver.projects`.
+10. **Put code in code font.** File names, tables, columns and commands go in backticks, like `02-silver.projects`.
 11. **Use tables for real data only.** Fill every cell. Write "None" if there's nothing.
 12. **Keep each fact in one place.** Link to it instead of copying it.
 13. **Update the docs in the same pull request as the code.**
@@ -26,7 +26,7 @@ Use SQL for setup, silver, gold and validation. Most of us know SQL best, and Sp
 
 ## Write clear SQL
 
-1. **Start with our catalog.** The first line of a SQL notebook is `USE CATALOG buildabida`. Then name each table as `schema.table`, like `silver.projects`.
+1. **Start with our catalog.** The first line of a SQL notebook is ``USE CATALOG `buildabida-capstone` ``. Our catalog and schema names have hyphens, so put backticks around them. Then name each table as `` `schema`.table ``, like `` `02-silver`.projects ``.
 2. **Write keywords and functions in capitals.** Names stay in snake_case, like `SELECT contract_id`.
 3. **Put one column on each line,** with the comma at the end of the line.
 4. **Use CTEs, not nested queries.** Give each CTE one job and a name that says it, like `projects_with_places`. End with `SELECT * FROM` the last CTE.
@@ -42,9 +42,9 @@ Use SQL for setup, silver, gold and validation. Most of us know SQL best, and Sp
 Here's a short, clear silver table:
 
 ```sql
-USE CATALOG buildabida;
+USE CATALOG `buildabida-capstone`;
 
-CREATE OR REPLACE TABLE silver.projects
+CREATE OR REPLACE TABLE `02-silver`.projects
 COMMENT 'One row per DPWH project'
 AS
 WITH latest AS (
@@ -53,7 +53,7 @@ WITH latest AS (
         TRY_CAST(budget AS DECIMAL(18, 2)) AS budget,
         TO_DATE(start_date) AS start_date,
         loaded_at
-    FROM bronze.dpwh_projects
+    FROM `01-bronze`.dpwh_projects
     QUALIFY ROW_NUMBER() OVER (PARTITION BY contract_id ORDER BY loaded_at DESC) = 1
 )
 
@@ -79,8 +79,8 @@ Before you commit, click **Edit**, then **Format Notebook**. Your SQL now matche
 
 ## Write short, clear Python
 
-1. **Keep links and the catalog name in `buildabida/config.py`.** Python notebooks import them. Never copy a link into a notebook.
-2. **Put helpers in the `buildabida` folder, not in notebooks.** Import them with `from buildabida import api, config`. Don't use `%run`.
+1. **Keep links and the catalog name in `src/config.py`.** Python notebooks import them. Never copy a link into a notebook.
+2. **Put helpers in the `src` folder, not in notebooks.** Import them with `from src import api, config`. Don't use `%run`.
 3. **Give each step its own cell.** Only print or display what you need to check.
 4. **Name columns in snake_case.** True or false columns start with `is_` or `has_`. DataFrame names end in `_df`.
 5. **Build columns in one `select`.** Rename with `.alias()` instead of long `withColumn` chains.
@@ -127,4 +127,5 @@ Every pull request runs these checks. A red X means a check found a problem. Cli
 - [Where PySpark and Spark SQL fit best](https://community.databricks.com/t5/technical-blog/where-pyspark-and-sparksql-fit-best-in-the-enterprise/ba-p/111021)
 - [Palantir PySpark style guide](https://github.com/palantir/pyspark-style-guide)
 - [Databricks notebook best practices](https://docs.databricks.com/aws/en/notebooks/best-practices)
+- [Databricks extension for VS Code](https://docs.databricks.com/aws/en/dev-tools/vscode-ext/)
 - [Ruff](https://docs.astral.sh/ruff/)
