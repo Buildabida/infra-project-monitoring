@@ -24,7 +24,7 @@ An org owner installs the Databricks GitHub app on Buildabida once. Without it, 
 6. **Get a review** from the reviewer named in the issue. Then Kinah merges.
 7. **Pull again** after a merge, so you have the latest `main`.
 
-The `main` branch only takes pull requests that have one approval and pass our checks. Everyone commits from their own account, so the history shows who did what.
+The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
 
 ## Write issues and pull requests
 
@@ -40,6 +40,8 @@ We write each issue like a small plan, so anyone can pick it up or review it wit
 | Ownership | The owner, the reviewer and the docs it changes |
 
 Start each title with its layer in capitals, like `[BRONZE] Load DPWH projects`.
+
+If an issue waits on another one, also add it in the issue sidebar under **Relationships**, then **Mark as blocked by**. The board then shows which cards are blocked.
 
 The pull request form asks for a summary, the related issue, the changes and how you tested them. It also asks for evidence, doc updates, AI help, notes for the reviewer and the acceptance criteria. Good evidence has the run date, the notebook, row counts and check results. Say what you still did not check.
 
