@@ -10,6 +10,10 @@
 
 # COMMAND ----------
 
+import sys
+
+sys.path.append("../..")  # the repo root, so the import below works everywhere
+
 from src import api, config
 
 rows = [(name, api.check(url), url) for name, url in config.SOURCE_CHECKS.items()]
