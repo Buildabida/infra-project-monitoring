@@ -11,6 +11,8 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
 3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/vscode-setup.md).
 4. Run `00_setup_workspace` once as a workflow, so you know your setup works.
 
+Who to ask: Nadine for invites, the org and the team workspace. Kinah for the repo, the board and merges. Anyone on the team for a review.
+
 ## Make a change
 
 1. **Pick an issue.** Take a card on the [project board](https://github.com/orgs/Buildabida/projects/1). Check that it has an owner and a reviewer, and that nothing blocks it. Read the decisions it links to.
@@ -21,8 +23,8 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
    - `docs/issue-9-source-cards` for docs
 4. **Run it before you push.** Run the notebook as a workflow and check the results. Keep test runs small. The team workspace has one daily quota for all of us.
 5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Source Control view, check the list of changed files. Commit only the files you meant to change.
-6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`.
-7. **Get a review** from the reviewer named in the issue. Then Kinah merges.
+6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`. Want eyes before it is done? Open it as a draft.
+7. **Get a review** from the reviewer named in the issue. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
 8. **Pull again** after a merge, so you have the latest `main`.
 
 The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
@@ -34,6 +36,18 @@ The `main` branch only takes pull requests that pass our checks, have one approv
 - Don't mix moving or renaming files with changes to the logic. Put them in separate pull requests.
 - Keep each piece of logic in one place. Don't copy it into a second notebook. Shared Python goes in `src`.
 - Try new ideas in a scratch file outside the repo, or in a branch. Only finished notebooks go in `notebooks`.
+
+### Review a pull request
+
+You are the second pair of eyes. Open **Files changed**, read the diff, and check:
+
+1. The evidence shows it ran: the date, the notebook and the counts.
+2. It is safe to run twice.
+3. No keys, tokens, data files or notebook output with data.
+4. The names match ours: catalog, schemas, tables and columns.
+5. The docs changed in the same pull request, if the change needs it.
+
+Leave a comment on the line when something is off. Then click **Review changes** and pick **Approve** or **Request changes**. Say what to change, not who was wrong.
 
 ## Write issues and pull requests
 
