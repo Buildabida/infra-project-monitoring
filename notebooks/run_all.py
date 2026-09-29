@@ -24,7 +24,7 @@ results = []
 for step in steps:
     try:
         result = dbutils.notebook.run(f"./{step}", 3600) or "done"
-    except Exception as error:  # keep going, so one broken source does not stop the others
+    except Exception as error:  # noqa: BLE001 keep going, so one broken source does not stop the others
         result = "FAILED: " + str(error).strip().splitlines()[0][:300]
     results.append((step, result))
     print(f"{step}: {result}")
@@ -34,4 +34,4 @@ for step in steps:
 display(spark.createDataFrame(results, "step string, result string"))
 failed = [step for step, result in results if result.startswith("FAILED")]
 if failed:
-    raise Exception("These steps failed: " + ", ".join(failed))
+    raise RuntimeError("These steps failed: " + ", ".join(failed))
