@@ -16,6 +16,8 @@
 import datetime
 import sys
 
+from pyspark.sql import functions as F
+
 sys.path.append("../..")  # the repo root, so the import below works everywhere
 
 from src import bronze, config
@@ -92,7 +94,7 @@ for table, column, check, failed, action in CHECKS:
     query = failed if failed.lstrip().upper().startswith("SELECT") else f"SELECT {failed} AS failed_rows, COUNT(*) AS total_rows FROM {bronze.table_name(table)}"
     try:
         row = spark.sql(query).first()
-    except Exception as error:  # a check that cannot run is a failed check, not a crash
+    except Exception as error:  # noqa: BLE001 a check that cannot run is a failed check, not a crash
         print(f"Could not run {table} {column} {check}: {error}")
         row = None
     failed_rows = None if row is None else int(row["failed_rows"] or 0)
@@ -110,8 +112,6 @@ columns = (
     "run_id string, table_name string, column string, data_quality_check string, failed_rows long, "
     "total_rows long, percentage double, status string, action string"
 )
-from pyspark.sql import functions as F  # noqa: E402
-
 frame = spark.createDataFrame(results, columns).withColumn("run_ts", F.current_timestamp())
 frame.write.mode("append").saveAsTable(bronze.table_name("dq_results", config.VALIDATION))
 print(f"Run {run_id}: {len(results)} checks saved. Skipped tables that are not loaded yet: {sorted(skipped) or 'none'}")
@@ -124,5 +124,5 @@ display(frame.select("table_name", "column", "data_quality_check", "failed_rows"
 
 stops = [r for r in results if r[8] == "stop" and r[7] in ("FAIL", "ERROR")]
 if stops:
-    raise Exception(f"{len(stops)} stop checks failed: " + "; ".join(f"{r[1]} {r[2]} {r[3]}" for r in stops))
+    raise RuntimeError(f"{len(stops)} stop checks failed: " + "; ".join(f"{r[1]} {r[2]} {r[3]}" for r in stops))
 print("No stop check failed.")
