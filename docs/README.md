@@ -10,7 +10,8 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
-| See what each notebook folder does | [Pipelines guide](../pipelines/README.md) |
+| Set up VS Code and run your first notebook | [Set up VS Code](vscode-setup.md) |
+| See what each notebook folder does | [Notebooks guide](../notebooks/README.md) |
 
 Source cards stay in the team Doc until Oct 3. After that, each source gets a card here.
 

@@ -1,6 +1,6 @@
-"""Names and links for our Python notebooks. SQL notebooks start with USE CATALOG buildabida."""
+"""Names and links for our Python notebooks. SQL notebooks start with USE CATALOG `buildabida-capstone`."""
 
-CATALOG = "buildabida"
+CATALOG = "buildabida-capstone"
 REPO = "github.com/Buildabida/infra-project-monitoring"
 
 # Tells each website who is asking.

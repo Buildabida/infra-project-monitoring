@@ -7,13 +7,21 @@ data/
 *.zip
 *.geojson
 *.shp
+*.db
+*.duckdb
 
 # Secrets
 .env
+.databrickscfg
 *.pem
 *.key
 
 # Local clutter
 .DS_Store
+.databricks/
 __pycache__/
 .ipynb_checkpoints/
+
+# VS Code settings stay on your computer. Only the extension list is shared.
+.vscode/*
+!.vscode/extensions.json

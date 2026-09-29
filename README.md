@@ -55,29 +55,28 @@ flowchart LR
     classDef dash fill:#FFD9E6,stroke:#2B2A4C,color:#2B2A4C
 ```
 
-Each layer is a schema in our `buildabida` catalog.
+Each layer is a schema in our `buildabida-capstone` catalog. The numbers show the run order.
 
-| Layer | What it holds |
+| Schema | What it holds |
 | --- | --- |
-| `bronze` | Each source as it came, plus the load time |
-| `silver` | Clean data. Every project gets a PSGC code, the official code for its place. |
-| `gold` | Ready-to-use tables for the dashboard and Genie |
-| `validation` | The result of every data quality check |
+| `00-source` | The files we download by hand, in a volume |
+| `01-bronze` | Each source as it came, plus the load time |
+| `02-silver` | Clean data. Every project gets a PSGC code, the official code for its place. |
+| `03-gold` | Ready-to-use tables for the dashboard and Genie |
+| `04-validation` | The result of every data quality check |
 
-Python loads the sources into `bronze`. SQL does the rest. The dashboard shows the answers, and Genie lets people ask their own questions in plain words.
+Python will load the accepted sources into `01-bronze`. SQL will build the planned `02-silver`, `03-gold` and `04-validation` layers. The dashboard and Genie are not built yet.
 
 ## Quickstart
 
-You need a [Databricks Free Edition](https://www.databricks.com/learn/free-edition) account.
+We write code in VS Code and run it on our team workspace on [Databricks Free Edition](https://www.databricks.com/learn/free-edition). Nadine adds you to the workspace, and you accept the invite by email.
 
-1. In Databricks, click **Workspace**, then open your **Home** folder.
-2. Click **Create**, then **Git folder**.
-3. Paste `https://github.com/Buildabida/infra-project-monitoring.git`, then click **Create Git folder**.
-4. Open `pipelines/00_setup/00_setup_workspace`, then click **Run all**.
+1. Install VS Code with the **Databricks** and **Python** extensions.
+2. Clone `https://github.com/Buildabida/infra-project-monitoring.git` and open the folder.
+3. Click the **Databricks** icon, sign in with **OAuth (user to machine)** and pick **Serverless**.
+4. Open `notebooks/00_setup/00_setup_workspace.sql`, click **Run on Databricks**, then **Run File as Workflow**.
 
-The last cell lists the `bronze`, `silver`, `gold` and `validation` schemas. Next, run `01_check_sources` to see which sources Databricks can reach.
-
-To commit from Databricks, link your GitHub account first. The steps are in [how we work](CONTRIBUTING.md#before-you-start). We add the other notebooks layer by layer, in the order shown in the [pipelines guide](pipelines/README.md).
+The last cell lists the five schemas. Next, run `01_check_sources.py` the same way to see which sources Databricks can reach. The full steps are in [set up VS Code](docs/vscode-setup.md). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md).
 
 ## Data sources
 
@@ -98,12 +97,12 @@ Two things to know:
 
 ## Known limits
 
-- **Some sites block Databricks.** Free Edition can only reach some websites. On Sep 28, our source check reached the DPWH API, the flood control map layer, the BetterGov portal, HDX and Hugging Face. The PSA website said no (HTTP 403). So we download the PSGC and census files by hand, upload them to the `bronze.landing` volume, and write the download date in the source card.
-- **Each of us has our own workspace.** Free Edition gives one workspace per account. We share code through this repo, not through one workspace.
+- **Some sites block Databricks.** Free Edition can only reach some websites. On Sep 28, our source check reached the DPWH API, the flood control map layer, the BetterGov portal, HDX and Hugging Face. The PSA website said no (HTTP 403). So we download the PSGC and census files by hand, upload them to the `00-source.landing` volume, and write the download date in the source card.
+- **One workspace runs the final pipeline.** Our team workspace runs the final pipeline and the dashboard. That is decision [D-01](docs/decisions.md). It has one daily quota for all of us, so we keep test runs small and share code through this repo.
 
 ## Find your way around
 
-- **Run it:** the [quickstart](#quickstart) and the [pipelines guide](pipelines/README.md)
+- **Run it:** the [quickstart](#quickstart), the [notebooks guide](notebooks/README.md) and [set up VS Code](docs/vscode-setup.md)
 - **Look something up:** the [data model](docs/data-model.md), the [data quality checks](docs/validation.md) and the [style guide](docs/style-guide.md)
 - **See why we chose something:** our [decisions](docs/decisions.md)
 - **Help out:** [how we work](CONTRIBUTING.md)
@@ -113,10 +112,14 @@ Two things to know:
 ├── README.md          this page
 ├── CONTRIBUTING.md    how we work: branches, reviews and AI rules
 ├── LICENSE            MIT License for our code
-├── buildabida/        shared Python code: names, links and helpers
-├── pipelines/         Databricks notebooks, one folder per step
+├── notebooks/         Databricks notebooks, one folder per step
+├── src/               shared Python code: names, links and helpers
 ├── docs/              data model, checks, decisions and style guide
+├── dashboard/         the dashboard file, once we build it
+├── tests/             tests for the code in src
+├── resources/         job settings for our Databricks bundle, later
 ├── assets/            the banner at the top of this page
+├── databricks.yml     points VS Code at our team workspace
 └── .github/           issue and pull request forms, and our checks
 ```
 
@@ -132,7 +135,7 @@ Kinah (lead), Bri, Nadine, Sam and Tricia. Mentor: Carmi. Support instructor: Si
 
 | Date | Milestone |
 | --- | --- |
-| Oct 3 | Ingestion and schema: every source is in `bronze`, with a source card and a draft schema |
+| Oct 3 | Ingestion and schema: every accepted source is in `01-bronze`, with a source card and a reviewed draft schema |
 | Oct 10 | Silver and gold tables pass their checks |
 | Oct 17 | Dashboard and Genie. Databricks Associate exam. |
 | Oct 24 | Final Capstone Showcase (judging) and graduation |

@@ -1,0 +1,11 @@
+# Settings for the Databricks extension for VS Code.
+# The extension reads this file, so you only sign in. See docs/vscode-setup.md.
+bundle:
+  name: infra-project-monitoring
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-1106b696-980b.cloud.databricks.com

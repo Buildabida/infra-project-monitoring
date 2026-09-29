@@ -1,30 +1,53 @@
 # How we work
 
-These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, and Databricks for notebooks. You don't need VS Code.
+These rules help five people build one pipeline without breaking each other's work. We keep our tools simple: GitHub for code and tasks, VS Code for writing code, and our Databricks team workspace for running it.
+
+The details of our tables, checks and choices live in [`docs`](docs/README.md). This guide links to them instead of copying them.
 
 ## Before you start
 
 1. Accept your invite to the [Buildabida org](https://github.com/Buildabida) on GitHub. No invite yet? Ask Nadine, our org owner.
-2. In Databricks, click your profile picture, then **Settings**, then **Linked accounts**.
-3. Click **Add Git credential** and pick **GitHub**. Then click **Link Git account** and **Authorize Databricks**.
-4. Add the repo as a Git folder. The steps are in the [quickstart](README.md#quickstart).
+2. Accept the invite to our Databricks team workspace. It comes by email from Nadine.
+3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/vscode-setup.md).
+4. Run `00_setup_workspace` once as a workflow, so you know your setup works.
 
-An org owner installs the Databricks GitHub app on Buildabida once. Without it, Databricks can't push to our repo.
+Who to ask: Nadine for invites, the org and the team workspace. Kinah for the repo, the board and merges. Anyone on the team for a review.
 
 ## Make a change
 
-1. **Pick an issue.** Take a card on the [project board](https://github.com/orgs/Buildabida/projects/1). Check that it has an owner and a reviewer, and that nothing blocks it.
+1. **Pick an issue.** Take a card on the [project board](https://github.com/orgs/Buildabida/projects/1). Check that it has an owner and a reviewer, and that nothing blocks it. Read the decisions it links to.
 2. **Pull first.** Pull `main` before you start any work.
 3. **Make a branch** named `<type>/issue-<number>-<short-name>`:
    - `feature/issue-6-bronze-dpwh-projects` for new work
    - `fix/issue-14-silver-dates` for a fix
    - `docs/issue-9-source-cards` for docs
-4. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`.
-5. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`.
-6. **Get a review** from the reviewer named in the issue. Then Kinah merges.
-7. **Pull again** after a merge, so you have the latest `main`.
+4. **Run it before you push.** Run the notebook as a workflow and check the results. Keep test runs small. The team workspace has one daily quota for all of us.
+5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Source Control view, check the list of changed files. Commit only the files you meant to change.
+6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`. Want eyes before it is done? Open it as a draft.
+7. **Get a review** from the reviewer named in the issue. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
+8. **Pull again** after a merge, so you have the latest `main`.
 
-The `main` branch only takes pull requests that have one approval and pass our checks. Everyone commits from their own account, so the history shows who did what.
+The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
+
+### Keep each change small
+
+- Use one branch for one issue.
+- Take the card before you start, so two people never edit the same notebook at the same time.
+- Don't mix moving or renaming files with changes to the logic. Put them in separate pull requests.
+- Keep each piece of logic in one place. Don't copy it into a second notebook. Shared Python goes in `src`.
+- Try new ideas in a scratch file outside the repo, or in a branch. Only finished notebooks go in `notebooks`.
+
+### Review a pull request
+
+You are the second pair of eyes. Open **Files changed**, read the diff, and check:
+
+1. The evidence shows it ran: the date, the notebook and the counts.
+2. It is safe to run twice.
+3. No keys, tokens, data files or notebook output with data.
+4. The names match ours: catalog, schemas, tables and columns.
+5. The docs changed in the same pull request, if the change needs it.
+
+Leave a comment on the line when something is off. Then click **Review changes** and pick **Approve** or **Request changes**. Say what to change, not who was wrong.
 
 ## Write issues and pull requests
 
@@ -41,7 +64,24 @@ We write each issue like a small plan, so anyone can pick it up or review it wit
 
 Start each title with its layer in capitals, like `[BRONZE] Load DPWH projects`.
 
-The pull request form asks for a summary, the related issue, the changes and how you tested them. It also asks for evidence, doc updates, AI help, notes for the reviewer and the acceptance criteria. Good evidence has the run date, the notebook, row counts and check results. Say what you still did not check.
+If an issue waits on another one, also add it in the issue sidebar under **Relationships**, then **Mark as blocked by**. The board then shows which cards are blocked.
+
+The pull request form asks for a summary, the related issue, the changes and how you tested them. It also asks which tables, jobs or dashboards change. Then it asks for evidence, doc updates, AI help, notes for the reviewer and the acceptance criteria.
+
+## Show your evidence
+
+When a change loads or changes data, put this in the pull request:
+
+- The source, and the date you pulled it or the file name
+- The branch or commit you ran
+- Row counts in and out
+- How many rows were flagged, and why
+- The results of the not null and unique checks
+- One total that matches the source, like the number of projects or the total budget
+- What happens when you run it twice
+- What you still did not check
+
+Put screenshots in our Drive folder, and link them in the pull request. Never say something ran unless you can show it.
 
 ## Labels
 
@@ -61,15 +101,15 @@ Use the same names in code, docs and diagrams.
 | Thing | Pattern | Example |
 | --- | --- | --- |
 | Notebook | `NN_layer_source` | `01_bronze_dpwh_projects` |
-| Schema | The layer name | `bronze`, `silver`, `gold`, `validation` |
-| Table | What it holds, in snake_case | `silver.projects` |
+| Schema | The step number and the layer name | `01-bronze`, `02-silver`, `03-gold`, `04-validation` |
+| Table | What it holds, in snake_case | `02-silver.projects` |
 | Column | snake_case, no spaces | `contract_id`, `amount_paid` |
 
-Every table lives in our `buildabida` catalog. Our rules for writing and code are in the [style guide](docs/style-guide.md).
+Every table lives in our `buildabida-capstone` catalog. The names have hyphens, so SQL needs backticks around them. Our rules for writing and code are in the [style guide](docs/style-guide.md).
 
 ## Data quality
 
-Every table gets checks. If a critical check fails, the run stops. Don't skip a failed check to make the run pass. The full list is in [data quality checks](docs/validation.md).
+Every table gets checks, and each layer waits for the one before it to pass. If a critical check fails, the run stops. Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. The full rules are in [data quality checks](docs/validation.md).
 
 ## Using AI tools
 
@@ -112,13 +152,14 @@ The pull request form asks these too.
 
 ### Turn AI tips into real checks
 
-If AI suggests a data quality check, add it to `validation.dq_results`. Don't just trust a chat that says the data looks fine.
+If AI suggests a data quality check, add it to `04-validation.dq_results`. Don't just trust a chat that says the data looks fine.
 
 ## Keep it safe
 
-- Never commit keys, tokens or passwords, even inside a notebook cell.
-- Don't commit data files. Data lives in Databricks tables and volumes.
+- Never commit keys, tokens, passwords or a `.databrickscfg` file, even inside a notebook cell.
+- Don't commit data files, local database files or notebook output that shows data. Data lives in Databricks tables and volumes.
 - Only use public sources that are listed in the README.
+- Stop and ask the team before a change that needs more access, a new outside tool or a team decision.
 
 ## Keep it clean
 

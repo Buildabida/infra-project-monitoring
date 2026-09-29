@@ -35,7 +35,7 @@ jobs:
           python-version: "3.12"
       - run: pip install sqlfluff==4.3.0
       - name: Look for mistakes
-        run: sqlfluff lint pipelines --format github-annotation-native
+        run: sqlfluff lint notebooks --format github-annotation-native
 
   markdown:
     name: Markdown layout

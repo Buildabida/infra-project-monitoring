@@ -2,7 +2,7 @@
 
 import requests
 
-from buildabida import config
+from src import config
 
 HEADERS = {"User-Agent": config.USER_AGENT}
 

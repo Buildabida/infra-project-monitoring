@@ -1,5 +1,5 @@
 name: "Source card"
-description: "Describe a data source we plan to use."
+description: "Evaluate a candidate data source before the team accepts or rejects it."
 type: "Task"
 labels: ["layer:docs"]
 projects: ["Buildabida/1"]
@@ -38,7 +38,7 @@ body:
     id: reach
     attributes:
       label: "Can Databricks reach it?"
-      description: "Run pipelines/00_setup/01_check_sources to find out."
+      description: "Run notebooks/00_setup/01_check_sources to find out."
       options:
         - "Yes, we load it with code"
         - "No, we download it by hand"
