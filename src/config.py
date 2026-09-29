@@ -1,19 +1,67 @@
-"""Names and links for our Python notebooks. SQL notebooks start with USE CATALOG `buildabida-capstone`."""
+"""Names and links for our Python notebooks. SQL notebooks start with USE CATALOG `buildabida-capstone`.
+
+Change a link here, and every notebook gets it.
+"""
 
 CATALOG = "buildabida-capstone"
+SOURCE = "00-source"
+BRONZE = "01-bronze"
+VALIDATION = "04-validation"
+
+# Files we save before we load them: API pages and files we download by hand.
+LANDING = f"/Volumes/{CATALOG}/{SOURCE}/landing"
+
 REPO = "github.com/Buildabida/infra-project-monitoring"
 
 # Tells each website who is asking.
 USER_AGENT = f"buildabida ({REPO})"
 
+# 1. DPWH projects, through the BetterGov.ph API. Up to 5,000 projects per page.
+DPWH_API = "https://api.dpwh.bettergov.ph/projects"
+DPWH_PAGE_SIZE = 5000
+
+# 2. Flood control projects, the DPWH map layer behind sumbongsapangulo.ph. Up to 1,000 per call.
+FLOOD_LAYER = (
+    "https://services1.arcgis.com/IwZZTMxZCmAmFYvF/arcgis/rest/services/"
+    "FloodControl_Data_20250802_v6_corrected_coordinates_for_uploading/FeatureServer/0/query"
+)
+FLOOD_PAGE_SIZE = 1000
+
+# 3 and 4. PSA blocks Databricks, so we download these by hand into LANDING/psa.
+# The PSGC file also has the 2024 population of every place, with its code.
+# Our population source is census Table C (D-18). We use the PSGC count to cross-check it.
+PSA_FOLDER = f"{LANDING}/psa"
+PSGC_FILE_PATTERN = "PSGC-*Publication-Datafile*.xlsx"
+CENSUS_TABLE_B_PATTERN = "*Table B*.xlsx"
+
+# 5. Boundary maps with PSGC codes (PSA and NAMRIA, 2023-10-24 snapshot).
+# The link is pinned to one commit, so the files never change under us.
+BOUNDARY_SNAPSHOT = "2023-10-24"
+BOUNDARY_BASE = (
+    "https://raw.githubusercontent.com/bendlikeabamboo/barangay-boundaries-repository/"
+    "edf53994c8f217d9e1ce3f74c3d0a78025e0812a/2023-10-24/hierarchical_t0p005/"
+)
+# We load 7 of the 8 files (D-17). We skip special_geographic_areas.geojson: its 8 parts have
+# no PSGC code, the special area barangays are already in barangays.geojson, and its outline
+# covers the same ground as its parts, so a project could be counted twice.
+BOUNDARY_FILES = [
+    "regions.geojson",
+    "provinces.geojson",
+    "highly_urbanized_cities.geojson",
+    "independent_component_cities.geojson",
+    "component_cities.geojson",
+    "municipalities.geojson",
+    "barangays.geojson",
+]
+
+# A map point outside this box is not in the Philippines.
+PH_LAT = (4.2, 21.3)
+PH_LON = (116.0, 127.0)
+
 # One small request per source, to test if Databricks can reach it.
 SOURCE_CHECKS = {
-    "DPWH projects API (BetterGov)": "https://api.dpwh.bettergov.ph/projects?page=1&limit=1",
-    "Flood control map layer (DPWH)": (
-        "https://services1.arcgis.com/IwZZTMxZCmAmFYvF/arcgis/rest/services/"
-        "FloodControl_Data_20250802_v6_corrected_coordinates_for_uploading/"
-        "FeatureServer/0/query?where=1%3D1&returnCountOnly=true&f=json"
-    ),
+    "DPWH projects API (BetterGov)": f"{DPWH_API}?page=1&limit=1",
+    "Flood control map layer (DPWH)": f"{FLOOD_LAYER}?where=1%3D1&returnCountOnly=true&f=json",
     "BetterGov open data portal": "https://data.bettergov.ph/api/v1/stats",
     "PSA PSGC page": "https://psa.gov.ph/classification/psgc",
     "PSA OpenSTAT": "https://openstat.psa.gov.ph/",
