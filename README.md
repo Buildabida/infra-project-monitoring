@@ -59,7 +59,7 @@ Each layer is a schema in our `buildabida-capstone` catalog. The numbers show th
 
 | Schema | What it holds |
 | --- | --- |
-| `00-source` | The files we download by hand, in a volume |
+| `00-source` | The raw API pages and the files we download, in a volume |
 | `01-bronze` | Each source as it came, plus the load time |
 | `02-silver` | Clean data. Every project gets a PSGC code, the official code for its place. |
 | `03-gold` | Ready-to-use tables for the dashboard and Genie |
@@ -76,7 +76,9 @@ We write code in VS Code and run it on our team workspace on [Databricks Free Ed
 3. Click the **Databricks** icon, sign in with **OAuth (user to machine)** and pick **Serverless**.
 4. Open `notebooks/00_setup/00_setup_workspace.sql`, click **Run on Databricks**, then **Run File as Workflow**.
 
-The last cell lists the five schemas. Next, run `01_check_sources.py` the same way to see which sources Databricks can reach. The full steps are in [set up VS Code](docs/vscode-setup.md). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md).
+The last cell lists the five schemas. Next, run `01_check_sources.py` the same way to see which sources Databricks can reach. The full steps are in [set up VS Code](docs/vscode-setup.md).
+
+To load bronze, upload the PSA files to the landing volume, then run `notebooks/run_all.py` the same way. The steps are in [load bronze](notebooks/README.md#load-bronze). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md).
 
 ## Data sources
 
@@ -84,11 +86,13 @@ The last cell lists the five schemas. Next, run `01_check_sources.py` the same w
 | --- | --- |
 | [DPWH projects API](https://api.dpwh.bettergov.ph/projects) by BetterGov.ph | Every DPWH project with its budget, amount paid, progress, dates, contractor and map point. About 265,000 projects as of Sep 2026. |
 | [DPWH Transparency Portal](https://transparency.dpwh.gov.ph) | The official source. We use it to spot-check the API. |
-| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | Flood control projects, from DPWH |
+| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | Flood control projects, from DPWH. We load the DPWH map layer behind it, 9,855 rows as of Sep 29. |
 | [BetterGov flood control projects](https://bettergov.ph/flood-control-projects/table) | The flood control list named in our brief |
-| [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official codes for 18 regions, 82 provinces, 149 cities, 1,493 towns and 42,010 barangays |
-| [2024 Census of Population](https://psa.gov.ph) by PSA | The population of each place |
-| [Boundary maps](https://data.humdata.org/dataset/cod-ab-phl) on HDX | Matching each project's map point to a place |
+| [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official codes and names for 18 regions, 82 provinces, 149 cities, 1,493 towns and 42,010 barangays. It also has the 2024 count of every place, which we use to check Table C. |
+| [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C gives the population of every barangay. It is our population source. |
+| [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Matching each project's map point to a place. We load 7 files from one pinned version. |
+
+We load five of these: the DPWH projects API, the flood control map layer, the PSGC file, census Table C and the boundary maps. Each one has its own job. That is decision [D-22](docs/decisions.md).
 
 Two things to know:
 
@@ -98,6 +102,7 @@ Two things to know:
 ## Known limits
 
 - **Some sites block Databricks.** Free Edition can only reach some websites. On Sep 28, our source check reached the DPWH API, the flood control map layer, the BetterGov portal, HDX and Hugging Face. The PSA website said no (HTTP 403). So we download the PSGC and census files by hand, upload them to the `00-source.landing` volume, and write the download date in the source card.
+- **The DPWH data has gaps.** Our Sep 29 checks found that the amount paid is 0 for every project, so we can't check payments yet. About 1 in 5 projects has no map point. BARMM has no projects in the data, and we think it's because the Bangsamoro government runs its own public works.
 - **One workspace runs the final pipeline.** Our team workspace runs the final pipeline and the dashboard. That is decision [D-01](docs/decisions.md). It has one daily quota for all of us, so we keep test runs small and share code through this repo.
 
 ## Find your way around
