@@ -32,7 +32,7 @@ The checks for every bronze table live in one notebook, `04_validation/01_valida
 ## Load bronze
 
 1. PSA blocks Databricks, so download the PSGC file, census Table B and the 18 census Table C files by hand. The steps are at the top of `03_bronze_psgc`, `04_bronze_census_2024` and `06_bronze_census_table_c`.
-2. In the `00-source.landing` volume, upload the PSGC file and Table B to the `psa` folder, and the 18 Table C files to a folder whose name starts with `population`, like `population/table_c`. If a folder isn't there yet, make it.
+2. Upload the files to the `00-source.landing` volume. The PSGC file and Table B go in the `psa` folder. The 18 Table C files go in a folder whose name starts with `population`, like `population/table_c`. If a folder isn't there yet, make it.
 3. Run `run_all.py` the way you run any notebook. It takes about 15 minutes.
 4. Check the table at the end. Each step should say `done`. If a PSA file is missing, its step says `SKIPPED`, and the rest still run.
 
