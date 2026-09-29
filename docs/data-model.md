@@ -12,6 +12,7 @@ Every table lives in our `buildabida-capstone` catalog. The schemas are numbered
 | `01-bronze.psgc` | One place in the PSGC 2Q 2026 file | `psgc_code` |
 | `01-bronze.population_2024` | One place and its 2024 count from the PSGC file. We use it to check census Table C ([D-18](decisions.md)). | `psgc_code` |
 | `01-bronze.census_2024_table_b` | One row of census Table B: a region, province, city or town, with its counts from 2010 to 2024. Optional, for growth. | `sheet`, `row_number` |
+| `01-bronze.census_2024_table_c` | One row of census Table C: a province, city, town or barangay, with its 2024 count. Our population source ([D-18](decisions.md)). | `source_file`, `sheet_name`, `source_row_number` |
 | `01-bronze.boundaries` | One map shape of a region, province, city, town or barangay | None. Some places have 2 or more shapes, so `psgc_code` repeats. |
 | `01-bronze.load_log` | One load of one bronze table: the rows the source reports and the rows we loaded | `table_name`, `load_ts` |
 | `02-silver.projects` | One project from any source, with a PSGC code | `contract_id` |
@@ -22,7 +23,7 @@ Every table lives in our `buildabida-capstone` catalog. The schemas are numbered
 
 In `03-gold`, a fact table holds the things we count, like projects and their money. A dimension table holds the things we group by, like places and project types.
 
-Each bronze table also has `load_ts`, the time we loaded it. Census Table C, our population source, gets its own bronze table in [issue #14](https://github.com/Buildabida/infra-project-monitoring/issues/14).
+Each bronze table also has `load_ts`, the time we loaded it. The BARMM file of census Table C has 4 sheets that copy other sheets in it. `census_2024_table_c` keeps them and marks them in `is_known_duplicate_sheet`, and silver drops them.
 
 `00-source.landing` is a volume, not a table. It holds the raw API pages and the files we download, like the PSGC and census files.
 
