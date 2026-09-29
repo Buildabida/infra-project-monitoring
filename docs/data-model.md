@@ -8,17 +8,22 @@ Every table lives in our `buildabida-capstone` catalog. The schemas are numbered
 | Table | One row is | Key |
 | --- | --- | --- |
 | `01-bronze.dpwh_projects` | One project, as the API returns it | `contract_id` |
-| `01-bronze.flood_control_projects` | One flood control project | `contract_id` |
-| `01-bronze.psgc` | One place in the PSGC list | `psgc_code` |
-| `01-bronze.population_2024` | One place and its 2024 population | `psgc_code` |
+| `01-bronze.flood_control_projects` | One row of the flood control map layer. 109 contracts have more than one row ([D-19](decisions.md)). | `object_id` |
+| `01-bronze.psgc` | One place in the PSGC 2Q 2026 file | `psgc_code` |
+| `01-bronze.population_2024` | One place and its 2024 count from the PSGC file. We use it to check census Table C ([D-18](decisions.md)). | `psgc_code` |
+| `01-bronze.census_2024_table_b` | One row of census Table B: a region, province, city or town, with its counts from 2010 to 2024. Optional, for growth. | `sheet`, `row_number` |
+| `01-bronze.boundaries` | One map shape of a region, province, city, town or barangay | None. Some places have 2 or more shapes, so `psgc_code` repeats. |
+| `01-bronze.load_log` | One load of one bronze table: the rows the source reports and the rows we loaded | `table_name`, `load_ts` |
 | `02-silver.projects` | One project from any source, with a PSGC code | `contract_id` |
 | `03-gold.dim_place` | One region, province, city or town | `psgc_code` |
 | `03-gold.dim_project_type` | One project type | `project_type_id` |
 | `03-gold.fact_project` | One project | `contract_id` |
-| `04-validation.dq_results` | One check on one column in one run | `run_id`, `table_name`, `column_name`, `check_name` |
+| `04-validation.dq_results` | One check on one column in one run | `run_id`, `table_name`, `column`, `data_quality_check` |
 
 In `03-gold`, a fact table holds the things we count, like projects and their money. A dimension table holds the things we group by, like places and project types.
 
-`00-source.landing` is a volume, not a table. It holds the files we download by hand, like the PSGC and census files.
+Each bronze table also has `load_ts`, the time we loaded it. Census Table C, our population source, gets its own bronze table in [issue #14](https://github.com/Buildabida/infra-project-monitoring/issues/14).
+
+`00-source.landing` is a volume, not a table. It holds the raw API pages and the files we download, like the PSGC and census files.
 
 The names have hyphens, so SQL needs backticks around the catalog and the schema, like `` `01-bronze`.psgc ``.
