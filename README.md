@@ -65,7 +65,7 @@ Each layer is a schema in our `buildabida-capstone` catalog. The numbers show th
 | `03-gold` | Ready-to-use tables for the dashboard and Genie |
 | `04-validation` | The result of every data quality check |
 
-Python loads the sources into `bronze`. SQL does the rest. The dashboard shows the answers, and Genie lets people ask their own questions in plain words.
+Python will load the accepted sources into `01-bronze`. SQL will build the planned `02-silver`, `03-gold` and `04-validation` layers. The dashboard and Genie are not built yet.
 
 ## Quickstart
 
@@ -135,7 +135,7 @@ Kinah (lead), Bri, Nadine, Sam and Tricia. Mentor: Carmi. Support instructor: Si
 
 | Date | Milestone |
 | --- | --- |
-| Oct 3 | Ingestion and schema: every source is in `bronze`, with a source card and a draft schema |
+| Oct 3 | Ingestion and schema: every accepted source is in `01-bronze`, with a source card and a reviewed draft schema |
 | Oct 10 | Silver and gold tables pass their checks |
 | Oct 17 | Dashboard and Genie. Databricks Associate exam. |
 | Oct 24 | Final Capstone Showcase (judging) and graduation |
