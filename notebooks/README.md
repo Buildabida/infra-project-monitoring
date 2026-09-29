@@ -12,6 +12,33 @@ Our Databricks notebooks, one folder per step. Run the folders in this order. Ea
 
 We add each folder with its first notebook. Try new ideas in a scratch file first. Only finished notebooks go here.
 
+`run_all.py` runs the setup, every bronze load and the bronze checks, in that order.
+
+## Bronze notebooks
+
+Each notebook loads one source as it came, plus the load time. Each source keeps its own tables, and silver joins them. That is decision [D-22](../docs/decisions.md). A load saves the raw pages or files in the landing volume first. Then it adds a row to `01-bronze.load_log` with the number of rows the source reports and the number we loaded. The checks compare the two.
+
+| Notebook | Source | Table |
+| --- | --- | --- |
+| `01_bronze_dpwh_projects` | DPWH projects API by BetterGov.ph | `dpwh_projects` |
+| `02_bronze_flood_control` | DPWH flood control map layer | `flood_control_projects` |
+| `03_bronze_psgc` | PSA PSGC 2Q 2026 datafile | `psgc` and `population_2024` |
+| `04_bronze_census_2024` | PSA 2024 census, Table B. Optional, for growth. | `census_2024_table_b` |
+| `05_bronze_boundaries` | Boundary maps with PSGC codes, 7 files | `boundaries` |
+
+Census Table C is our population source ([D-18](../docs/decisions.md)). It gets its own notebook next, in [issue #14](https://github.com/Buildabida/infra-project-monitoring/issues/14).
+
+The checks for every bronze table live in one notebook, `04_validation/01_validation_bronze`. [Data quality checks](../docs/validation.md#bronze-checks) says how they work.
+
+## Load bronze
+
+1. PSA blocks Databricks, so download the PSGC file and census Table B by hand. The steps are at the top of `03_bronze_psgc` and `04_bronze_census_2024`.
+2. Upload both files to the `psa` folder in the `00-source.landing` volume. If the folder isn't there yet, make it.
+3. Run `run_all.py` the way you run any notebook. It takes about 15 minutes.
+4. Check the table at the end. Each step should say `done`. If a PSA file is missing, its step says `SKIPPED`, and the rest still run.
+
+Every load is safe to run twice. A second run replaces the table, and `load_log` gets one more row. The raw pages from each day stay in the landing volume.
+
 ## Run a notebook
 
 In VS Code, open the file, click the **Run on Databricks** icon at the top right, then **Run File as Workflow**. The run happens on our team workspace, and the results open in a tab. The setup steps are in [set up VS Code](../docs/vscode-setup.md).
