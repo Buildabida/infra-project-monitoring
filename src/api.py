@@ -75,8 +75,7 @@ def download(url, path, tries=4):
             ) as response:
                 response.raise_for_status()
                 with open(path, "wb") as file:
-                    for chunk in response.iter_content(chunk_size=1 << 20):
-                        file.write(chunk)
+                    file.writelines(response.iter_content(chunk_size=1 << 20))
             return path
         except requests.RequestException:
             if attempt == tries:

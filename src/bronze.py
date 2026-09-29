@@ -24,8 +24,9 @@ def landing_folder(*parts):
 def write_json_lines(path, records):
     """Save one record per line, as it came. Spark reads these files straight from the volume."""
     with open(path, "w", encoding="utf-8") as file:
-        for record in records:
-            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+        file.writelines(
+            json.dumps(record, ensure_ascii=False) + "\n" for record in records
+        )
 
 
 def find_file(folder, pattern):
