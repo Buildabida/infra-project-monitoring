@@ -34,6 +34,18 @@ PSA_FOLDER = f"{LANDING}/psa"
 PSGC_FILE_PATTERN = "PSGC-*Publication-Datafile*.xlsx"
 CENSUS_TABLE_B_PATTERN = "*Table B*.xlsx"
 
+# Census Table C, our population source (D-18). PSA blocks Databricks, so we download the 18 region
+# files by hand. They go in a landing folder whose name starts with population, as Nadine set it up.
+TABLE_C_FILES_GLOB = f"{LANDING}/population*/**/*.xlsx"
+TABLE_C_FILE_COUNT = 18
+# The BARMM file has 4 extra sheets that copy other sheets in the same file. Bronze keeps and marks them.
+TABLE_C_DUPLICATE_SHEETS = {
+    "Table C_Lanao del Sur_1",
+    "Table C_Maguindanao del Norte1",
+    "Table C_Maguindanao del Sur1",
+    "Table C_SGA1",
+}
+
 # 5. Boundary maps with PSGC codes (PSA and NAMRIA, 2023-10-24 snapshot).
 # The link is pinned to one commit, so the files never change under us.
 BOUNDARY_SNAPSHOT = "2023-10-24"
