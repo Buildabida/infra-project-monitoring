@@ -17,9 +17,11 @@
 # COMMAND ----------
 
 import json
+import os
 import sys
 
-sys.path.append("../..")  # the repo root, so the import below works everywhere
+repo_root = os.path.abspath("../..")  # the repo root, so the import below works everywhere
+sys.path.insert(0, repo_root)
 
 from src import api, bronze, config
 
