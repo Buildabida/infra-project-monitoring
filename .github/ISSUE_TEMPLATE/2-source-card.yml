@@ -1,5 +1,5 @@
 name: "Source card"
-description: "Describe a data source we plan to use."
+description: "Evaluate a candidate data source before the team accepts or rejects it."
 type: "Task"
 labels: ["layer:docs"]
 projects: ["Buildabida/1"]
