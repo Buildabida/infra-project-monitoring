@@ -1,6 +1,9 @@
 # Data quality checks
 
-Every run checks the data before it moves to the next layer:
+> [!NOTE]
+> This is our proposed design for the checks. No checks notebook or `04-validation.dq_results` table is built yet.
+
+Each run should check the data before it moves to the next layer:
 
 1. Silver runs only after bronze passes its checks.
 2. Gold runs only after silver passes.
@@ -25,3 +28,5 @@ Each run saves its results in `04-validation.dq_results`. We use the same column
 | column | data_quality_check | failed_rows | total_rows | percentage | status |
 | --- | --- | --- | --- | --- | --- |
 | contract_id | not null | 0 | 1000 | 0.00 | PASS |
+
+We finalize these fields when we build the first checks.
