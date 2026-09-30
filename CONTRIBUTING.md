@@ -103,7 +103,7 @@ Use the same names in code, docs and diagrams.
 | Notebook | `NN_layer_source` | `01_bronze_dpwh_projects` |
 | Schema | The step number and the layer name | `01-bronze`, `02-silver`, `03-gold`, `04-validation` |
 | Table | What it holds, in snake_case | `02-silver.projects` |
-| Column | snake_case, no spaces | `contract_id`, `amount_paid` |
+| Column | snake_case, no spaces. Bronze keeps the source's own names. | `contract_id`, `amount_paid` |
 
 Every table lives in our `buildabida-capstone` catalog. The names have hyphens, so SQL needs backticks around them. Our rules for writing and code are in the [style guide](docs/style-guide.md).
 

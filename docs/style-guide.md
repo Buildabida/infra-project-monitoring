@@ -82,7 +82,7 @@ Before you commit, click **Edit**, then **Format Notebook**. Your SQL now matche
 1. **Keep links and the catalog name in `src/config.py`.** Python notebooks import them. Never copy a link into a notebook.
 2. **Put helpers in the `src` folder, not in notebooks.** Import them with `from src import api, config`. Don't use `%run`.
 3. **Give each step its own cell.** Only print or display what you need to check.
-4. **Name columns in snake_case.** True or false columns start with `is_` or `has_`. DataFrame names end in `_df`.
+4. **Name columns in snake_case.** True or false columns start with `is_` or `has_`. DataFrame names end in `_df`. Bronze is the one place that keeps the source's own names, like `contractId`.
 5. **Build columns in one `select`.** Rename with `.alias()` instead of long `withColumn` chains.
 6. **Keep chains short.** Wrap a chain of up to 5 steps in parentheses. Never end a line with a backslash.
 7. **Always say how to join.** Write `how="left"` or `how="inner"`. Don't use right joins.
@@ -108,7 +108,7 @@ Every pull request runs these checks. A red X means a check found a problem. Cli
 | Check | What it looks at | How to fix it |
 | --- | --- | --- |
 | SQL (SQLFluff) | SQL notebooks | Fix the line it names. For capitals, use **Format Notebook**. |
-| Python (Ruff) | Python code | Fix the line it names. |
+| Python (Ruff) | Python code, and our tests with pytest | Fix the line it names. If a test fails, fix the code it names. |
 | Markdown layout | The layout of Markdown files | Fix the line it names. |
 | Links | Links between our files | Fix the path, or add the missing file. |
 | Writing tips | Semicolons, dashes, long sentences and wordy phrases | Split or trim the sentence. These are tips, so they never block a merge. |
