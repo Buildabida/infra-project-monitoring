@@ -65,7 +65,7 @@ Each layer is a schema in our `buildabida-capstone` catalog. The numbers show th
 | `03-gold` | Ready-to-use tables for the dashboard and Genie |
 | `04-validation` | The result of every data quality check |
 
-Python will load the accepted sources into `01-bronze`. SQL will build the planned `02-silver`, `03-gold` and `04-validation` layers. The dashboard and Genie are not built yet.
+Python loads our sources into `01-bronze` and runs the bronze checks, which we write in SQL. The checks save their results in `04-validation`. SQL will build the planned `02-silver` and `03-gold` layers. The dashboard and Genie are not built yet.
 
 ## Quickstart
 
@@ -92,12 +92,15 @@ To load bronze, upload the PSA files to the landing volume, then run `notebooks/
 | [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C gives the population of every barangay. It is our population source. |
 | [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Matching each project's map point to a place. We load 7 files from one pinned version. |
 
-We load five of these: the DPWH projects API, the flood control map layer, the PSGC file, census Table C and the boundary maps. Each one has its own job. That is decision [D-22](docs/decisions.md).
+We load five sources now: the DPWH projects API, the flood control map layer, the PSGC file, census Table C and the boundary maps. Each one has its own job. That is decision [D-22](docs/decisions.md). Table C is our population source, and the PSGC count is its cross-check.
 
-Two things to know:
+We plan a sixth source, the DENR MGB flood susceptibility map. It would add flood hazard, a sign of how much a place needs flood control. The team decides it in [D-21](docs/decisions.md). It is not built yet. We won't call it loaded until its source card, license, snapshot, grain and checks are approved and its bronze load is tested.
 
-- In the API, `location.province` holds a DPWH district office name, like `Albay 2nd DEO`. It's not a PSGC province. So we use the map point and the boundary maps to find the real place.
-- A project can be in both the DPWH list and the flood control list. We match them by contract ID, so we don't count one project twice.
+Three things to know:
+
+- In the API, `location.province` holds a DPWH district office name, like `Albay 2nd DEO`. It's not a PSGC province. So silver uses the map point and the boundary maps to find the real place.
+- The flood layer can have more than one real row for one contract, like its parts or its funding years. Bronze keeps them all. Silver sorts out these rows and their cost before it joins them with the DPWH projects. A contract ID alone is not a reason to drop a row.
+- A project can be in both the DPWH list and the flood control list. Silver matches them by contract ID, so we don't count one project twice.
 
 ## Known limits
 
