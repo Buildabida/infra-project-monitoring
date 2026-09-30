@@ -63,12 +63,14 @@ In a Python notebook, import our names and links from [`src/config.py`](../src/c
 from src import api, config
 ```
 
-Put these two lines in the first cell, so the import works from VS Code and from a Git folder:
+Put these lines in the first cell, so the import works from VS Code and from a Git folder. They put the repo root first on the path, so Python finds our `src` folder before any other:
 
 ```python
+import os
 import sys
 
-sys.path.append("../..")
+repo_root = os.path.abspath("../..")
+sys.path.insert(0, repo_root)
 ```
 
 Don't copy a link into a notebook. Change it in `config.py`, and every notebook gets the change.
