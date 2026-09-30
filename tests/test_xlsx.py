@@ -1,4 +1,4 @@
-"""Tests for src/xlsx.py, the Excel reader behind the PSGC, Table B and Table C loads."""
+"""Tests for src/xlsx.py, the Excel reader behind the PSGC and Table C loads."""
 
 import json
 import zipfile

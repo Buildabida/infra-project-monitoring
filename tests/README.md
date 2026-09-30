@@ -2,7 +2,7 @@
 
 Small automated tests for the code in `src` go here. Name each file `test_<what>.py`.
 
-`test_xlsx.py` checks our Excel reader, `src/xlsx.py`. The PSGC, Table B and Table C loads use it. It checks how we read text, empty cells, numbers and saved formula results. It also checks that cells keep their exact text, and that every row of a sheet is counted once.
+`test_xlsx.py` checks our Excel reader, `src/xlsx.py`. The PSGC and Table C loads use it. It checks how we read text, empty cells, numbers and saved formula results. It also checks that cells keep their exact text, and that every row of a sheet is counted once.
 
 Run the tests from the repo root:
 
