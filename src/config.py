@@ -30,14 +30,29 @@ FLOOD_PAGE_SIZE = 1000
 # 3 and 4. PSA blocks Databricks, so we download these by hand into LANDING/psa.
 # The PSGC file also has the 2024 population of every place, with its code.
 # Our population source is census Table C (D-18). We use the PSGC count to cross-check it.
+# We read one exact file of each, the release our docs and checks are for. For a new release,
+# change the name here and check the counts again.
 PSA_FOLDER = f"{LANDING}/psa"
-PSGC_FILE_PATTERN = "PSGC-*Publication-Datafile*.xlsx"
-CENSUS_TABLE_B_PATTERN = "*Table B*.xlsx"
+PSGC_PAGE = "https://psa.gov.ph/classification/psgc"
+PSGC_FILE = "PSGC-2Q-2026-Publication-Datafile.xlsx"
+CENSUS_PAGE = (
+    "https://psa.gov.ph/content/"
+    "2024-census-population-popcen-population-counts-declared-official-president"
+)
+TABLE_B_FILE = (
+    "3_Table B - Population and Annual PGR by Province, City, and Municipality"
+    " - By Region - rev_0.xlsx"
+)
 
 # Census Table C, our population source (D-18). PSA blocks Databricks, so we download the 18 region
-# files by hand. They go in a landing folder whose name starts with population, as Nadine set it up.
-TABLE_C_FILES_GLOB = f"{LANDING}/population*/**/*.xlsx"
+# files by hand into one folder. The load stops if the files don't match these counts.
+TABLE_C_FOLDER = f"{LANDING}/population/table_c"
+TABLE_C_FILES_GLOB = f"{TABLE_C_FOLDER}/*.xlsx"
 TABLE_C_FILE_COUNT = 18
+TABLE_C_EXPECTED_ROWS = 45_611
+TABLE_C_DUPLICATE_ROWS = 1_861
+TABLE_C_ANALYSIS_ROWS = 43_750
+TABLE_C_NON_DATA_SHEETS = 2
 # The BARMM file has 4 extra sheets that copy other sheets in the same file. Bronze keeps and marks them.
 TABLE_C_DUPLICATE_SHEETS = {
     "Table C_Lanao del Sur_1",
@@ -66,7 +81,8 @@ BOUNDARY_FILES = [
     "barangays.geojson",
 ]
 
-# A map point outside this box is not in the Philippines.
+# A rough box around the Philippines, to screen map points. A point outside it is not in the country.
+# A point inside it can still be at sea, so silver checks the points against the boundary maps.
 PH_LAT = (4.2, 21.3)
 PH_LON = (116.0, 127.0)
 
@@ -75,7 +91,7 @@ SOURCE_CHECKS = {
     "DPWH projects API (BetterGov)": f"{DPWH_API}?page=1&limit=1",
     "Flood control map layer (DPWH)": f"{FLOOD_LAYER}?where=1%3D1&returnCountOnly=true&f=json",
     "BetterGov open data portal": "https://data.bettergov.ph/api/v1/stats",
-    "PSA PSGC page": "https://psa.gov.ph/classification/psgc",
+    "PSA PSGC page": PSGC_PAGE,
     "PSA OpenSTAT": "https://openstat.psa.gov.ph/",
     "HDX boundary maps": "https://data.humdata.org/dataset/cod-ab-phl",
     "Hugging Face (BetterGov copies)": (
