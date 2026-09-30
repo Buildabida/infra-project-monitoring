@@ -4,10 +4,9 @@
 # MAGIC
 # MAGIC Runs the setup, the bronze loads, then the bronze checks. Click **Run all**. It takes about 15 minutes.
 # MAGIC
-# MAGIC Put the PSA files in the landing volume first. The steps are at the top of `03_bronze_psgc`, `04_bronze_census_2024` and `06_bronze_census_table_c`.
+# MAGIC Put the PSA files in the landing volume first. The steps are at the top of `03_bronze_psgc` and `06_bronze_census_table_c`.
 # MAGIC
 # MAGIC - **Required loads:** DPWH projects, flood control, PSGC, boundaries and Table C. If one of them fails or says `SKIPPED`, the checks don't run and say `BLOCKED`. That way the checks can never pass on an older table.
-# MAGIC - **Optional load:** Table B. It may say `SKIPPED`.
 # MAGIC
 # MAGIC When it is done, check the table at the end. The notebook fails if any step says `FAILED` or `BLOCKED`.
 
@@ -21,7 +20,6 @@ required_loads = [
     "01_bronze/05_bronze_boundaries",
     "01_bronze/06_bronze_census_table_c",
 ]
-optional_loads = ["01_bronze/04_bronze_census_2024"]
 validation_step = "04_validation/01_validation_bronze"
 
 
@@ -40,7 +38,7 @@ if setup_result.startswith(("FAILED", "SKIPPED")):
     display(spark.createDataFrame(results, "step string, result string"))
     raise RuntimeError(f"Setup did not finish: {setup_result}")
 
-for step in required_loads + optional_loads:
+for step in required_loads:
     result = run_step(step)
     results.append((step, result))
     print(f"{step}: {result}")

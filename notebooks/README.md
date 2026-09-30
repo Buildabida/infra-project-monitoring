@@ -29,7 +29,6 @@ Each notebook loads one source as it came. Bronze keeps every field and value of
 | `01_bronze_dpwh_projects` | DPWH projects API by BetterGov.ph | `dpwh_projects` |
 | `02_bronze_flood_control` | DPWH flood control map layer | `flood_control_projects` |
 | `03_bronze_psgc` | PSA PSGC 2Q 2026 datafile | `psgc` and `population_2024`, plus `psgc_sheet_manifest` and `psgc_parse_issues` |
-| `04_bronze_census_2024` | PSA 2024 census, Table B. Optional, for growth. | `census_2024_table_b`, plus its manifest and parse issues |
 | `05_bronze_boundaries` | Boundary maps with PSGC codes, 7 files | `boundaries` |
 | `06_bronze_census_table_c` | PSA 2024 census, Table C, 18 region files. Our population source ([D-18](../docs/decisions.md)). | `census_2024_table_c`, plus its manifest and parse issues |
 
@@ -37,10 +36,10 @@ The checks for every bronze table live in one notebook, `04_validation/01_valida
 
 ## Load bronze
 
-1. PSA blocks Databricks, so download the PSGC file, census Table B and the 18 census Table C files by hand. The steps are at the top of `03_bronze_psgc`, `04_bronze_census_2024` and `06_bronze_census_table_c`.
-2. Upload the files to the `00-source.landing` volume. The PSGC file and Table B go in the `psa` folder. The 18 Table C files go in `population/table_c`. If a folder isn't there yet, make it.
+1. PSA blocks Databricks, so download the PSGC file and the 18 census Table C files by hand. The steps are at the top of `03_bronze_psgc` and `06_bronze_census_table_c`.
+2. Upload the files to the `00-source.landing` volume. The PSGC file goes in the `psa` folder. The 18 Table C files go in `population/table_c`. If a folder isn't there yet, make it.
 3. Run `run_all.py` the way you run any notebook. It takes about 15 minutes.
-4. Check the table at the end. Every required load must say `done` before the checks run. Table B is optional and may say `SKIPPED`. If the PSGC or Table C load says `SKIPPED`, the checks don't run and say `BLOCKED`.
+4. Check the table at the end. Every load must say `done` before the checks run. If one says `SKIPPED` or `FAILED`, the checks don't run and say `BLOCKED`.
 
 Every load is safe to run twice. An API load saves its replies in a new folder for each run. It replaces its bronze table only after it has read the whole source. So a second run keeps both raw copies and never mixes their pages. Each run adds one more row per table to `load_log`.
 
