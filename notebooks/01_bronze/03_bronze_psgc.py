@@ -2,18 +2,22 @@
 # MAGIC %md
 # MAGIC # Bronze: PSGC codes and the 2024 population
 # MAGIC
-# MAGIC Loads the PSA PSGC publication datafile into two tables:
+# MAGIC Loads the PSA PSGC 2Q 2026 publication datafile into these tables:
 # MAGIC
-# MAGIC - `01-bronze`.`psgc`: one row per place (region, province, city, town, submunicipality or barangay). The key is `psgc_code`.
-# MAGIC - `01-bronze`.`population_2024`: one row per place with its 2024 census count. The PSGC file carries the official 2024 population, so every count already has its code. Our population source is census Table C (D-18), so we use this table to cross-check it.
+# MAGIC - `01-bronze`.`psgc`: one row per place (region, province, city, town, submunicipality or barangay). The key is `psgc_code_parsed`.
+# MAGIC - `01-bronze`.`population_2024`: one row per place that has a 2024 census count in the file. Our population source is census Table C (D-18), so we use this table to cross-check it.
+# MAGIC - `01-bronze`.`psgc_sheet_manifest`: one row per sheet of the file. For the PSGC sheet, it counts the title and header rows, blank rows, notes, places and rows we could not read. The counts must add up to the rows in the sheet.
+# MAGIC - `01-bronze`.`psgc_parse_issues`: every row under the header that is not blank, has no PSGC code and is not a note, with its cells and the reason. If it has any rows, the load stops before it replaces `psgc`.
+# MAGIC
+# MAGIC Bronze keeps every cell as PSA wrote it. Three columns also get a `_parsed` copy next to the `_raw` one. `psgc_code_parsed` and `correspondence_code_parsed` put back the leading zeros that Excel drops when it saves a code as a number. `population_2024_parsed` is the count as a number. Silver does the rest of the cleaning.
 # MAGIC
 # MAGIC PSA blocks Databricks, so download the file by hand first:
 # MAGIC
-# MAGIC 1. Go to https://psa.gov.ph/classification/psgc and download the latest **Publication Datafile** (for example `PSGC-2Q-2026-Publication-Datafile.xlsx`).
+# MAGIC 1. Go to https://psa.gov.ph/classification/psgc and download the **Publication Datafile** for 2Q 2026, `PSGC-2Q-2026-Publication-Datafile.xlsx`.
 # MAGIC 2. In Databricks, open **Catalog**, then `buildabida-capstone` > `00-source` > `landing`. Make a folder named `psa` and upload the file there.
 # MAGIC 3. Write the download date in the PSGC source card.
 # MAGIC
-# MAGIC It is safe to run twice. It always reads the newest file that matches.
+# MAGIC The notebook reads only this exact file, the release our docs and checks are for. For a new release, change `PSGC_FILE` in `src/config.py` and check the counts again. It is safe to run twice.
 
 # COMMAND ----------
 
@@ -25,32 +29,22 @@ sys.path.insert(0, repo_root)
 
 from src import bronze, config, xlsx
 
-path = bronze.find_file(config.PSA_FOLDER, config.PSGC_FILE_PATTERN)
-if path is None:
-    dbutils.notebook.exit(f"SKIPPED: no PSGC file in {config.PSA_FOLDER}. Download it by hand first. See the steps above.")
+load_run_id = bronze.new_run_id()
+path = f"{config.PSA_FOLDER}/{config.PSGC_FILE}"
+if not os.path.exists(path):
+    dbutils.notebook.exit(f"SKIPPED: {path} is not there yet. Download it by hand first. See the steps above.")
+raw_files = [bronze.raw_file(path)]
+source_file = os.path.basename(path)
 print("Reading", path)
 
 # COMMAND ----------
 
-# Find each column by its header, so a new release with moved columns still loads.
+# Find each column by its header, so a release with moved columns still loads.
 rows = xlsx.read_sheet(path, "PSGC")
-
-
-def clean(text):
-    """Header text on one line, in lower case. Some headers break over two lines in Excel."""
-    return " ".join(text.split()).lower()
-
-
-def header_row(rows):
-    """The header is the first row with a "10-digit PSGC" column."""
-    for position, (_, cells) in enumerate(rows):
-        if any("10-digit psgc" in clean(c) for c in cells):
-            return position
+start = next((i for i, (_, cells) in enumerate(rows) if any("10-digit psgc" in xlsx.one_line(c) for c in cells)), None)
+if start is None:
     raise ValueError('No row has a "10-digit PSGC" column. Is this the PSGC publication datafile?')
-
-
-start = header_row(rows)
-header = [clean(c) for c in rows[start][1]]
+header = [xlsx.one_line(c) for c in rows[start][1]]
 
 
 def column(*words):
@@ -74,43 +68,93 @@ want = {
     "status": column("status"),
 }
 
-
-def cell(cells, index):
-    return cells[index] if index < len(cells) and cells[index] != "" else None
-
-
-places = []
-for row_number, cells in rows[start + 1:]:
-    code = cell(cells, want["psgc_code"])
-    if code is None:
-        continue
-    record = {name: cell(cells, index) for name, index in want.items()}
-    # Codes are text with leading zeros. If Excel saved one as a number, put the zeros back.
-    record["psgc_code"] = code.zfill(10) if code.isdigit() else code
-    corr = record["correspondence_code"]
-    record["correspondence_code"] = corr.zfill(9) if corr and corr.isdigit() else corr
-    record["population_2024"] = xlsx.to_number(record["population_2024"])
-    record["row_number"] = row_number
-    places.append(record)
-print(f"Read {len(places):,} places.")
+# Bronze keeps every field. If PSA adds a column, stop, so we can add it on purpose.
+new_columns = [name for index, name in enumerate(header) if name and index not in want.values()]
+if new_columns:
+    raise ValueError(f"The PSGC file has columns we don't load yet: {new_columns}. Add them to `want` first.")
 
 # COMMAND ----------
 
+# Sort every row of the sheet. Places go to the table, and rows we can't read go to psgc_parse_issues.
+
+
+def read_row(cells):
+    """A place row has a PSGC code."""
+    return None if cells[want["psgc_code"]].strip() else "has no PSGC code"
+
+
+places, sheet_row, issues = xlsx.sort_sheet(source_file, "PSGC", rows, start, len(header), read_row)
+manifest = [
+    sheet_row if name == "PSGC" else xlsx.skipped_sheet(source_file, name, xlsx.read_sheet(path, name), "not the PSGC list")
+    for name in xlsx.sheet_names(path)
+]
+print(f"Read {len(places):,} places. Parse issues: {len(issues):,}.")
+bronze.save_parse_audit(spark, load_run_id, "PSGC publication datafile", "psgc", manifest, issues, raw_files, config.PSGC_PAGE)
+
+# COMMAND ----------
+
+
+def cell(cells, index):
+    """The cell as PSA wrote it, or None if it is empty."""
+    return cells[index] if cells[index].strip() else None
+
+
+def with_zeros(code, width):
+    """The code with its leading zeros back, or None if it is not all digits."""
+    code = (code or "").strip()
+    return code.zfill(width) if code.isdigit() else None
+
+
+data, with_population = [], 0
+for row_number, cells in places:
+    raw = {name: cell(cells, index) for name, index in want.items()}
+    with_population += raw["population_2024"] is not None
+    data.append(
+        (
+            raw["psgc_code"],
+            with_zeros(raw["psgc_code"], 10),
+            raw["name"],
+            raw["correspondence_code"],
+            with_zeros(raw["correspondence_code"], 9),
+            raw["geographic_level"],
+            raw["old_names"],
+            raw["city_class"],
+            raw["income_class"],
+            raw["urban_rural"],
+            raw["population_2024"],
+            xlsx.to_count(raw["population_2024"]),
+            raw["status"],
+            source_file,
+            "PSGC",
+            row_number,
+        )
+    )
+
 columns = (
-    "psgc_code string, name string, correspondence_code string, geographic_level string, old_names string, "
-    "city_class string, income_class string, urban_rural string, population_2024 long, status string, "
-    "row_number int, source_file string"
+    "psgc_code_raw string, psgc_code_parsed string, name string, "
+    "correspondence_code_raw string, correspondence_code_parsed string, geographic_level string, "
+    "old_names string, city_class string, income_class string, urban_rural string, "
+    "population_2024_raw string, population_2024_parsed long, status string, "
+    "source_file string, sheet_name string, source_row_number int"
 )
-data = [tuple(p[k] for k in want) + (p["row_number"], path) for p in places]
 psgc = spark.createDataFrame(data, columns)
+loaded = bronze.save_table(spark, psgc, "psgc", load_run_id)
+bronze.log_load(spark, load_run_id, "PSGC publication datafile", "psgc", len(data), loaded, raw_files, config.PSGC_PAGE)
 
-loaded = bronze.save_table(spark, psgc, "psgc")
-bronze.log_load(spark, "PSGC publication datafile", "psgc", len(places), loaded, path)
-
-population = psgc.where("population_2024 IS NOT NULL").select(
-    "psgc_code", "name", "geographic_level", "population_2024", "source_file"
+# Every place that has a population cell, with the cell as PSA wrote it and the parsed count.
+population = psgc.where("population_2024_raw IS NOT NULL").select(
+    "psgc_code_raw",
+    "psgc_code_parsed",
+    "name",
+    "geographic_level",
+    "population_2024_raw",
+    "population_2024_parsed",
+    "source_file",
+    "sheet_name",
+    "source_row_number",
 )
-counted = bronze.save_table(spark, population, "population_2024")
+counted = bronze.save_table(spark, population, "population_2024", load_run_id)
+bronze.log_load(spark, load_run_id, "PSGC publication datafile", "population_2024", with_population, counted, raw_files, config.PSGC_PAGE)
 print(f"Loaded {loaded:,} places and {counted:,} population counts.")
 
 # COMMAND ----------
@@ -123,7 +167,7 @@ print(f"Loaded {loaded:,} places and {counted:,} population counts.")
 # COMMAND ----------
 
 display(spark.sql("""
-    SELECT geographic_level, COUNT(*) AS places, SUM(population_2024) AS population_2024
+    SELECT geographic_level, COUNT(*) AS places, SUM(population_2024_parsed) AS population_2024
     FROM `buildabida-capstone`.`01-bronze`.psgc
     GROUP BY geographic_level
     ORDER BY places

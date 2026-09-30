@@ -2,78 +2,62 @@
 # MAGIC %md
 # MAGIC # Bronze: flood control projects
 # MAGIC
-# MAGIC Loads the DPWH flood control map layer (the data behind sumbongsapangulo.ph) into `01-bronze`.`flood_control_projects`. One row is one row of the layer. The key is `contract_id`, but a few contracts have more than one row.
+# MAGIC Loads the DPWH flood control map layer (the data behind sumbongsapangulo.ph) into `01-bronze`.`flood_control_projects`. One row is one feature of the layer, as the layer sent it: `attributes` has every field, and `geometry` has the map point. The key is `attributes.ObjectId`.
 # MAGIC
-# MAGIC 1. Saves each call as it came in the landing volume, under today's date.
-# MAGIC 2. Reads the rows with Spark and gives the columns our names.
-# MAGIC 3. Adds a row to `01-bronze`.`load_log` with the total the layer reports.
+# MAGIC 1. Saves each reply exactly as it came, in a new landing folder for this run.
+# MAGIC 2. Reads only this run's replies with Spark. It keeps `attributes` and `geometry` as they came, and adds where each row came from: `_raw_file`, `_source_url` and `_ingest_run_id`.
+# MAGIC 3. Adds a row to `01-bronze`.`load_log` with the total the layer reports, the raw files, their sizes and their SHA-256 fingerprints.
 # MAGIC
-# MAGIC It takes about 1 minute. It is safe to run twice.
+# MAGIC The geometry uses Web Mercator (`spatialReference` 102100), not latitude and longitude. The reply says this once, not on each feature, so bronze copies it to each row as `spatialReference`. The attributes also have `Latitude` and `Longitude`.
+# MAGIC
+# MAGIC Some contracts have more than one row, because a contract can have parts or funding years (D-19). Bronze keeps every row. Silver flattens the fields, turns the dates from milliseconds into dates, and counts a repeated cost once.
+# MAGIC
+# MAGIC The load stops if a page is short, so the table is never replaced with part of the data. It takes about 1 minute. It is safe to run twice.
 
 # COMMAND ----------
 
 import os
 import sys
 
+from pyspark.sql import functions as F
+
 repo_root = os.path.abspath("../..")  # the repo root, so the import below works everywhere
 sys.path.insert(0, repo_root)
 
-from src import api, bronze
+from src import api, bronze, config
 
 # COMMAND ----------
 
-# 1. Save every call as it came. About 10 calls of 1,000 rows.
-folder = bronze.landing_folder("flood_control", bronze.today())
-for page, rows, reported in api.flood_pages():
-    bronze.write_json_lines(f"{folder}/page_{page:03d}.json", rows)
-print(f"Saved {page} calls to {folder}. The layer reports {reported:,} rows.")
+# 1. Save every reply as it came, in a new folder for this run. About 10 pages of 1,000 rows.
+load_run_id = bronze.new_run_id()
+folder = bronze.landing_folder("flood_control", load_run_id)
+raw_files = []
+for page, reply, _, total in api.flood_pages():
+    raw_files.append(bronze.save_raw(f"{folder}/page_{page:03d}.json", reply))
+print(f"Saved {len(raw_files)} pages to {folder}. The layer reports {total:,} rows.")
 
 # COMMAND ----------
 
-# 2. Read the rows and name the columns. The layer keeps dates as milliseconds, so we turn them into dates.
-raw = spark.read.json(folder).select("*", "_metadata.file_path")
-raw.createOrReplaceTempView("flood_raw")
-
-flood = spark.sql("""
-    SELECT
-        ContractID                                             AS contract_id,
-        ProjectID                                              AS project_id,
-        ProjectDescription                                     AS description,
-        ProjectComponentID                                     AS component_id,
-        ProjectComponentDescription                            AS component_description,
-        TypeofWork                                             AS type_of_work,
-        infra_type,
-        Program                                                AS program,
-        TRY_CAST(InfraYear AS INT)                             AS infra_year,
-        FundingYear                                            AS funding_year,
-        Region                                                 AS region,
-        Province                                               AS province,
-        Municipality                                           AS municipality,
-        LegislativeDistrict                                    AS legislative_district,
-        DistrictEngineeringOffice                              AS deo,
-        ImplementingOffice                                     AS implementing_office,
-        TRY_CAST(ABC AS DECIMAL(18, 2))                        AS abc,
-        TRY_CAST(ContractCost AS DECIMAL(18, 2))               AS contract_cost,
-        ABC_String                                             AS abc_text,
-        ContractCost_String                                    AS contract_cost_text,
-        Contractor                                             AS contractor,
-        StartDate                                              AS start_date_text,
-        CAST(TIMESTAMP_MILLIS(TRY_CAST(CompletionDateOriginal AS BIGINT)) AS DATE) AS completion_date_original,
-        CompletionDateActual                                   AS completion_date_actual_text,
-        TRY_CAST(CompletionYear AS INT)                        AS completion_year,
-        TRY_CAST(Latitude AS DOUBLE)                           AS latitude,
-        TRY_CAST(Longitude AS DOUBLE)                          AS longitude,
-        ObjectId                                               AS object_id,
-        file_path                                              AS raw_file
-    FROM flood_raw
-""")
+# 2. Read only the pages this run saved. One row per feature, with its attributes and geometry as they came.
+page_files = [path for path, _, _ in raw_files]
+flood = (
+    spark.read.option("multiLine", "true")
+    .json(page_files)
+    .select(
+        F.explode("features").alias("feature"),
+        "spatialReference",
+        F.col("_metadata.file_path").alias("_raw_file"),
+    )
+    .select("feature.*", "spatialReference", "_raw_file")
+    .withColumn("_source_url", F.lit(config.FLOOD_LAYER))
+)
 
 # COMMAND ----------
 
 # 3. Save the table and log the load.
-loaded = bronze.save_table(spark, flood, "flood_control_projects")
-bronze.log_load(spark, "Flood control map layer", "flood_control_projects", reported, loaded, folder)
-print(f"Loaded {loaded:,} of the {reported:,} rows the layer reports.")
+loaded = bronze.save_table(spark, flood, "flood_control_projects", load_run_id)
+bronze.log_load(spark, load_run_id, "Flood control map layer", "flood_control_projects", total, loaded, raw_files, config.FLOOD_LAYER)
+print(f"Loaded {loaded:,} of the {total:,} rows the layer reports.")
 
 # COMMAND ----------
 
@@ -83,8 +67,11 @@ print(f"Loaded {loaded:,} of the {reported:,} rows the layer reports.")
 # COMMAND ----------
 
 display(spark.sql("""
-    SELECT infra_year, COUNT(*) AS projects, ROUND(SUM(contract_cost) / 1e9, 1) AS contract_cost_billion_pesos
+    SELECT
+        attributes.InfraYear AS infra_year,
+        COUNT(*) AS projects,
+        ROUND(SUM(TRY_CAST(attributes.ContractCost AS DECIMAL(18, 2))) / 1e9, 1) AS contract_cost_billion_pesos
     FROM `buildabida-capstone`.`01-bronze`.flood_control_projects
-    GROUP BY infra_year
+    GROUP BY attributes.InfraYear
     ORDER BY infra_year
 """))
