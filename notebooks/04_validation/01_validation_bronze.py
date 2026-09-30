@@ -7,7 +7,7 @@
 # MAGIC - **stop**: the data is broken. Fix the load before anyone uses the table.
 # MAGIC - **flag**: the data is usable, but silver has to handle these rows. The percentage tells us how big the problem is.
 # MAGIC
-# MAGIC The run is blocked, and this notebook fails, if a stop check fails, if a check can't run (`ERROR`) or if a required table is missing. The required tables come from the DPWH projects API, the flood control layer, the PSGC file, census Table C and the boundary maps. Table B is optional, so its checks are skipped when it is not loaded.
+# MAGIC The run is blocked, and this notebook fails, if a stop check fails, if a check can't run (`ERROR`) or if a required table is missing. The required tables come from the DPWH projects API, the flood control layer, the PSGC file, census Table C and the boundary maps.
 # MAGIC
 # MAGIC Bronze keeps the source values as they came, so the checks use `TRY_CAST` when they need a number or a date. The stored values never change.
 # MAGIC
@@ -31,7 +31,7 @@ run_id = bronze.new_run_id()
 LEVELS = {"Reg": 18, "Prov": 82, "City": 149, "Mun": 1493, "SubMun": 14, "Bgy": 42010}  # PSGC 2Q 2026 summary
 PEOPLE_IN_REGIONS = 112_727_776  # 2024 census: 112,729,484 minus 1,708 Filipinos in embassies abroad
 
-# Every bronze table, in the order the results show. Table B and its two audit tables are optional.
+# Every bronze table, in the order the results show.
 TABLES = [
     "dpwh_projects",
     "flood_control_projects",
@@ -39,15 +39,11 @@ TABLES = [
     "psgc_sheet_manifest",
     "psgc_parse_issues",
     "population_2024",
-    "census_2024_table_b",
-    "census_2024_table_b_sheet_manifest",
-    "census_2024_table_b_parse_issues",
     "census_2024_table_c",
     "census_2024_table_c_sheet_manifest",
     "census_2024_table_c_parse_issues",
     "boundaries",
 ]
-OPTIONAL_TABLES = {"census_2024_table_b", "census_2024_table_b_sheet_manifest", "census_2024_table_b_parse_issues"}
 
 # Bronze keeps values as they came, so the checks turn them into numbers and dates here.
 PROGRESS = "TRY_CAST(progress AS DOUBLE)"
@@ -118,15 +114,6 @@ TABLE_CHECKS = {
         check("population_2024_parsed", "regions add up to the census total", f"ABS(COALESCE(SUM(IF(TRIM(geographic_level) = 'Reg', population_2024_parsed, 0)), 0) - {PEOPLE_IN_REGIONS})", "flag", total=PEOPLE_IN_REGIONS),
         check("population_2024_parsed", "barangays add up to the census total", f"ABS(COALESCE(SUM(IF(TRIM(geographic_level) = 'Bgy', population_2024_parsed, 0)), 0) - {PEOPLE_IN_REGIONS})", "flag", total=PEOPLE_IN_REGIONS),
     ],
-    "census_2024_table_b": [
-        check("pop_2024_raw", "regions add up to the census total", f"ABS(COALESCE(SUM(IF(is_region, TRY_CAST(pop_2024_raw AS DOUBLE), 0)), 0) - {PEOPLE_IN_REGIONS})", "flag", total=PEOPLE_IN_REGIONS),
-    ],
-    "census_2024_table_b_sheet_manifest": [
-        check("physical_row_count", "rows add up", "COUNT_IF(physical_row_count <> expected_non_data_row_count + parsed_data_row_count + parse_issue_row_count)", "stop"),
-    ],
-    "census_2024_table_b_parse_issues": [
-        check("reason", "no rows we could not read", "COUNT(*)", "stop"),
-    ],
     "census_2024_table_c": [
         check("source_file", "has all 18 region files", f"ABS(COUNT(DISTINCT source_file) - {config.TABLE_C_FILE_COUNT})", "stop", total=config.TABLE_C_FILE_COUNT),
         check("source_file, sheet_name, source_row_number", "unique", "COUNT(*) - COUNT(DISTINCT source_file, sheet_name, source_row_number)", "stop"),
@@ -155,7 +142,6 @@ ROW_COUNT_CHECKS = {
     "flood_control_projects": "matches the layer total",
     "psgc": "matches the file",
     "population_2024": "matches the file",
-    "census_2024_table_b": "matches the file",
     "census_2024_table_c": "matches the files",
     "boundaries": "matches the files",
 }
@@ -246,15 +232,12 @@ def run_table_checks(table, checks):
     ]
 
 
-results, skipped = [], []
+results = []
 has_log = spark.catalog.tableExists(bronze.table_name("load_log"))
 latest = {row["table_name"]: row for row in spark.sql(LATEST_LOADS).collect()} if has_log else {}
 for table in TABLES:
     if not spark.catalog.tableExists(bronze.table_name(table)):
-        if table in OPTIONAL_TABLES:
-            skipped.append(table)
-        else:
-            results.append(make_result(table, "table", "required table exists", "stop", None, None))
+        results.append(make_result(table, "table", "required table exists", "stop", None, None))
         continue
     if table in ROW_COUNT_CHECKS:
         log = latest.get(table)
@@ -271,7 +254,7 @@ columns = (
 )
 frame = spark.createDataFrame(results, columns).withColumn("run_ts", F.current_timestamp())
 frame.write.mode("append").saveAsTable(bronze.table_name("dq_results", config.VALIDATION))
-print(f"Run {run_id}: {len(results)} checks saved. Optional tables skipped: {skipped or 'none'}")
+print(f"Run {run_id}: {len(results)} checks saved.")
 
 # COMMAND ----------
 
