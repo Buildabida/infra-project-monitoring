@@ -25,6 +25,7 @@ We log each big choice with an ID, the date and why we made it. We keep old rows
 | D-19 | Sep 29 | Flood list: bronze keeps all 9,855 rows. We don't drop rows by contract ID. | The 157 repeated rows (109 contract IDs) are not copies. 83 IDs are different parts of one contract, and 26 are one part split by funding year. Silver should count a repeated cost once, or P2.5B counts twice. |
 | D-20 | Sep 29 | Until silver, our checks stay simple bronze load checks. | This week is about bronze. The results still go to `04-validation.dq_results`. |
 | D-22 | Sep 29 | We load five sources. They are the DPWH projects API, the flood control layer, the PSGC 2Q 2026 file, census Table C and the boundary maps (7 files). The PSGC file gives our codes and place names, and Table C gives our population. Each source keeps its own bronze table, and silver joins them. | One job per source shows where each number comes from. Table C and the PSGC count come from the same census. On Sep 29, 43,748 of 43,750 Table C rows had the same count in the PSGC file. So the PSGC count stays our check. |
+| D-23 | Sep 30 | Table B is out of bronze. Bronze loads only the five sources in D-22. This changes the Table B part of D-18. | Nadine asked for five datasets in bronze in her #41 review. The file stays in `00-source.landing/psa` if we want growth rates later. |
 
 ## Still open
 
@@ -32,4 +33,4 @@ We log each big choice with an ID, the date and why we made it. We keep old rows
 | --- | --- | --- |
 | D-03 | How do we match a project to a place? | Map point, office name, or both |
 | D-04 | How do we handle projects that are in both the DPWH and flood control lists? | Match by contract ID |
-| D-21 | Do we add the DENR MGB flood susceptibility map as a 6th source? We decide on Wed, Sep 30. | Add it now, keep it as a bonus, or skip it |
+| D-21 | Do we add the DENR MGB flood susceptibility map as a 6th source? Not decided on Sep 30. Nadine trims the file to the columns we need, then we decide by Sat, Oct 3. | Add it now, keep it as a bonus, or skip it |
