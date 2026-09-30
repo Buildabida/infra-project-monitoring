@@ -36,7 +36,7 @@ A run is blocked, and the notebook fails, in three cases:
 2. A check can't run. Its status is `ERROR`, even when its action is flag.
 3. A required table is missing. The notebook saves an `ERROR` row for it.
 
-The DPWH, flood control, PSGC, Table C and boundary tables are required, with the manifest and parse issue tables of the Excel loads. Table B is optional, so its checks are skipped when it isn't loaded. `run_all.py` also skips the checks and says `BLOCKED` if a required load failed or was skipped. So the checks can never pass on an older table.
+The DPWH, flood control, PSGC, Table C and boundary tables are required, with the manifest and parse issue tables of the Excel loads. `run_all.py` also skips the checks and says `BLOCKED` if a required load failed or was skipped. So the checks can never pass on an older table.
 
 Bronze keeps values as they came, so the checks use `TRY_CAST` when they need a number or a date. The stored values never change. All the checks of one table run in one query, so each table is read once. The row counts come from one query on `load_log`.
 
