@@ -27,8 +27,8 @@ FLOOD_LAYER = (
 )
 FLOOD_PAGE_SIZE = 1000
 
-# 3 and 4. PSA blocks Databricks, so we download these by hand into LANDING/psa.
-# The PSGC file also has the 2024 population of every place, with its code.
+# 3. PSA blocks Databricks, so we download the PSGC file by hand into LANDING/psa.
+# It also has the 2024 population of every place, with its code.
 # Our population source is census Table C (D-18). We use the PSGC count to cross-check it.
 # We read one exact file of each, the release our docs and checks are for. For a new release,
 # change the name here and check the counts again.
@@ -38,10 +38,6 @@ PSGC_FILE = "PSGC-2Q-2026-Publication-Datafile.xlsx"
 CENSUS_PAGE = (
     "https://psa.gov.ph/content/"
     "2024-census-population-popcen-population-counts-declared-official-president"
-)
-TABLE_B_FILE = (
-    "3_Table B - Population and Annual PGR by Province, City, and Municipality"
-    " - By Region - rev_0.xlsx"
 )
 
 # Census Table C, our population source (D-18). PSA blocks Databricks, so we download the 18 region
