@@ -26,6 +26,9 @@ We log each big choice with an ID, the date and why we made it. We keep old rows
 | D-20 | Sep 29 | Until silver, our checks stay simple bronze load checks. | This week is about bronze. The results still go to `04-validation.dq_results`. |
 | D-22 | Sep 29 | We load five sources. They are the DPWH projects API, the flood control layer, the PSGC 2Q 2026 file, census Table C and the boundary maps (7 files). The PSGC file gives our codes and place names, and Table C gives our population. Each source keeps its own bronze table, and silver joins them. | One job per source shows where each number comes from. Table C and the PSGC count come from the same census. On Sep 29, 43,748 of 43,750 Table C rows had the same count in the PSGC file. So the PSGC count stays our check. |
 | D-23 | Sep 30 | Table B is out of bronze. Bronze loads only the five sources in D-22. This changes the Table B part of D-18. | Nadine asked for five datasets in bronze in her #41 review. The file stays in `00-source.landing/psa` if we want growth rates later. |
+| D-24 | Oct 1 | The DENR MGB flood susceptibility map is our 6th source. We keep only the columns we need, so it fits in our workspace. This answers D-21 and adds it to our sources in D-22. | It is our only flood risk source, for the infrastructure needs part of our main question. Our mentor agreed on Sep 30. The full file is big, so we trim it before we load it. |
+| D-25 | Oct 1 | We analyze by region first. Provinces are a drill-down where map points allow. We show NCR on its own and call our results regional trends. | Our mentor suggested regions on Sep 30. Every DPWH project has a region, but only 79 percent can be placed by map point. Provinces split and change over time, and big regions can hide gaps, so we add notes where that matters. |
+| D-26 | Oct 1 | Flood control is the hook of our story. We compare it with other infrastructure and follow where the rest of the money goes. | It is the topic people know best. We told the other capstone groups on Sep 30, so our topics do not overlap. |
 
 ## Still open
 
@@ -33,4 +36,3 @@ We log each big choice with an ID, the date and why we made it. We keep old rows
 | --- | --- | --- |
 | D-03 | How do we match a project to a place? | Map point, office name, or both |
 | D-04 | How do we handle projects that are in both the DPWH and flood control lists? | Match by contract ID |
-| D-21 | Do we add the DENR MGB flood susceptibility map as a 6th source? Not decided on Sep 30. Nadine trims the file to the columns we need, then we decide by Sat, Oct 3. | Add it now, keep it as a bonus, or skip it |
