@@ -15,7 +15,8 @@ DOC_RELS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 # PSA ends its sheets with notes and sources, in the first column.
 NOTE_STARTS = ("note:", "notes:", "source:", "sources:")
 
-# The columns of the sheet manifest and parse issue tables that bronze.save_parse_audit saves.
+# Historical workbook-migration audit schemas. The current R2 batch reads CSV files;
+# these helpers remain only for reproducibility tests and documented legacy evidence.
 MANIFEST_COLUMNS = (
     "source_file string, sheet_name string, is_data_sheet boolean, skip_reason string, "
     "physical_row_count long, header_row_number long, title_and_header_row_count long, "

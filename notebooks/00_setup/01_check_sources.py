@@ -19,6 +19,8 @@ for source_name in config.SOURCE_ORDER:
     source = config.source_config(source_name)
     try:
         metadata = bronze.inspect_source(source["path"])
+        clean_header, _ = bronze._column_mapping(metadata["header"])
+        bronze.validate_source_header(source, clean_header)
         rows.append(
             (
                 source_name,

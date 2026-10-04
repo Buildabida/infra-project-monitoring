@@ -22,6 +22,10 @@ Every table checks:
 - documented keys are non-null and unique only where source grain guarantees it;
 - historical row-count references are flags, not filters.
 
+Before a target overwrite, each loader also requires at least one documented
+identifying/header alias for that source. This keeps a readable but structurally
+wrong CSV from replacing the last valid table.
+
 Source-specific checks include:
 
 - DPWH known status values and `TRY_CAST` checks for available numeric/date fields;

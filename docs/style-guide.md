@@ -80,7 +80,7 @@ Before you commit, click **Edit**, then **Format Notebook**. Your SQL now matche
 ## Write short, clear Python
 
 1. **Keep links and the catalog name in `src/config.py`.** Python notebooks import them. Never copy a link into a notebook.
-2. **Put helpers in the `src` folder, not in notebooks.** Import them with `from src import api, config`. Don't use `%run`.
+2. **Put helpers in the `src` folder, not in notebooks.** Import them with `from src import bronze, config`. Don't use `%run`.
 3. **Give each step its own cell.** Only print or display what you need to check.
 4. **Name columns in snake_case.** True or false columns start with `is_` or `has_`. DataFrame names end in `_df`. Bronze is the one place that keeps the source's own names, like `contractId`.
 5. **Build columns in one `select`.** Rename with `.alias()` instead of long `withColumn` chains.

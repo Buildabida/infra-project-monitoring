@@ -73,11 +73,15 @@ def inspect_source(path):
     folded = [name.casefold() for name in header]
     duplicates = sorted({name for name in folded if folded.count(name) > 1})
     if duplicates:
-        raise ValueError(f"CSV has duplicate header names (case-insensitive): {duplicates}")
+        raise ValueError(
+            f"CSV has duplicate header names (case-insensitive): {duplicates}"
+        )
     reserved_names = {name.casefold() for name in config.INGEST_METADATA_COLUMNS}
     reserved = sorted(name for name in header if name.casefold() in reserved_names)
     if reserved:
-        raise ValueError(f"CSV business columns conflict with ingestion metadata: {reserved}")
+        raise ValueError(
+            f"CSV business columns conflict with ingestion metadata: {reserved}"
+        )
     return {
         "path": path,
         "file_name": os.path.basename(path),
@@ -110,18 +114,24 @@ def _column_mapping(header):
     for original in header:
         safe = INVALID_DELTA_COLUMN_CHARS.sub("_", original)
         if not safe.strip("_"):
-            raise ValueError(f"Header {original!r} cannot be converted to a usable Delta column")
+            raise ValueError(
+                f"Header {original!r} cannot be converted to a usable Delta column"
+            )
         revised.append(safe)
         if safe != original:
             mapping[original] = safe
     folded = [name.casefold() for name in revised]
     duplicates = sorted({name for name in folded if folded.count(name) > 1})
     if duplicates:
-        raise ValueError(f"Technical header sanitization would create duplicate names: {duplicates}")
+        raise ValueError(
+            f"Technical header sanitization would create duplicate names: {duplicates}"
+        )
     reserved_names = {name.casefold() for name in config.INGEST_METADATA_COLUMNS}
     reserved = sorted(name for name in revised if name.casefold() in reserved_names)
     if reserved:
-        raise ValueError(f"Technical header sanitization conflicts with ingestion metadata: {reserved}")
+        raise ValueError(
+            f"Technical header sanitization conflicts with ingestion metadata: {reserved}"
+        )
     return revised, mapping
 
 
@@ -159,30 +169,132 @@ def _log_row(
 
 def _append_log(spark, row):
     frame = spark.createDataFrame([row], LOAD_LOG_COLUMNS)
-    frame.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(
-        table_name("load_log")
-    )
+    frame.write.format("delta").mode("append").option(
+        "mergeSchema", "true"
+    ).saveAsTable(table_name("load_log"))
 
 
-def _successful_snapshot_rows(spark, source_name, snapshot_id):
+def _snapshot_audit_rows(spark, source_name, snapshot_id, functions):
     log_name = table_name("load_log")
     if not spark.catalog.tableExists(log_name):
         return []
     log = spark.table(log_name)
-    needed = {"source_name", "snapshot_id", "status"}
+    needed = {
+        "source_name",
+        "snapshot_id",
+        "status",
+        "started_at",
+        "completed_at",
+    }
     if not needed.issubset(log.columns):
         return []
     row = (
         log.where(
-            (log["source_name"] == source_name)
-            & (log["snapshot_id"] == snapshot_id)
-            & (log["status"] == "SUCCESS")
+            (log["source_name"] == source_name) & (log["snapshot_id"] == snapshot_id)
         )
-        .orderBy("completed_at", ascending=False)
+        .orderBy(
+            functions.coalesce(log["completed_at"], log["started_at"]).desc(),
+            log["completed_at"].desc_nulls_last(),
+        )
         .limit(1)
         .first()
     )
     return [] if row is None else [row]
+
+
+def _current_table_state(spark, source, functions):
+    """Return the small identity summary needed to verify a safe skip.
+
+    Delta commits are atomic, so a table containing one internally consistent
+    snapshot is also enough to recover from a previous run whose table commit
+    succeeded but whose terminal audit append did not.
+    """
+    target = table_name(source["table"])
+    if not spark.catalog.tableExists(target):
+        return None
+
+    frame = spark.table(target)
+    required = {
+        "_source_snapshot_id",
+        "_source_path",
+        "_source_file",
+        "_source_file_size_bytes",
+        "_source_modified_ns",
+    }
+    if not required.issubset(frame.columns):
+        return None
+
+    identity_columns = tuple(sorted(required))
+    null_condition = None
+    for name in identity_columns:
+        condition = functions.col(name).isNull()
+        null_condition = (
+            condition if null_condition is None else null_condition | condition
+        )
+
+    row = frame.agg(
+        functions.count(functions.lit(1)).alias("rows_loaded"),
+        *(
+            functions.countDistinct(functions.col(name)).alias(f"distinct_{index}")
+            for index, name in enumerate(identity_columns)
+        ),
+        *(
+            functions.first(functions.col(name), ignorenulls=True).alias(
+                f"value_{index}"
+            )
+            for index, name in enumerate(identity_columns)
+        ),
+        functions.coalesce(
+            functions.sum(functions.when(null_condition, 1).otherwise(0)),
+            functions.lit(0),
+        ).alias("identity_nulls"),
+    ).first()
+    return {
+        "rows_loaded": int(row["rows_loaded"]),
+        "identity_nulls": int(row["identity_nulls"]),
+        **{name: row[f"value_{index}"] for index, name in enumerate(identity_columns)},
+        "identity_is_single": all(
+            int(row[f"distinct_{index}"]) == 1
+            for index, _ in enumerate(identity_columns)
+        ),
+    }
+
+
+def _same_current_table(state, metadata, snapshot_id, expected_rows=None):
+    """Return whether the committed table is exactly the requested artifact."""
+    if not state or not state["identity_is_single"] or state["identity_nulls"]:
+        return False
+    if state["rows_loaded"] <= 0:
+        return False
+    if expected_rows is not None and state["rows_loaded"] != int(expected_rows):
+        return False
+    return (
+        state["_source_snapshot_id"] == snapshot_id
+        and state["_source_path"] == metadata["path"]
+        and state["_source_file"] == metadata["file_name"]
+        and int(state["_source_file_size_bytes"]) == metadata["size_bytes"]
+        and int(state["_source_modified_ns"]) == metadata["modified_ns"]
+    )
+
+
+def _has_required_alias(header, candidates):
+    """Return whether at least one documented source-column alias is present."""
+    actual = {name.casefold() for name in header}
+    return any(name.casefold() in actual for name in candidates)
+
+
+def validate_source_header(source, header):
+    """Fail before a write when documented identifying columns are absent."""
+    required = source.get("required_columns", ())
+    missing = [name for name in required if name not in header]
+    if missing:
+        raise ValueError(f"Required identifying columns are missing: {missing}")
+    required_any = source.get("required_any_columns", source.get("key_candidates", ()))
+    if required_any and not _has_required_alias(header, required_any):
+        raise ValueError(
+            "None of the documented identifying columns is present: "
+            + ", ".join(required_any)
+        )
 
 
 def _same_metadata(row, metadata, source):
@@ -200,7 +312,8 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
     The write scans the source once. Delta overwrite is atomic: readers keep
     seeing the previous valid table until the replacement commits.
     """
-    from pyspark.sql import Observation, functions as F
+    from pyspark.sql import Observation
+    from pyspark.sql import functions as F
 
     metadata = inspect_source(source["path"])
     clean_header, column_mapping = _column_mapping(metadata["header"])
@@ -208,17 +321,79 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         source["name"], metadata, source.get("source_version")
     )
     force_reload = parse_bool(force_reload)
-    completed = _successful_snapshot_rows(spark, source["name"], snapshot_id)
+    audits = _snapshot_audit_rows(spark, source["name"], snapshot_id, F)
+    completed = (
+        audits
+        if audits
+        and audits[0]["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
+        and audits[0]["rows_loaded"] is not None
+        else []
+    )
     started_at = dt.datetime.now(UTC)
+    run_id = new_run_id()
 
-    if completed and not _same_metadata(completed[0], metadata, source):
-        raise RuntimeError(
-            f"Snapshot conflict for {source['name']!r}: {snapshot_id!r} already succeeded "
+    if audits and not _same_metadata(audits[0], metadata, source):
+        error = RuntimeError(
+            f"Snapshot conflict for {source['name']!r}: {snapshot_id!r} was already used "
             "with a different version, path, size, or modification time. Use a new snapshot ID."
         )
-    if completed and not force_reload:
-        previous_rows = completed[0]["rows_loaded"]
-        run_id = new_run_id()
+        try:
+            _append_log(
+                spark,
+                _log_row(
+                    run_id,
+                    source,
+                    metadata,
+                    snapshot_id,
+                    "FAILED",
+                    started_at,
+                    completed_at=dt.datetime.now(UTC),
+                    error_message=str(error),
+                    column_mapping=column_mapping,
+                ),
+            )
+        except Exception as log_error:  # noqa: BLE001 - preserve the conflict
+            print(f"Could not record snapshot conflict in load_log: {log_error}")
+        raise error
+
+    current = _current_table_state(spark, source, F)
+    previous_rows = completed[0]["rows_loaded"] if completed else None
+    current_matches = _same_current_table(
+        current,
+        metadata,
+        snapshot_id,
+        expected_rows=previous_rows,
+    )
+    if (
+        current
+        and current.get("_source_snapshot_id") == snapshot_id
+        and not current_matches
+    ):
+        error = RuntimeError(
+            f"Current Bronze table for {source['name']!r} claims snapshot {snapshot_id!r} "
+            "but its source metadata or row count does not match. Use a new snapshot ID "
+            "or investigate the existing table before replacing it."
+        )
+        try:
+            _append_log(
+                spark,
+                _log_row(
+                    run_id,
+                    source,
+                    metadata,
+                    snapshot_id,
+                    "FAILED",
+                    started_at,
+                    completed_at=dt.datetime.now(UTC),
+                    error_message=str(error),
+                    column_mapping=column_mapping,
+                ),
+            )
+        except Exception as log_error:  # noqa: BLE001 - preserve the conflict
+            print(f"Could not record current-table conflict in load_log: {log_error}")
+        raise error
+
+    if current_matches and not force_reload:
         _append_log(
             spark,
             _log_row(
@@ -229,7 +404,7 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
                 "SKIPPED_IDEMPOTENT",
                 started_at,
                 completed_at=dt.datetime.now(UTC),
-                rows_loaded=previous_rows,
+                rows_loaded=current["rows_loaded"],
                 column_mapping=column_mapping,
             ),
         )
@@ -237,10 +412,9 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
             "status": "SKIPPED_IDEMPOTENT",
             "run_id": run_id,
             "snapshot_id": snapshot_id,
-            "rows_loaded": previous_rows,
+            "rows_loaded": current["rows_loaded"],
         }
 
-    run_id = new_run_id()
     _append_log(
         spark,
         _log_row(
@@ -266,21 +440,26 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
                 f"Spark read {len(frame.columns)} columns but the header has {len(clean_header)}"
             )
         frame = frame.toDF(*clean_header)
-        required = source.get("required_columns", ())
-        missing = [name for name in required if name not in frame.columns]
-        if missing:
-            raise ValueError(f"Required identifying columns are missing: {missing}")
+        validate_source_header(source, frame.columns)
 
         observed = Observation("source_rows")
         prepared = (
             frame.withColumn("_source_system", F.lit(source["source_system"]))
+            .withColumn("_source_path", F.lit(metadata["path"]))
             .withColumn("_source_file", F.lit(metadata["file_name"]))
             .withColumn("_source_format", F.lit("csv"))
             .withColumn("_source_snapshot_id", F.lit(snapshot_id))
             .withColumn("_ingest_run_id", F.lit(run_id))
             .withColumn("_ingested_at", F.current_timestamp())
-            .withColumn("_source_file_size_bytes", F.lit(metadata["size_bytes"]).cast("long"))
-            .withColumn("_source_modified_at", F.lit(metadata["modified_at"]).cast("timestamp"))
+            .withColumn(
+                "_source_file_size_bytes", F.lit(metadata["size_bytes"]).cast("long")
+            )
+            .withColumn(
+                "_source_modified_ns", F.lit(metadata["modified_ns"]).cast("long")
+            )
+            .withColumn(
+                "_source_modified_at", F.lit(metadata["modified_at"]).cast("timestamp")
+            )
             .observe(observed, F.count(F.lit(1)).alias("rows"))
         )
         prepared.write.format("delta").mode("overwrite").option(
@@ -289,7 +468,9 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         source_rows = int(observed.get["rows"])
         rows_loaded = spark.table(table_name(source["table"])).count()
         if source_rows <= 0:
-            raise RuntimeError("The CSV header was readable but the source contained no data rows")
+            raise RuntimeError(
+                "The CSV header was readable but the source contained no data rows"
+            )
         if rows_loaded != source_rows:
             raise RuntimeError(
                 f"Source-to-Bronze row preservation failed: source={source_rows}, Bronze={rows_loaded}"

@@ -25,6 +25,7 @@ SOURCES = {
         "provenance": "CSV derived from the DPWH projects API; export procedure and losslessness are unverified.",
         "grain": "one source project row per selected snapshot",
         "key_candidates": ["contractId", "contract_id", "ContractID"],
+        "required_any_columns": ["contractId", "contract_id", "ContractID"],
     },
     "flood_control_projects": {
         "table": "flood_control_projects",
@@ -34,6 +35,7 @@ SOURCES = {
         "provenance": "CSV derived from the ArcGIS feature layer; export procedure and losslessness are unverified.",
         "grain": "one source feature row; repeated Contract IDs are preserved",
         "key_candidates": ["ObjectId", "ObjectID", "object_id", "OBJECTID"],
+        "required_any_columns": ["ObjectId", "ObjectID", "object_id", "OBJECTID"],
     },
     "psgc": {
         "table": "psgc",
@@ -42,7 +44,18 @@ SOURCES = {
         "provenance_class": "D",
         "provenance": "CSV derived from the PSA publication workbook; export procedure and losslessness are unverified.",
         "grain": "one PSGC place row in the exported snapshot",
-        "key_candidates": ["psgc_code_parsed", "psgc_code", "10-digit PSGC", "10-digit_PSGC"],
+        "key_candidates": [
+            "psgc_code_parsed",
+            "psgc_code",
+            "10-digit PSGC",
+            "10-digit_PSGC",
+        ],
+        "required_any_columns": [
+            "psgc_code_parsed",
+            "psgc_code",
+            "10-digit PSGC",
+            "10-digit_PSGC",
+        ],
     },
     "census_2024_table_c": {
         "table": "census_2024_table_c",
@@ -53,6 +66,12 @@ SOURCES = {
         "grain": "one exported Table C source row, including known BARMM copies",
         "reference_rows": 45_611,
         "known_duplicate_rows": 1_861,
+        "required_any_columns": [
+            "population_parsed",
+            "population_2024",
+            "population",
+            "total_population",
+        ],
     },
     "boundaries": {
         "table": "boundaries",
@@ -62,6 +81,13 @@ SOURCES = {
         "provenance": "Combined CSV derived from geographic boundary data; original seven-file lineage is unverified unless present in the CSV.",
         "grain": "one exported geographic shape row",
         "reference_rows": 43_760,
+        "required_any_columns": [
+            "source_feature_json",
+            "geometry",
+            "geometry_wkt",
+            "wkt",
+            "geom",
+        ],
     },
     "flood_susceptibility": {
         "table": "flood_susceptibility",
@@ -78,6 +104,13 @@ SOURCES = {
             "low": 17_092,
             "missing": 23,
         },
+        "required_any_columns": [
+            "susceptibility",
+            "flood_susceptibility",
+            "rating",
+            "hazard",
+            "hazard_rating",
+        ],
     },
 }
 
@@ -92,12 +125,14 @@ SOURCE_ORDER = (
 
 INGEST_METADATA_COLUMNS = (
     "_source_system",
+    "_source_path",
     "_source_file",
     "_source_format",
     "_source_snapshot_id",
     "_ingest_run_id",
     "_ingested_at",
     "_source_file_size_bytes",
+    "_source_modified_ns",
     "_source_modified_at",
 )
 
@@ -116,7 +151,9 @@ PH_LON = (116.0, 127.0)
 def source_config(source_name):
     """Return one source config with its absolute volume path."""
     if source_name not in SOURCES:
-        raise KeyError(f"Unknown source {source_name!r}. Expected one of {tuple(SOURCES)}")
+        raise KeyError(
+            f"Unknown source {source_name!r}. Expected one of {tuple(SOURCES)}"
+        )
     source = dict(SOURCES[source_name])
     source["name"] = source_name
     source["path"] = f"{SOURCE_VOLUME_PATH}/{source['file_name']}"

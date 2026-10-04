@@ -21,12 +21,14 @@ population source. A PSGC population column may be used downstream as a cross-ch
 Every business-source table adds these technical columns:
 
 - `_source_system`
+- `_source_path`
 - `_source_file`
 - `_source_format`
 - `_source_snapshot_id`
 - `_ingest_run_id`
 - `_ingested_at`
 - `_source_file_size_bytes`
+- `_source_modified_ns`
 - `_source_modified_at`
 
 If a CSV header contains a character Delta cannot store, the loader makes the

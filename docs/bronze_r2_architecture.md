@@ -44,8 +44,10 @@ The caller may pass `snapshot_id`. When it is blank, the loader derives a stable
 from source name, configured source version, path, byte size and modification time. This is intentionally cheap:
 normal runs never hash the full 2 GB flood-susceptibility file.
 
-- Same snapshot ID and same metadata after `SUCCESS`: return
-  `SKIPPED_IDEMPOTENT`; do not rewrite or append duplicate rows.
+- Same snapshot ID and same metadata: return `SKIPPED_IDEMPOTENT` only when
+  the current Bronze table also contains that one snapshot, the same artifact
+  metadata and the expected row count. A historical success alone never causes
+  a skip.
 - Same snapshot ID but changed path, size or modification time: fail clearly. A
   changed source needs a new snapshot ID.
 - Same completed snapshot with `force_reload=true`: atomically rebuild the current
@@ -58,17 +60,20 @@ needs multiple Bronze snapshots, document that dependency before changing this r
 
 ## Technical metadata and load log
 
-Every source row gets `_source_system`, `_source_file`, `_source_format`,
-`_source_snapshot_id`, `_ingest_run_id`, `_ingested_at`,
-`_source_file_size_bytes` and `_source_modified_at`.
+Every source row gets `_source_system`, `_source_path`, `_source_file`,
+`_source_format`, `_source_snapshot_id`, `_ingest_run_id`, `_ingested_at`,
+`_source_file_size_bytes`, `_source_modified_ns` and `_source_modified_at`.
 
 `01-bronze.load_log` records run/source/table IDs, snapshot and source metadata,
 rows loaded, timing, status, a concise error, and any unavoidable CSV-header mapping.
 Statuses are `STARTED`, `SUCCESS`, `FAILED` and `SKIPPED_IDEMPOTENT`. Failures are
 logged when possible and always re-raised.
 
-Delta overwrite is atomic: the previous valid table remains visible until the new
-version commits. The loader never drops the current table first.
+Delta overwrite is atomic: readers see either the previous complete table or the
+new complete table. The loader never drops the current table first. Delta cannot
+atomically commit the Bronze table and `load_log` together. If the table commit
+succeeds but the terminal audit append fails, the next rerun verifies the current
+table's snapshot, artifact metadata and row count, then records an idempotent skip.
 
 ## Low-compute choices
 
@@ -86,8 +91,11 @@ version commits. The loader never drops the current table first.
    volume is described. A missing volume stops setup.
 2. Run the six source notebooks, or `run_all.py`.
 3. On `FAILED`, fix the file/header/access issue or choose the correct new snapshot ID.
-   The previous committed Bronze version remains available.
-4. Rerun. Completed identical sources skip safely; failed sources retry.
+   A failure before the Delta commit leaves the previous version visible. A failure
+   after the commit can leave the new complete version visible without its terminal
+   audit row; this is safe to rerun and reconcile.
+4. Rerun. The loader skips only when the current table and artifact identity agree;
+   otherwise it reloads the requested historical snapshot or reports a conflict.
 5. Run validation only after all six return `SUCCESS` or `SKIPPED_IDEMPOTENT`.
 
 ## Known limitations
