@@ -107,6 +107,7 @@ def test_historical_snapshot_is_not_current_after_a_new_snapshot():
         expected_rows=12,
     )
 
+
 def test_parse_csv_line_preserves_quoted_commas_and_crlf():
     assert bronze._parse_csv_line('"geometry,with,commas",high\r', 2) == [
         "geometry,with,commas",
