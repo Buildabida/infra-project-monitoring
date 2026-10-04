@@ -1,70 +1,101 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
-# MAGIC # Bronze: DPWH projects
+# MAGIC # Bronze: DPWH projects from R2
 # MAGIC
-# MAGIC Loads every DPWH project from the BetterGov.ph API into `01-bronze`.`dpwh_projects`. One row is one project, with every field as the API sent it. The key is `contractId`.
+# MAGIC ## Purpose
 # MAGIC
-# MAGIC 1. Saves each API reply exactly as it came, in a new landing folder for this run.
-# MAGIC 2. Reads only this run's replies with Spark. It keeps every field and its name, and adds where each row came from: `_raw_file`, `_source_url` and `_ingest_run_id`.
-# MAGIC 3. Adds a row to `01-bronze`.`load_log` with the total the API reports, the raw files, their sizes and their SHA-256 fingerprints.
+# MAGIC Preserve one selected `dpwh_projects.csv` snapshot in
+# MAGIC `01-bronze.dpwh_projects`. One Bronze row remains one exported DPWH project row.
+# MAGIC Contract, budget, status, progress, office/location, date, and coordinate values
+# MAGIC stay as source strings; interpretation and correction belong in Silver.
 # MAGIC
-# MAGIC Bronze doesn't rename, cast or fix any field. For example, `location.province` holds a DPWH district office name, not a PSGC province. Silver renames the fields, turns the text into dates and numbers, and maps the office to a place. The checks use `TRY_CAST` when they need a number or a date.
+# MAGIC ## Why this design
 # MAGIC
-# MAGIC The load stops if a page is short or the API total changes during the load, so the table is never replaced with part of the data. It takes about 5 minutes. It is safe to run twice.
+# MAGIC - **Batch-based:** one bounded CSV snapshot is handled at a time.
+# MAGIC - **Idempotent:** the same current artifact is verified and skipped without adding rows.
+# MAGIC - **Parameterized:** shared widgets supply snapshot, version, reload, and path choices.
+# MAGIC - **Snapshot-aware:** every row and audit event carries artifact and attempt metadata.
+# MAGIC - **Low cost:** metadata and headers are checked before Spark reads the full CSV.
+# MAGIC
+# MAGIC The shared loader also protects the last complete Delta version, checks a documented
+# MAGIC project-key alias before replacement, preserves every source row, and records the
+# MAGIC source-to-Bronze row count.
+# MAGIC
+# MAGIC ## Step 1 — Define the batch parameters
+# MAGIC
+# MAGIC The notebook exposes only source-specific choices. Catalog, schema, table, default
+# MAGIC path, metadata rules, conflict handling, and Delta mechanics stay centralized.
 
 # COMMAND ----------
 
+import importlib
+import json
 import os
 import sys
 
-from pyspark.sql import functions as F
-
-repo_root = os.path.abspath("../..")  # the repo root, so the import below works everywhere
+repo_root = os.path.abspath("../..")
 sys.path.insert(0, repo_root)
 
-from src import api, bronze, config
+from src import bronze, config
+
+dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
+dbutils.widgets.text("source_version", "", "Optional publisher/source version")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
+dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
 
-# 1. Save every reply as it came, in a new folder for this run. About 54 pages of 5,000 projects.
-load_run_id = bronze.new_run_id()
-folder = bronze.landing_folder("dpwh_projects", load_run_id)
-raw_files = []
-for page, reply, _, total in api.dpwh_pages():
-    raw_files.append(bronze.save_raw(f"{folder}/page_{page:03d}.json", reply))
-print(f"Saved {len(raw_files)} pages to {folder}. The API reports {total:,} projects.")
+# MAGIC %md
+# MAGIC ## Step 2 — Resolve the DPWH source contract
+# MAGIC
+# MAGIC `source_config` supplies the approved file name, target table, source system,
+# MAGIC grain, provenance statement, and alias groups for the project key, description,
+# MAGIC budget, category, status, progress, dates, and coordinates. A controlled path
+# MAGIC override changes only the selected artifact; it does not duplicate path logic.
 
 # COMMAND ----------
 
-# 2. Read only the pages this run saved. One row per project, with every field as the API sent it.
-page_files = [path for path, _, _ in raw_files]
-projects = (
-    spark.read.option("multiLine", "true")
-    .json(page_files)
-    .select(F.explode("data.data").alias("project"), F.col("_metadata.file_path").alias("_raw_file"))
-    .select("project.*", "_raw_file")
-    .withColumn("_source_url", F.lit(config.DPWH_API))
+source = config.source_config("dpwh_projects")
+source["path"] = dbutils.widgets.get("source_path").strip() or source["path"]
+source["source_version"] = dbutils.widgets.get("source_version").strip() or None
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 3 — Preserve the selected snapshot
+# MAGIC
+# MAGIC The shared loader verifies file/header contracts, derives or accepts a snapshot ID,
+# MAGIC checks the current Delta table before an idempotent skip, reads all business columns
+# MAGIC as strings with `FAILFAST`, adds technical lineage, atomically replaces the selected
+# MAGIC snapshot, reconciles row counts, and appends a concise status to `load_log`.
+
+# COMMAND ----------
+
+importlib.reload(bronze)
+
+result = bronze.load_csv_snapshot(
+    spark,
+    source,
+    snapshot_id=dbutils.widgets.get("snapshot_id"),
+    force_reload=dbutils.widgets.get("force_reload"),
 )
 
 # COMMAND ----------
 
-# 3. Save the table and log the load.
-loaded = bronze.save_table(spark, projects, "dpwh_projects", load_run_id)
-bronze.log_load(spark, load_run_id, "DPWH projects API", "dpwh_projects", total, loaded, raw_files, config.DPWH_API)
-print(f"Loaded {loaded:,} of the {total:,} projects the API reports.")
-
-# COMMAND ----------
-
 # MAGIC %md
-# MAGIC ## Quick look
+# MAGIC ## Summary
 # MAGIC
-# MAGIC The full checks run in `04_validation`. This is only a first look at the table.
+# MAGIC The resulting table is a traceable raw DPWH snapshot. No project categories,
+# MAGIC geographic corrections, status normalization, numeric casts, filtering,
+# MAGIC aggregation, or business deduplication are applied in Bronze.
 
 # COMMAND ----------
 
-display(spark.sql("""
-    SELECT status, COUNT(*) AS projects, ROUND(SUM(TRY_CAST(budget AS DECIMAL(18, 2))) / 1e9, 1) AS budget_billion_pesos
-    FROM `buildabida-capstone`.`01-bronze`.dpwh_projects
-    GROUP BY status
-    ORDER BY projects DESC
-"""))
+print(json.dumps(result, sort_keys=True))
+dbutils.notebook.exit(json.dumps(result, sort_keys=True))

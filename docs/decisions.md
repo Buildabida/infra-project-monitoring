@@ -1,35 +1,45 @@
 # Decisions
 
-We log each big choice with an ID, the date and why we made it. We keep old rows, even when we change our mind. The team Doc has the same log.
+We record each major choice with an ID, date, and reason.
+Old rows remain when the team changes a decision.
+The team document contains the same log.
 
 ## Made
 
 | ID | Date | Decision | Why |
 | --- | --- | --- | --- |
-| D-01 | Sep 28 | Our team workspace runs the final pipeline and the dashboard | Nadine made a team workspace where everyone is a user. It is not tied to one person. |
-| D-02 | Sep 26 | Our main question is the one in our brief | Our brief sets it |
-| D-05 | Sep 26 | Our team name is Buildabida | It fits infrastructure and sounds fun |
-| D-06 | Sep 26 | Tasks live in GitHub issues and one project board | One place for tasks, linked to our code |
-| D-07 | Sep 28 | Our tables live in our own `buildabida` catalog | It keeps the capstone apart from old class work, like the Chinook schemas |
-| D-08 | Sep 28 | Python loads the sources into `bronze`. SQL does the rest, from `silver` on. | Most of us know SQL best. Python is better for APIs, web pages and Excel files. |
-| D-09 | Sep 28 | Our code lives in a fresh repo in the Buildabida GitHub org | The team owns it, not one person, and everyone gets the same access |
-| D-10 | Sep 28 | Meetings happen in Gather. Files, screenshots and links go in Drive. | Each kind of thing has one home, and we skip extra tools like VS Code |
-| D-11 | Sep 28 | We write code in VS Code, with the Databricks extension. Our team workspace runs it. This changes the VS Code part of D-10. | Free Edition limits us. In VS Code we can use our own tools and AI help without those limits, and Git work does not use the workspace. |
-| D-12 | Sep 28 | Our folders are `notebooks`, `src`, `docs`, `dashboard`, `resources` and `tests` | Nadine and Bri know this layout from past teams. The folders are ready, so anyone can jump in. |
-| D-13 | Sep 28 | Our catalog is `buildabida-capstone`. Schemas are numbered in run order: `00-source`, `01-bronze`, `02-silver`, `03-gold`, `04-validation`. This replaces the catalog name in D-07. | Nadine set up the team workspace this way and prefers numbers. The words match our class and our docs. |
-| D-14 | Sep 28 | Nadine and Kinah each load all five sources, first in their own repo and Databricks account. Then they compare and bring the loads into this repo and the team workspace. | In past groups, one source per person meant nobody knew the other data. Trying it outside the team workspace saves its daily quota until we know the data. |
-| D-15 | Sep 28 | Sam owns the star schema. Bri and Tricia finalize the business question and the analytical questions. Kinah keeps the repo, board and story. | Two people are enough for ingestion this week. The schema needs the final questions, so both start now. |
-| D-16 | Sep 28 | We run on chat, with one team meeting a week in Gather and a Wednesday check-in with our mentor and support instructor. After it we share the team Doc and our repos with them. | Most of us prefer chat. Two touchpoints a week keep us aligned. |
-| D-17 | Sep 29 | Boundary maps: we load 7 files and skip the special areas file. | Its 9 shapes are 1 outline of the Special Geographic Area and 8 parts with no PSGC code. Its barangays are already in the barangay file, and the outline covers its parts, so a project could count twice. |
-| D-18 | Sep 29 | Population: census Table C is our population source. Table B is optional, for growth. The 2024 count in the PSGC file is our cross-check. | Table C has people per barangay, which our questions need. It has names but no PSGC codes, so silver matches the names to codes. |
-| D-19 | Sep 29 | Flood list: bronze keeps all 9,855 rows. We don't drop rows by contract ID. | The 157 repeated rows (109 contract IDs) are not copies. 83 IDs are different parts of one contract, and 26 are one part split by funding year. Silver should count a repeated cost once, or P2.5B counts twice. |
-| D-20 | Sep 29 | Until silver, our checks stay simple bronze load checks. | This week is about bronze. The results still go to `04-validation.dq_results`. |
-| D-22 | Sep 29 | We load five sources. They are the DPWH projects API, the flood control layer, the PSGC 2Q 2026 file, census Table C and the boundary maps (7 files). The PSGC file gives our codes and place names, and Table C gives our population. Each source keeps its own bronze table, and silver joins them. | One job per source shows where each number comes from. Table C and the PSGC count come from the same census. On Sep 29, 43,748 of 43,750 Table C rows had the same count in the PSGC file. So the PSGC count stays our check. |
+| D-01 | Sep 28 | The team workspace runs the final pipeline and dashboard. | Nadine created a shared workspace where everyone is a user. It is not tied to one person. |
+| D-02 | Sep 26 | The main question is the one in the project brief. | The brief defines the project direction. |
+| D-05 | Sep 26 | The team name is Buildabida. | It fits infrastructure and sounds fun. |
+| D-06 | Sep 26 | Tasks live in GitHub issues and one project board. | This keeps tasks and code in one place. |
+| D-07 | Sep 28 | Tables live in the `buildabida` catalog. | This separates the capstone from earlier class work. |
+| D-08 | Sep 28 | Python loads sources into Bronze. SQL owns the later layers, starting with Silver. | The team knows SQL best. Python is better for APIs, web pages, and Excel files. |
+| D-09 | Sep 28 | Code lives in a new repository under the Buildabida GitHub organization. | The team owns it, and everyone has the same access. |
+| D-10 | Sep 28 | Meetings happen in Gather. Files, screenshots, and links go in Drive. | Each item has one home. This avoids unnecessary tools. |
+| D-11 | Sep 28 | Code is written in VS Code with the Databricks extension. The team workspace runs it. This updates D-10. | Free Edition has limits. Local tools and Git work do not consume workspace resources. |
+| D-12 | Sep 28 | Repository folders are `notebooks`, `src`, `docs`, `dashboard`, `resources`, and `tests`. | Nadine and Bri know this layout. The structure helps anyone contribute quickly. |
+| D-13 | Sep 28 | The catalog is `buildabida-capstone`. Schemas are numbered from `00-source` through `04-validation`. This replaces D-07. | The numbering follows run order. The names match the class and project documentation. |
+| D-14 | Sep 28 | Nadine and Kinah each test all five sources independently. They compare results before using the team workspace. | Independent testing builds shared knowledge. It also preserves the team workspace quota while the data is explored. |
+| D-15 | Sep 28 | Sam owns the star schema. Bri and Tricia finalize the questions. Kinah maintains the repository, board, and story. | Two people cover ingestion. Schema design can begin while the final questions are refined. |
+| D-16 | Sep 28 | Work happens through chat. The team meets weekly and attends a Wednesday mentor check-in. | Most members prefer chat. Two weekly touchpoints maintain alignment. |
+| D-17 | Sep 29 | Load seven boundary files and exclude the special-areas file. | Its shapes lack PSGC codes. The barangays already exist elsewhere, so including the file could double-count projects. |
+| D-18 | Sep 29 | Census Table C is the population source. Table B is optional for growth. PSGC population is a cross-check. | Table C provides barangay population. Silver must match its place names to PSGC codes. |
+| D-19 | Sep 29 | Bronze keeps all 9,855 flood-list rows. Rows are not removed by Contract ID. | The 157 repeated rows are not copies. Silver must prevent repeated project costs from being counted twice. |
+| D-20 | Sep 29 | Checks remain simple Bronze load checks until Silver. | Current work focuses on Bronze. Results still go to `04-validation.dq_results`. |
+| D-22 | Sep 29 | Load five sources into separate Bronze tables. Silver joins DPWH, flood control, PSGC, Table C, and boundaries. | Separate loads preserve lineage. PSGC population remains a cross-check against authoritative Table C. |
+| D-23 | Oct 4 | Cloudflare R2 stores six approved CSV snapshots, including the trimmed MGB extract. Bronze holds the selected snapshot and records its identity. | This replaces D-22 and resolves D-21. R2 retains history while Bronze avoids repeated downloads and duplicate multi-GB snapshots. |
+
+Additional context for D-22:
+
+- The five-source design used the DPWH API, flood-control layer, PSGC file, Table C, and seven boundary files.
+- PSGC provides codes and place names.
+- Table C provides authoritative population.
+- On September 29, 43,748 of 43,750 Table C rows matched the PSGC population count.
 
 ## Still open
 
-| ID | Question | Options we're looking at |
+| ID | Question | Options under review |
 | --- | --- | --- |
 | D-03 | How do we match a project to a place? | Map point, office name, or both |
-| D-04 | How do we handle projects that are in both the DPWH and flood control lists? | Match by contract ID |
-| D-21 | Do we add the DENR MGB flood susceptibility map as a 6th source? We decide on Wed, Sep 30. | Add it now, keep it as a bonus, or skip it |
+| D-04 | How do we handle projects found in both project lists? | Match by Contract ID |
+| D-21 | Do we add the DENR MGB flood-susceptibility map as a sixth source? | Resolved by D-23 with the approved trimmed extract |

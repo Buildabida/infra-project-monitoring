@@ -1,33 +1,223 @@
 # Data model
 
-> [!NOTE]
-> This is a draft. The final schema is due Oct 3.
+Every table lives in the `buildabida-capstone` catalog.
+Bronze preserves one selected source snapshot.
+Silver owns cleaning, reconciliation, matching, and mapping.
+Gold contains the facts and dimensions used to answer the project questions.
 
-Every table lives in our `buildabida-capstone` catalog. The schemas are numbered in run order. The middle column says what one row of the table stands for.
+```text
+R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
+                              ↓                                  ↓
+                       Bronze validation                  analytical validation
+```
 
-| Table | One row is | Key |
+## Bronze source contracts
+
+| Table | One row is | Source-grain identity |
 | --- | --- | --- |
-| `01-bronze.dpwh_projects` | One project, with every field as the API sent it | `contractId` |
-| `01-bronze.flood_control_projects` | One feature of the flood control map layer, with `attributes` and `geometry` as the layer sent them. 109 contracts have more than one row ([D-19](decisions.md)). | `attributes.ObjectId` |
-| `01-bronze.psgc` | One place in the PSGC 2Q 2026 file | `psgc_code_parsed` |
-| `01-bronze.population_2024` | One place and its 2024 count from the PSGC file. We use it to check census Table C ([D-18](decisions.md)). | `psgc_code_parsed` |
-| `01-bronze.census_2024_table_c` | One row of census Table C: a province, city, town or barangay, with its 2024 count. Our population source ([D-18](decisions.md)). | `source_file`, `sheet_name`, `source_row_number` |
-| `01-bronze.boundaries` | One map feature of a region, province, city, town or barangay, kept whole as GeoJSON text. Some places have 2 or more shapes, so a PSGC code can repeat. | `source_file`, `source_feature_index` |
-| `01-bronze.<table>_sheet_manifest` | One sheet of an Excel file, with how its rows were sorted. There is one for `psgc` and `census_2024_table_c`. | `source_file`, `sheet_name` |
-| `01-bronze.<table>_parse_issues` | One Excel row the load could not read, with its cells and the reason. It should be empty. | `source_file`, `sheet_name`, `source_row_number` |
-| `01-bronze.load_log` | One load of one bronze table: the rows the source reports and the rows we loaded. It also lists the raw files with their sizes and SHA-256 fingerprints. | `run_id`, `table_name` |
-| `02-silver.projects` | One project from any source, with a PSGC code | `contract_id` |
-| `03-gold.dim_place` | One region, province, city or town | `psgc_code` |
-| `03-gold.dim_project_type` | One project type | `project_type_id` |
-| `03-gold.fact_project` | One project | `contract_id` |
-| `04-validation.dq_results` | One check on one column in one run | `run_id`, `table_name`, `column`, `data_quality_check` |
+| `01-bronze.dpwh_projects` | One exported DPWH project row | Contract or project identifier |
+| `01-bronze.flood_control_projects` | One exported flood-control feature. Repeated Contract IDs remain. | Source object identifier |
+| `01-bronze.psgc` | One exported PSGC place row | PSGC code |
+| `01-bronze.census_2024_table_c` | One exported Table C row, including known BARMM copies | Source file, sheet, and row |
+| `01-bronze.boundaries` | One exported geographic shape row | Source file and feature identifier |
+| `01-bronze.flood_susceptibility` | One flood area in the approved trimmed MGB extract | Source row. No key is invented. |
+| `01-bronze.load_log` | One ingestion status event | `run_id`, `status` |
+| `04-validation.dq_results` | One data-quality check in one validation run | `run_id`, `table_name`, `column`, `data_quality_check` |
 
-In `03-gold`, a fact table holds the things we count, like projects and their money. A dimension table holds the things we group by, like places and project types.
+Census Table C is the authoritative population source.
+PSGC population remains a cross-check.
+There is no authoritative generic `01-bronze.population_2024` table.
 
-Bronze keeps every field and value of a source as it came, with the source's own names, like `contractId`. Our snake_case names start in silver. Every bronze table also has `_ingest_run_id`, the run that loaded it, and `load_ts`, the time. The API tables also have `_raw_file` and `_source_url`. When a load turns text into a number or a code, the result goes in a `_parsed` column next to the `_raw` one.
+Every business-source Bronze table adds these technical fields:
 
-The BARMM file of census Table C has 4 sheets that copy other sheets in it. `census_2024_table_c` keeps them and marks them in `is_known_duplicate_sheet`, and silver drops them.
+- `_source_system`
+- `_source_path`
+- `_source_file`
+- `_source_format`
+- `_source_snapshot_id`
+- `_ingest_run_id`
+- `_ingested_at`
+- `_source_file_size_bytes`
+- `_source_modified_ns`
+- `_source_modified_at`
 
-`00-source.landing` is a volume, not a table. It holds the raw API replies, in a new folder for each run, and the files we download, like the PSGC and census files.
+An optional publisher `source_version` is stored in `load_log`.
+Silver must carry it through `_ingest_run_id` when a target requires a source version.
+This applies to PSGC, boundary, MGB, and flood-list versions.
 
-The names have hyphens, so SQL needs backticks around the catalog and the schema, like `` `01-bronze`.psgc ``.
+Business columns remain source strings.
+Only the minimum column-name substitutions required by Delta are permitted.
+`load_log.column_mapping_json` records those changes.
+
+## Silver matching and reconciliation tables
+
+These tables preserve explainable matching decisions.
+The Gold model must not hide those decisions.
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_dpwh_project_component` | One DPWH component or type-of-work record per contract and ingestion run | `component_key` | `source_system`, `contract_id`, `source_component_id`, `source_infra_type`, `source_type_of_work`, `component_description`, `source_row_number`, `run_id`, `source_load_ts` |
+| `02-silver.silver_flood_control_component` | One published flood-control source row | `flood_component_key` | `source_contract_id`, matched project system and contract, `type_of_work`, `component_description`, `source_contract_cost`, `match_status`, `source_row_number`, `source_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_project_region_map` | One project-to-region mapping result per pipeline run | `project_region_map_key` | `source_system`, `contract_id`, `psgc_region_code`, `reported_region_raw`, `mapping_method`, `match_status`, `match_quality`, `boundary_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_population_region_reconciliation` | One population source-row reconciliation result per pipeline run | `population_reconciliation_key` | `source_name`, `source_row_number`, `source_sheet`, `source_place_name`, `matched_psgc_code`, `match_status`, `match_method`, `ambiguity_reason`, `is_duplicate_sheet_row`, `is_primary_population_record`, `run_id`, `source_load_ts` |
+| `02-silver.config_project_category_mapping` | One approved source category mapping per taxonomy version | Composite natural key | `source_system`, `raw_category`, `source_infra_type`, `standardized_sector`, `mapping_rule`, `taxonomy_version`, approval fields |
+
+Required Silver uniqueness:
+
+- Project-region and project-flood maps: `source_system`, `contract_id`, `run_id`.
+- DPWH components: `source_system`, `contract_id`, `source_component_id`, `run_id`.
+- Use `source_row_number` when no stable component ID exists.
+- Flood-control components: `source_contract_id`, `source_row_number`, `source_version`, `run_id`.
+- Population reconciliation: `source_name`, `source_sheet`, `source_row_number`, `run_id`.
+- Category mapping: `source_system`, `raw_category`, `source_infra_type`, `taxonomy_version`.
+
+## Gold fact tables
+
+### `03-gold.fact_project_snapshot`
+
+Grain: one DPWH project per distinct source snapshot.
+
+Primary key: `project_snapshot_key`.
+
+Foreign keys:
+
+- `project_key`
+- `region_key`
+- `status_key`
+- `flood_susceptibility_key`
+- `snapshot_date_key`
+- `start_date_key`
+- `source_completion_date_key`
+
+Main measures and lineage:
+
+- `reported_budget_pesos DECIMAL(20,2)`.
+- `physical_progress_pct DECIMAL(5,2)`.
+- `latitude DOUBLE`, `longitude DOUBLE`, and coordinate or match status fields.
+- `long_running_flag`, `zero_progress_flag`, and `delivery_rule_version`.
+- `source_snapshot_id`, `run_id`, `is_current_snapshot`, and `source_load_ts`.
+
+Uniqueness: `project_key`, `source_snapshot_id`.
+
+### `03-gold.fact_region_population`
+
+Grain: one region per population reference year and source.
+
+Primary key: `region_population_fact_key`.
+Foreign key: `region_key`.
+
+Main columns:
+
+- `reference_year`
+- `population_count`
+- `source_name`
+- `is_primary_source`
+- `population_match_status`
+- `source_row_count`
+- `run_id`
+- `source_load_ts`
+
+Uniqueness: `region_key`, `reference_year`, `source_name`.
+
+### `03-gold.fact_region_flood_exposure`
+
+Grain: one region per susceptibility level, MGB version, and boundary version.
+
+Primary key: `region_flood_exposure_key`.
+Foreign keys: `region_key` and `flood_susceptibility_key`.
+
+Measures and lineage:
+
+- `susceptible_area_sqkm`
+- `share_of_region_area_pct`
+- `source_polygon_count`
+- `mgb_source_version`
+- `boundary_version`
+- `spatial_match_status`
+- `area_calculation_crs`
+- `area_rule_version`
+- `run_id`
+- `source_load_ts`
+
+Uniqueness includes these fields:
+
+- `region_key`
+- `flood_susceptibility_key`
+- `mgb_source_version`
+- `boundary_version`
+
+## Gold dimensions
+
+| Dimension | Grain and key | Main columns |
+| --- | --- | --- |
+| `03-gold.dim_date` | One row per calendar date. Key: `date_key`. | `calendar_date`, year, quarter, month, and day fields |
+| `03-gold.dim_project` | One unique contract per source system. Key: `project_key`. | `contract_id`, descriptions, categories, standardized sector, mapping details, flood-list details, funding source, office, contractor, infrastructure year, lineage |
+| `03-gold.dim_region` | One official PSGC region per PSGC version plus key `0`. Key: `region_key`. | PSGC code, names, version, BARMM and geographic flags, centroid, lineage |
+| `03-gold.dim_project_status` | One source-status mapping per version. Key: `status_key`. | Source and standardized status, group, mapping version, source system, active flag, lineage |
+| `03-gold.dim_flood_susceptibility` | One susceptibility classification per source version. Key: `flood_susceptibility_key`. | Level, severity rank, source system, source version, lineage |
+| `03-gold.dim_region_boundary` | One boundary version per official region. Key: `boundary_key`. | `region_key`, geometry, version, CRS, validity, PSGC-match status, source system, lineage |
+
+Dimension uniqueness:
+
+- `dim_date`: `calendar_date`.
+- `dim_project`: `source_system`, `contract_id`.
+- `dim_region`: `psgc_region_code`, `psgc_version`.
+- `dim_project_status`: `source_system`, `source_status`, `status_mapping_version`.
+- `dim_flood_susceptibility`: `source_system`, `flood_susceptibility_level`, `source_version`.
+- `dim_region_boundary`: `region_key`, `boundary_version`.
+
+## Six-source lineage
+
+| Source | Downstream destination |
+| --- | --- |
+| DPWH projects | DPWH component mapping, category mapping, project and status dimensions, and project snapshot fact |
+| Flood-control list | Flood-control components and official flood-list flags on projects |
+| PSGC | Region dimension and population reconciliation |
+| PSA Table C | Population reconciliation and region population fact |
+| BetterGov boundaries | Region boundary dimension, project-region mapping, and regional flood intersection |
+| MGB flood susceptibility | Project-flood mapping, susceptibility dimension, and region flood-exposure fact |
+
+## Join rules
+
+- `fact_project_snapshot.project_key` joins to `dim_project.project_key`.
+- `fact_project_snapshot.region_key` joins to `dim_region.region_key`.
+- Status, susceptibility, and date keys join to their corresponding dimensions.
+- Population and flood-exposure facts join to `dim_region` through `region_key`.
+- Silver mapping tables retain the run, method, quality, and source version for every Gold key.
+- Key `0` is reserved for unknown, unmapped, or non-geographic records.
+  Central Office uses key `0` with `region_match_status = 'Non-geographic reporting unit'`.
+
+## Required analytical validation
+
+1. At most one `is_current_snapshot = true` row exists per `project_key`.
+2. Physical progress is between 0 and 100 or null.
+3. Reported budget is non-negative or null.
+4. Flood-exposure area is non-negative. Its regional share is between 0 and 100.
+5. Primary population is positive. Each region and year has exactly one primary source.
+6. Central Office is excluded from population-based ratios.
+7. MGB classifications include Unknown, Low, Moderate, High, and Very High.
+8. Severity rank is unique within each source system and version.
+9. `source_snapshot_id` is not null. All fact foreign keys resolve.
+10. Spatial areas use an appropriate projected CRS instead of square degrees.
+
+## Business-question coverage
+
+| Analysis | Main tables | Interpretation boundary |
+| --- | --- | --- |
+| Regional investment concentration | `fact_project_snapshot` and `dim_region` | Use reported budgets. Show coordinate and match coverage. |
+| Infrastructure portfolio and categories | `fact_project_snapshot` and `dim_project` | Category rules are versioned and explainable. |
+| Project delivery and status | Project fact plus status, date, and region dimensions | Use long-running or zero-progress rules. Do not claim that a project is delayed without evidence. |
+| Investment relative to population | Project fact plus region population fact and region dimension | Describe allocation differences, not fairness. Exclude non-geographic Central Office. |
+| Flood-control alignment | Project fact, project and susceptibility dimensions, flood-exposure and population facts, and region | Report comparative patterns. Do not claim proof of insufficient protection or causation. |
+
+The available need proxies are population and flood-risk exposure.
+They do not represent every form of infrastructure need.
+Reported budgets and contract costs are not actual payments or disbursements.
+
+## Bronze preservation boundary
+
+Bronze does not clean names, cast business types, map places, or deduplicate source rows.
+It does not standardize categories, calculate measures, or perform spatial joins.
+These decisions begin in Silver and remain traceable.
+Traceability uses snapshot IDs, run IDs, mapping statuses, rule versions, and source versions.

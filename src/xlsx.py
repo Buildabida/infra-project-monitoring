@@ -1,6 +1,9 @@
-"""Read Excel files with only the Python standard library, so nothing has to be installed.
+"""Reproduce the earlier PSA workbook inspection with the standard library.
 
-Bronze keeps every cell as PSA wrote it. These helpers only read the file and sort its rows.
+The current R2 Bronze contract reads the approved combined CSV, so this module is not part
+of the six-source loader path. It remains as tested historical evidence for how exact cell
+text, sheet names, row numbers, notes, blanks, and parse issues were classified without
+third-party Excel dependencies. It does not clean names or remove source rows.
 """
 
 import json
@@ -15,7 +18,8 @@ DOC_RELS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 # PSA ends its sheets with notes and sources, in the first column.
 NOTE_STARTS = ("note:", "notes:", "source:", "sources:")
 
-# The columns of the sheet manifest and parse issue tables that bronze.save_parse_audit saves.
+# Historical workbook-migration audit schemas. The current R2 batch reads CSV files;
+# these helpers remain only for reproducibility tests and documented legacy evidence.
 MANIFEST_COLUMNS = (
     "source_file string, sheet_name string, is_data_sheet boolean, skip_reason string, "
     "physical_row_count long, header_row_number long, title_and_header_row_count long, "

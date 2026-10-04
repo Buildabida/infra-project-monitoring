@@ -1,0 +1,127 @@
+run_id,table_name,column,data_quality_check,failed_rows,total_rows,percentage,status,action,details,snapshot_id,run_ts
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,row count,row count matches documented historical reference,0,43760,0,PASS,flag,Reference mismatch is reviewed; Bronze rows are not removed or added.,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,"source_file, source_feature_id",source file/feature lineage is unique,232,43760,0.53,FLAG,flag,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,load_log.rows_loaded,current Bronze row count matches load_log,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-50c107fb3be0785f3a48',metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,geometry_json,geometry representation is not null or empty,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,table,has at least one row,0,1,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_system,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_path,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_file,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_format,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_snapshot_id,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_ingest_run_id,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_ingested_at,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_file_size_bytes,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_modified_ns,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,_source_modified_at,ingestion metadata is not null,0,43760,0,PASS,stop,null,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,boundaries,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-50c107fb3be0785f3a48,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,is_known_duplicate_sheet,known BARMM duplicates can be identified,1,1,100,FLAG,flag,Current CSV does not expose a documented duplicate-sheet marker.,null,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,population,population casts to a whole number,0,43750,0,PASS,flag,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,population,population is positive when present,12,43750,0.03,FLAG,flag,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,row count,row count matches documented historical reference,1861,45611,4.08,FLAG,flag,Reference mismatch is reviewed; Bronze rows are not removed or added.,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,load_log.rows_loaded,current Bronze row count matches load_log,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-afa2fa4c580930b7c10a',metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,table,has at least one row,0,1,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_system,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_path,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_file,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_format,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_snapshot_id,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_ingest_run_id,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_ingested_at,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_file_size_bytes,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_modified_ns,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,_source_modified_at,ingestion metadata is not null,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,census_2024_table_c,"source_file, sheet_name, source_row_number",source file/sheet/row lineage is unique,0,43750,0,PASS,stop,null,metadata-afa2fa4c580930b7c10a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,progress,physical progress is between 0 and 100 when present,17,265661,0.01,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,"latitude, longitude",project coordinate pair is present,50522,265661,19.02,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,"latitude, longitude",project coordinates fall in the Philippines screening box,0,265661,0,PASS,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,contract_id,source-grain key is unique,5,265661,0,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,status,status is a documented category,105,265661,0.04,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,start_date,values cast to DATE,1,265661,0,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,completion_date,values cast to DATE,16,265661,0.01,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,amount_paid,"values cast to DECIMAL(38, 6)",6,265661,0,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,progress,values cast to DOUBLE,5,265661,0,FLAG,flag,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,load_log.rows_loaded,current Bronze row count matches load_log,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-6321c7aa6f2a14e12f4c',metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,table,has at least one row,0,1,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_system,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_path,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_file,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_format,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_snapshot_id,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_ingest_run_id,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_ingested_at,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_file_size_bytes,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_modified_ns,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,_source_modified_at,ingestion metadata is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,dpwh_projects,contract_id,source key is not null,0,265661,0,PASS,stop,null,metadata-6321c7aa6f2a14e12f4c,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,contract_cost,contract cost casts to a number,2,9861,0.02,FLAG,flag,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,contract_cost,contract cost is non-negative when present,0,9861,0,PASS,flag,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,"latitude, longitude",flood-control coordinates fall in the Philippines screening box,0,9861,0,PASS,flag,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,contract_id,repeated Contract IDs are preserved for Silver review,157,9861,1.59,FLAG,flag,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,object_id,source-grain key is unique,0,9861,0,PASS,flag,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,contract_id,Contract ID is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,load_log.rows_loaded,current Bronze row count matches load_log,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-0d088311118dfd63d63a',metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,table,has at least one row,0,1,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_system,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_path,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_file,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_format,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_snapshot_id,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_ingest_run_id,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_ingested_at,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_file_size_bytes,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_modified_ns,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,_source_modified_at,ingestion metadata is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_control_projects,object_id,source key is not null,0,9861,0,PASS,stop,null,metadata-0d088311118dfd63d63a,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,geometry_json,flood-area geometry is not null or empty,1815,63684,2.85,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,high row count matches documented reference,15111,15111,100,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,low row count matches documented reference,17092,17092,100,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,missing-rating row count matches documented reference,1799,23,7821.74,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,moderate row count matches documented reference,25302,25302,100,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,"rating is very high, high, moderate, low, or missing",61862,63684,97.14,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,row count,row count matches documented historical reference,0,63684,0,PASS,flag,Reference mismatch is reviewed; Bronze rows are not removed or added.,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,flood_susceptibility_code,very high row count matches documented reference,6156,6156,100,FLAG,flag,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,load_log.rows_loaded,current Bronze row count matches load_log,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-17bf5e65e1838a2f7be9',metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,table,has at least one row,0,1,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_system,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_path,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_file,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_format,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_snapshot_id,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_ingest_run_id,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_ingested_at,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_file_size_bytes,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_modified_ns,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,_source_modified_at,ingestion metadata is not null,0,63684,0,PASS,stop,null,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,flood_susceptibility,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-17bf5e65e1838a2f7be9,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,population_2024,population casts to a whole number,0,43768,0,PASS,flag,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,psgc_code,source-grain key is unique,0,43768,0,PASS,flag,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_snapshot_id,contains exactly one selected snapshot,0,1,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,load_log.rows_loaded,current Bronze row count matches load_log,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,load_log.snapshot_id,current Bronze snapshot matches load_log,0,1,0,PASS,stop,load_log snapshot='metadata-9f97e93e082df80535d6',metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,table,has at least one row,0,1,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_system,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_path,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_file,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_format,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_snapshot_id,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_ingest_run_id,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_ingested_at,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_file_size_bytes,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_modified_ns,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,_source_modified_at,ingestion metadata is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,load_log.status,latest load is SUCCESS or SKIPPED_IDEMPOTENT,0,1,0,PASS,stop,latest status=SKIPPED_IDEMPOTENT,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z
+732b92cd-496e-4386-94ce-befbb5f06bdf,psgc,psgc_code,source key is not null,0,43768,0,PASS,stop,null,metadata-9f97e93e082df80535d6,2026-10-04T14:12:42.759Z

@@ -1,51 +1,104 @@
 # Data quality checks
 
-> [!NOTE]
-> The bronze checks are built. The silver and gold checks are still our plan.
+`notebooks/04_validation/01_validation_bronze.py` validates all six authoritative Bronze tables.
+Validation begins after every loader returns `SUCCESS` or `SKIPPED_IDEMPOTENT`.
 
-Each run should check the data before it moves to the next layer:
+- **stop** produces `FAIL` and blocks downstream use when Bronze is unsafe.
+- **flag** produces `FLAG` for findings that require review or Silver handling.
+  These include source issues, historical-reference differences, and provenance gaps.
+- A check that cannot execute produces `ERROR` and blocks downstream use.
 
-1. Silver runs only after bronze passes its checks.
-2. Gold runs only after silver passes.
-3. The dashboard and Genie use only gold tables that passed.
+Validation reports problems.
+It never fixes, filters, or deletes source rows.
+Each Bronze table is aggregated once, including the 2 GB MGB extract.
+The validation process does not cache source tables.
 
-| Check | Example | If it fails |
-| --- | --- | --- |
-| Not null | `contract_id` is never empty | Stop the run |
-| Unique | One row per `contract_id` in `02-silver.projects` | Stop the run |
-| Row counts | Bronze, silver and gold totals match, after known drops | Stop the run |
-| Valid range | `progress` is from 0 to 100 | Flag the row |
-| Map point | The point is inside the Philippines | Flag the row |
-| Place match | Every project has a PSGC code | Flag and report the match rate |
-| Money | `amount_paid` is not more than `budget` | Flag the row |
+## Why STOP and FLAG are separate
 
-Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. Keep the results of failed runs, so we can see what went wrong.
+A source can remain usable while containing a documented imperfection.
+Treating every imperfection as a failure could encourage cleaning in Bronze.
+Ignoring every imperfection could make an unsafe table appear acceptable.
 
-## Bronze checks
+STOP protects pipeline correctness.
+FLAG keeps source limitations visible without changing raw rows.
 
-Until silver, our checks are bronze load checks. That is decision [D-20](decisions.md). They all live in one notebook, `notebooks/04_validation/01_validation_bronze.py`, and `run_all.py` runs it after the loads.
+## Validation flow
 
-Each check is one line in a list, so to add a check, add a line. Each check has an action:
+1. Resolve the latest audit state for every target from the small `load_log` table.
+2. Confirm that each required table exists and contains one selected snapshot.
+3. Build common metadata, row-count, source-key, and audit expressions.
+4. Add source-specific checks supported by each documented source contract.
+5. Evaluate each table's metrics in one grouped Spark aggregate.
+6. Compare the table snapshot and row count with its latest safe audit event.
+7. Append one result row per check to `04-validation.dq_results`.
+8. Block downstream use when a STOP check fails or a check cannot be evaluated.
 
-- **Stop:** the data is broken, like a row count that doesn't match the source or an empty key. Fix the load before anyone uses the table.
-- **Flag:** the data is usable, but silver has to handle these rows. The percentage shows how big the problem is.
+## Checks
 
-A run is blocked, and the notebook fails, in three cases:
+Every table checks that:
 
-1. A stop check fails.
-2. A check can't run. Its status is `ERROR`, even when its action is flag.
-3. A required table is missing. The notebook saves an `ERROR` row for it.
+- the table exists and contains rows
+- required ingestion metadata is populated
+- exactly one selected snapshot is present
+- current row count and snapshot match the latest terminal `load_log` event
+- documented keys follow the null and uniqueness rules supported by source grain
+- historical row-count references remain flags instead of processing filters
 
-The DPWH, flood control, PSGC, Table C and boundary tables are required, with the manifest and parse issue tables of the Excel loads. `run_all.py` also skips the checks and says `BLOCKED` if a required load failed or was skipped. So the checks can never pass on an older table.
+Before overwriting a target, each loader requires every configured source-field group.
+Each group accepts documented aliases without renaming the source column.
 
-Bronze keeps values as they came, so the checks use `TRY_CAST` when they need a number or a date. The stored values never change. All the checks of one table run in one query, so each table is read once. The row counts come from one query on `load_log`.
+This protects the last valid table from a structurally incomplete CSV.
+For example, the file may retain an identifier but lose a critical business field.
+Critical fields include budget, place name, population, susceptibility, and geometry.
 
-Most checks count rows. The checks that add up counts, like people per region, are different. For those, `failed_rows` is how far off the total is, and `total_rows` is the total we expect.
+Source-specific checks include:
 
-## Where the results go
+- DPWH status values, numeric and date casts, budget, progress, coordinates, and geographic bounds
+- flood-control object identity, Contract ID nulls, repeated IDs, cost, and coordinates
+- PSGC code identity and population integer casting when population is present
+- Table C lineage, BARMM duplicate markers, population casting, and positive population
+- boundary identifiers, administrative level, file and feature lineage, and geometry presence
+- MGB susceptibility categories, geometry findings, and documented rating-count references
 
-Each run saves its results in `04-validation.dq_results`. We use the same columns as in Week 9, plus `run_id`, `table_name`, `action` and `run_ts`. The `status` is `PASS`, `FLAG`, `FAIL` or `ERROR`. `ERROR` means the check itself could not run.
+Results are appended to `04-validation.dq_results`.
+Each result has `PASS`, `FLAG`, `FAIL`, or `ERROR` status.
 
-| column | data_quality_check | failed_rows | total_rows | percentage | status |
-| --- | --- | --- | --- | --- | --- |
-| contractId | not null | 0 | 265582 | 0.00 | PASS |
+Historical reference totals remain non-blocking checks:
+
+- 45,611 Table C rows
+- 43,760 boundary shapes
+- 63,684 flood areas
+
+These totals provide comparison evidence.
+They are not filtering, deduplication, or transformation rules.
+
+## Result fields
+
+| Field | Meaning |
+| --- | --- |
+| `run_id` | Identifier shared by check rows from one validation attempt |
+| `table_name` | Bronze table being evaluated |
+| `column` | Column or table-level subject of the check |
+| `data_quality_check` | Human-readable rule |
+| `failed_rows` | Rows or units outside the rule |
+| `total_rows` | Denominator or documented expected total |
+| `percentage` | Relative size of the finding when meaningful |
+| `status` | `PASS`, `FLAG`, `FAIL`, or `ERROR` |
+| `action` | `stop` or `flag` |
+| `details` | Concise context for reviewers |
+| `snapshot_id` | Selected snapshot represented by the table |
+
+## Current interpretation note
+
+The MGB source stores susceptibility as coded values.
+Current category references use text labels.
+Validation reports this representation mismatch as a FLAG.
+Reconcile the code-to-label contract before treating category-distribution checks as passing.
+Bronze must continue preserving the source values.
+
+## Summary
+
+Validation protects the Bronze preservation boundary.
+It measures and reports findings, while Silver owns business changes.
+Grouped expressions keep the checks efficient.
+Audit and table reconciliation prevent a stale table from representing a failed batch.

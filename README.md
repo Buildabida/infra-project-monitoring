@@ -4,44 +4,50 @@
 
 # Infrastructure Project Monitoring
 
-A Databricks pipeline that shows where public works money goes in the Philippines, and which places get too little.
+A Databricks pipeline for understanding Philippine public infrastructure investment.
+It shows where funding is concentrated and which areas receive relatively less investment.
 
 [![Checks](https://github.com/Buildabida/infra-project-monitoring/actions/workflows/checks.yml/badge.svg)](https://github.com/Buildabida/infra-project-monitoring/actions/workflows/checks.yml)
 
-Built by team Buildabida (LT2) for the FTW Foundation Data Engineering Track capstone, 2026.
+Team Buildabida built this project for the 2026 FTW Foundation Data Engineering Track capstone.
 
 > [!NOTE]
-> We're building this now. Ingestion and the schema are due Oct 3. Judging is Oct 24.
+> Bronze ingestion and the draft schema cover the October 3 milestone.
+> Silver and Gold development follow before final judging on October 24.
 
 ## Why we built it
 
-The government publishes its projects in many places. Each source names places and project types in its own way. So it's hard to see the full picture.
+Government project data is published across several sources.
+Each source describes places and project types differently.
+This makes the complete investment picture difficult to see.
 
 Our brief asks one main question:
 
-> Where is government infrastructure investment concentrated, what types of projects are being funded, and which areas have relatively low investment compared with population and infrastructure needs?
+> Where is government infrastructure investment concentrated, and what types of projects are being funded?
+> Which areas have relatively low investment compared with population and infrastructure needs?
 
-In short: where does the money go, what kinds of projects get it, and which places get too little for how many people live there?
+In simple terms, we want to know where funding goes and what it supports.
+We also compare investment with population and infrastructure-need indicators.
 
-These smaller questions help us answer it:
+These supporting questions guide the analysis:
 
-1. How much project money went to each region and province, in total and per person?
-2. Which projects are late or not moving?
-3. Does the amount paid match the reported progress?
-4. How do flood control projects compare with other project types?
-5. Which places have many people but few projects?
+1. How much reported project budget goes to each region and province?
+2. Which projects are ongoing, inactive, long-running, or showing no progress?
+3. How do reported budget and physical progress compare?
+4. How does flood-control investment compare with other project categories?
+5. Which places have high population or flood exposure but relatively low reported investment?
 
-## Who it's for
+## Who it is for
 
-- **People** who want to check public works spending in their province or city
-- **Planners** who want to find places with many people but few projects
-- **Our mentor, support instructor and judges**, who need to run and check the pipeline
+- **People** checking public works investment in their province or city
+- **Planners** identifying places with high needs and relatively low investment
+- **Reviewers** verifying the pipeline, evidence, and analytical assumptions
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    S["Sources<br>DPWH projects, flood control,<br>PSGC, census, maps"]:::src --> B["bronze"]:::bronze
+    S["R2 source snapshots<br>six CSV datasets"]:::src --> B["bronze"]:::bronze
     B --> SV["silver"]:::silver
     SV --> G["gold"]:::gold
     G --> D["Dashboard and Genie"]:::dash
@@ -55,101 +61,145 @@ flowchart LR
     classDef dash fill:#FFD9E6,stroke:#2B2A4C,color:#2B2A4C
 ```
 
-Each layer is a schema in our `buildabida-capstone` catalog. The numbers show the run order.
+Each layer is a schema in the `buildabida-capstone` catalog.
+The numbers show the pipeline order.
 
 | Schema | What it holds |
 | --- | --- |
-| `00-source` | The raw API pages and the files we download, in a volume |
-| `01-bronze` | Each source as it came, plus the load time |
-| `02-silver` | Clean data. Every project gets a PSGC code, the official code for its place. |
-| `03-gold` | Ready-to-use tables for the dashboard and Genie |
-| `04-validation` | The result of every data quality check |
+| `00-source` | Cloudflare R2 snapshots exposed through a Unity Catalog volume |
+| `01-bronze` | Selected raw source snapshots with technical lineage |
+| `02-silver` | Cleaned, standardized, reconciled, and geographically matched data |
+| `03-gold` | Analytical facts and dimensions for the dashboard and Genie |
+| `04-validation` | Data-quality and pipeline-validation results |
 
-Python loads our sources into `01-bronze` and runs the bronze checks, which we write in SQL. The checks save their results in `04-validation`. SQL will build the planned `02-silver` and `03-gold` layers. The dashboard and Genie are not built yet.
+Python preserves six selected source snapshots in `01-bronze`.
+Grouped Spark checks write results to `04-validation`.
+Silver owns cleaning and geographic matching.
+Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
 
-We write code in VS Code and run it on our team workspace on [Databricks Free Edition](https://www.databricks.com/learn/free-edition). Nadine adds you to the workspace, and you accept the invite by email.
+We write code in VS Code and use the shared [Databricks Free Edition](https://www.databricks.com/learn/free-edition) workspace.
+Nadine manages workspace access.
 
 1. Install VS Code with the **Databricks** and **Python** extensions.
-2. Clone `https://github.com/Buildabida/infra-project-monitoring.git` and open the folder.
-3. Click the **Databricks** icon, sign in with **OAuth (user to machine)** and pick **Serverless**.
-4. Open `notebooks/00_setup/00_setup_workspace.sql`, click **Run on Databricks**, then **Run File as Workflow**.
+2. Clone `https://github.com/Buildabida/infra-project-monitoring.git`.
+   Open the cloned folder in VS Code.
+3. Select the **Databricks** extension.
+   Sign in with **OAuth (user to machine)** and choose **Serverless**.
+4. Open `notebooks/00_setup/00_setup_workspace.sql`.
+   Select **Run on Databricks**, then **Run File as Workflow**.
 
-The last cell lists the five schemas. Next, run `01_check_sources.py` the same way to see which sources Databricks can reach. The full steps are in [set up VS Code](docs/vscode-setup.md).
+The final cell lists the five project schemas.
+Next, use `01_check_sources.py` to verify access to every configured source.
+See [set up VS Code](docs/vscode-setup.md) for the full instructions.
 
-To load bronze, upload the PSA files to the landing volume, then run `notebooks/run_all.py` the same way. The steps are in [load bronze](notebooks/README.md#load-bronze). We add the other notebooks layer by layer, in the order shown in the [notebooks guide](notebooks/README.md).
+Before loading Bronze, confirm that the six configured CSVs exist in `00-source.cloudflare-r2`.
+Then use `notebooks/run_all.py`.
+See [load Bronze](notebooks/README.md#load-bronze) for the complete workflow.
 
 ## Data sources
 
 | Source | What we use it for |
 | --- | --- |
-| [DPWH projects API](https://api.dpwh.bettergov.ph/projects) by BetterGov.ph | Every DPWH project with its budget, amount paid, progress, dates, contractor and map point. About 265,000 projects as of Sep 2026. |
-| [DPWH Transparency Portal](https://transparency.dpwh.gov.ph) | The official source. We use it to spot-check the API. |
-| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | Flood control projects, from DPWH. We load the DPWH map layer behind it, 9,855 rows as of Sep 29. |
-| [BetterGov flood control projects](https://bettergov.ph/flood-control-projects/table) | The flood control list named in our brief |
-| [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official codes and names for 18 regions, 82 provinces, 149 cities, 1,493 towns and 42,010 barangays. It also has the 2024 count of every place, which we use to check Table C. |
-| [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C gives the population of every barangay. It is our population source. |
-| [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Matching each project's map point to a place. We load 7 files from one pinned version. |
+| [DPWH projects API](https://api.dpwh.bettergov.ph/projects) by BetterGov.ph | DPWH projects with reported budget, progress, dates, contractor, and map points. The selected snapshot contains 265,661 rows. |
+| [DPWH Transparency Portal](https://transparency.dpwh.gov.ph) | Official DPWH reference used for source spot-checks |
+| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | DPWH flood-control project reference |
+| [BetterGov flood-control projects](https://bettergov.ph/flood-control-projects/table) | Flood-control list named in the project brief. The selected snapshot contains 9,861 rows. |
+| [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official geographic codes and place names. Population remains a cross-check for Table C. |
+| [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C provides the authoritative project population source. |
+| [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Geographic reference data for matching project coordinates to places |
+| DENR MGB flood susceptibility | Flood-hazard context from the approved trimmed extract. Spatial matching remains downstream. |
 
-We load five sources now: the DPWH projects API, the flood control map layer, the PSGC file, census Table C and the boundary maps. Each one has its own job. That is decision [D-22](docs/decisions.md). Table C is our population source, and the PSGC count is its cross-check.
+Six source snapshots come from Cloudflare R2:
 
-We plan a sixth source, the DENR MGB flood susceptibility map. It would add flood hazard, a sign of how much a place needs flood control. The team decides it in [D-21](docs/decisions.md). It is not built yet. We won't call it loaded until its source card, license, snapshot, grain and checks are approved and its bronze load is tested.
+- DPWH projects
+- flood-control projects
+- PSGC
+- census Table C
+- boundaries
+- MGB flood susceptibility
 
-Three things to know:
+Table C is the authoritative population source.
+PSGC population remains a cross-check.
+See the [Bronze R2 architecture](docs/bronze_r2_architecture.md) for current CSV provenance limits.
 
-- In the API, `location.province` holds a DPWH district office name, like `Albay 2nd DEO`. It's not a PSGC province. So silver uses the map point and the boundary maps to find the real place.
-- The flood layer can have more than one real row for one contract, like its parts or its funding years. Bronze keeps them all. Silver sorts out these rows and their cost before it joins them with the DPWH projects. A contract ID alone is not a reason to drop a row.
-- A project can be in both the DPWH list and the flood control list. Silver matches them by contract ID, so we don't count one project twice.
+Three important source rules apply:
+
+- The API field `location.province` can contain a DPWH district office name.
+  It is not always a PSGC province.
+  Silver uses map points and boundaries to identify the geographic area.
+- One flood-control contract can have multiple legitimate rows.
+  These can represent components or funding years.
+  Bronze preserves them, and Silver handles their analytical interpretation.
+- A project can appear in both project lists.
+  Silver matches records using approved rules to prevent double-counting.
 
 ## Known limits
 
-- **Some sites block Databricks.** Free Edition can only reach some websites. On Sep 28, our source check reached the DPWH API, the flood control map layer, the BetterGov portal, HDX and Hugging Face. The PSA website said no (HTTP 403). So we download the PSGC and census files by hand, upload them to the `00-source.landing` volume, and write the download date in the source card.
-- **The DPWH data has gaps.** Our Sep 29 checks found that the amount paid is 0 for every project, so we can't check payments yet. About 1 in 5 projects has no map point. BARMM has no projects in the data, and we think it's because the Bangsamoro government runs its own public works.
-- **One workspace runs the final pipeline.** Our team workspace runs the final pipeline and the dashboard. That is decision [D-01](docs/decisions.md). It has one daily quota for all of us, so we keep test runs small and share code through this repo.
+- **Current CSV provenance varies.**
+  Several CSVs were derived from API JSON, XLSX, or GeoJSON.
+  The repository does not prove that every export was lossless.
+  The MGB file is an approved trimmed extract.
+- **DPWH data contains gaps.**
+  The September 29 checks found zero amount paid for every project.
+  About one in five projects has no map point.
+  BARMM project coverage is also limited by the source.
+- **One workspace owns the final pipeline.**
+  This follows [D-01](docs/decisions.md).
+  The team limits unnecessary compute and shares code through this repository.
+- **MGB category interpretation needs reconciliation.**
+  The source uses coded susceptibility values while current references use text labels.
+  Bronze preserves the values, and validation reports the mismatch.
 
 ## Find your way around
 
-- **Run it:** the [quickstart](#quickstart), the [notebooks guide](notebooks/README.md) and [set up VS Code](docs/vscode-setup.md)
-- **Look something up:** the [data model](docs/data-model.md), the [data quality checks](docs/validation.md) and the [style guide](docs/style-guide.md)
-- **See why we chose something:** our [decisions](docs/decisions.md)
-- **Help out:** [how we work](CONTRIBUTING.md)
+- **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
+- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), and [style guide](docs/style-guide.md)
+- **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
+- **See why we chose something:** [decisions](docs/decisions.md)
+- **Contribute:** [how we work](CONTRIBUTING.md)
 
 ```text
 .
 ├── README.md          this page
-├── CONTRIBUTING.md    how we work: branches, reviews and AI rules
-├── LICENSE            MIT License for our code
-├── notebooks/         Databricks notebooks, one folder per step
-├── src/               shared Python code: names, links and helpers
-├── docs/              data model, checks, decisions and style guide
-├── dashboard/         the dashboard file, once we build it
-├── tests/             tests for the code in src
-├── resources/         job settings for our Databricks bundle, later
-├── assets/            the banner at the top of this page
-├── databricks.yml     points VS Code at our team workspace
-└── .github/           issue and pull request forms, and our checks
+├── CONTRIBUTING.md    team workflow, reviews, and AI rules
+├── LICENSE            MIT License for project code
+├── notebooks/         Databricks notebooks organized by pipeline step
+├── src/               shared Python configuration and ingestion code
+├── docs/              model, validation, evidence, decisions, and guides
+├── dashboard/         dashboard artifacts
+├── tests/             automated tests for shared code
+├── resources/         Databricks job and bundle settings
+├── assets/            repository images
+├── databricks.yml     shared workspace configuration
+└── .github/           issue forms, pull request forms, and checks
 ```
 
 ## Help out
 
-Every change goes through a pull request with one review. Read [how we work](CONTRIBUTING.md) before you start.
+Every change uses a pull request with one review.
+Read [how we work](CONTRIBUTING.md) before contributing.
 
-We use AI the way FTW taught us: AI-assisted, human-owned. The rules are in [how we work](CONTRIBUTING.md#using-ai-tools).
+Our AI policy is AI-assisted and human-owned.
+See [using AI tools](CONTRIBUTING.md#using-ai-tools) for the accountability rules.
 
 ## Team and timeline
 
-Kinah (lead), Bri, Nadine, Sam and Tricia. Mentor: Carmi. Support instructor: Simonee.
+Team members are Kinah, Bri, Nadine, Sam, and Tricia.
+Carmi is the mentor, and Simonee is the support instructor.
 
 | Date | Milestone |
 | --- | --- |
-| Oct 3 | Ingestion and schema: every accepted source is in `01-bronze`, with a source card and a reviewed draft schema |
-| Oct 10 | Silver and gold tables pass their checks |
-| Oct 17 | Dashboard and Genie. Databricks Associate exam. |
-| Oct 24 | Final Capstone Showcase (judging) and graduation |
+| Oct 3 | Bronze ingestion and reviewed draft schema |
+| Oct 10 | Silver and Gold tables with validation |
+| Oct 17 | Dashboard, Genie, and Databricks Associate exam |
+| Oct 24 | Final Capstone Showcase and graduation |
 
-Our tasks are on the [project board](https://github.com/orgs/Buildabida/projects/1).
+Tasks are tracked on the [project board](https://github.com/orgs/Buildabida/projects/1).
 
 ## License and credits
 
-Our code uses the [MIT License](LICENSE). The data belongs to the agencies that publish it, and each source keeps its own terms. Thanks to DPWH, PSA, BetterGov.ph and OCHA HDX for sharing their data, and to FTW Foundation for teaching us.
+Project code uses the [MIT License](LICENSE).
+Source data remains subject to each publisher's terms.
+We thank DPWH, PSA, BetterGov.ph, OCHA HDX, and FTW Foundation.

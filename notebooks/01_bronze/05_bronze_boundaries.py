@@ -1,20 +1,32 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
-# MAGIC # Bronze: boundary maps
+# MAGIC # Bronze: boundaries from R2
 # MAGIC
-# MAGIC Loads the shapes of regions, provinces, cities, towns and barangays into `01-bronze`.`boundaries`. One row is one map feature, kept whole as GeoJSON text in `source_feature_json`, with its file and its place in the file. The key is `source_file` and `source_feature_index`.
+# MAGIC ## Purpose
 # MAGIC
-# MAGIC We load 7 of the 8 files in the snapshot, 43,760 shapes. We skip the special areas file (D-17). The reason is in `src/config.py`.
+# MAGIC Preserve one selected `boundary_bettergov.csv` snapshot in
+# MAGIC `01-bronze.boundaries`. One Bronze row remains one exported geographic shape, and
+# MAGIC geometry remains in the CSV's source representation.
 # MAGIC
-# MAGIC The shapes come from the barangay-boundaries-repository on GitHub (PSA codes on NAMRIA maps, snapshot 2023-10-24, MIT license). The link in `src/config.py` is pinned to one commit, so the files never change under us.
+# MAGIC ## Source-of-truth boundary
 # MAGIC
-# MAGIC 1. Downloads each file once into the landing volume, as it came. A later run uses the same files.
-# MAGIC 2. Writes one line per feature: the whole feature, its file and its place in the file.
-# MAGIC 3. Adds a row to `01-bronze`.`load_log` with the number of features, the files, their sizes and their SHA-256 fingerprints.
+# MAGIC Boundaries are reference map data. Bronze does not spatially assign projects,
+# MAGIC repair geometry, standardize place names, or infer missing PSGC codes. Original
+# MAGIC seven-file and feature-index provenance is retained only when the combined CSV
+# MAGIC supplies it.
 # MAGIC
-# MAGIC Bronze doesn't pull fields out of the feature. Silver reads the PSGC code, the name and the shape from `source_feature_json`, and the checks do the same with `get_json_object`.
+# MAGIC ## Why this design
 # MAGIC
-# MAGIC The codes are from 2023. The Negros Island Region (2024) and Sulu's move out of BARMM (2024) are not in these maps yet. Silver maps each shape to the current PSGC.
+# MAGIC Documented geographic identity, feature lineage, and geometry are required before
+# MAGIC replacement. Shared batch,
+# MAGIC idempotency, parameter, and snapshot mechanics keep this loader consistent with
+# MAGIC the other sources without embedding a geospatial framework in Bronze.
+# MAGIC
+# MAGIC ## Step 1 — Define the batch parameters
 
 # COMMAND ----------
 
@@ -22,71 +34,61 @@ import json
 import os
 import sys
 
-repo_root = os.path.abspath("../..")  # the repo root, so the import below works everywhere
+repo_root = os.path.abspath("../..")
 sys.path.insert(0, repo_root)
 
-from src import api, bronze, config
+from src import bronze, config
 
-# COMMAND ----------
-
-# 1. Download each file once, as it came. The download goes to a temporary file first, so a cut download never looks whole.
-load_run_id = bronze.new_run_id()
-folder = bronze.landing_folder("boundaries", config.BOUNDARY_SNAPSHOT)
-for name in config.BOUNDARY_FILES:
-    if not os.path.exists(f"{folder}/{name}"):
-        api.download(config.BOUNDARY_BASE + name, f"{folder}/{name}")
-        print("Downloaded", name)
-raw_files = [bronze.raw_file(f"{folder}/{name}") for name in config.BOUNDARY_FILES]
-
-# COMMAND ----------
-
-# 2. One line per feature: the whole feature as JSON text, its place in the file and the file.
-rows_folder = bronze.landing_folder("boundaries", config.BOUNDARY_SNAPSHOT, "rows")
-
-
-def shape_rows(name, features):
-    for feature_index, feature in enumerate(features):
-        yield {
-            "source_feature_index": feature_index,
-            "source_feature_json": json.dumps(feature, ensure_ascii=False),
-            "source_file": f"{folder}/{name}",
-            "boundary_class": name.removesuffix(".geojson"),
-        }
-
-
-expected = 0
-for name in config.BOUNDARY_FILES:
-    with open(f"{folder}/{name}", encoding="utf-8") as file:
-        features = json.load(file)["features"]
-    expected += len(features)
-    bronze.write_json_lines(f"{rows_folder}/{name.removesuffix('.geojson')}.json", shape_rows(name, features))
-    print(f"{name}: {len(features):,} shapes")
-    del features
-
-# COMMAND ----------
-
-# 3. Read the lines with a set schema, so Spark does not scan the big shapes to guess types.
-# Read only the files we load, so an old file left in the folder is never counted.
-row_files = [f"{rows_folder}/{name.removesuffix('.geojson')}.json" for name in config.BOUNDARY_FILES]
-schema = "source_feature_index long, source_feature_json string, source_file string, boundary_class string"
-shapes = spark.read.schema(schema).json(row_files)
-loaded = bronze.save_table(spark, shapes, "boundaries", load_run_id)
-bronze.log_load(spark, load_run_id, "Boundary maps (2023-10-24)", "boundaries", expected, loaded, raw_files, config.BOUNDARY_BASE)
-print(f"Loaded {loaded:,} of {expected:,} shapes.")
+dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
+dbutils.widgets.text("source_version", "", "Optional publisher/source version")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
+dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Quick look
+# MAGIC ## Step 2 — Resolve the boundary source contract
+# MAGIC
+# MAGIC Shared configuration provides the exact file and table names, provenance class,
+# MAGIC source grain, historical row reference, and required geographic identifier,
+# MAGIC administrative level, source feature lineage, and geometry aliases.
 
 # COMMAND ----------
 
-display(spark.sql("""
-    SELECT
-        boundary_class,
-        COUNT(*) AS shapes,
-        COUNT(GET_JSON_OBJECT(source_feature_json, '$.properties.psgc_code')) AS with_code
-    FROM `buildabida-capstone`.`01-bronze`.boundaries
-    GROUP BY boundary_class
-    ORDER BY shapes
-"""))
+source = config.source_config("boundaries")
+source["path"] = dbutils.widgets.get("source_path").strip() or source["path"]
+source["source_version"] = dbutils.widgets.get("source_version").strip() or None
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 3 — Preserve the selected snapshot
+# MAGIC
+# MAGIC The shared loader performs inexpensive metadata/header checks, reads source fields
+# MAGIC as strings with `FAILFAST`, adds technical lineage, verifies current-table state,
+# MAGIC writes the complete selected snapshot atomically, and reconciles row counts.
+
+# COMMAND ----------
+
+result = bronze.load_csv_snapshot(
+    spark,
+    source,
+    snapshot_id=dbutils.widgets.get("snapshot_id"),
+    force_reload=dbutils.widgets.get("force_reload"),
+)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Summary
+# MAGIC
+# MAGIC The resulting table is a traceable raw boundary snapshot. Spatial intersection,
+# MAGIC project-to-place assignment, geometry conversion, coordinate repair, and geographic
+# MAGIC matching remain downstream responsibilities.
+
+# COMMAND ----------
+
+print(json.dumps(result, sort_keys=True))
+dbutils.notebook.exit(json.dumps(result, sort_keys=True))
