@@ -355,13 +355,12 @@ def _read_csv_as_text(spark, source, metadata, clean_header):
                     rows.append([None] * num_cols)
             yield pd.DataFrame(rows, columns=clean_header)
 
-    text_df = spark.read.option(
-        "lineSep", source.get("line_sep", "\n")
-    ).text(metadata["path"])
+    text_df = spark.read.option("lineSep", source.get("line_sep", "\n")).text(
+        metadata["path"]
+    )
     header_line = text_df.limit(1).collect()[0]["value"]
-    return (
-        text_df.filter(F.col("value") != F.lit(header_line))
-        .mapInPandas(_parse_batch, schema=schema_str)
+    return text_df.filter(F.col("value") != F.lit(header_line)).mapInPandas(
+        _parse_batch, schema=schema_str
     )
 
 
