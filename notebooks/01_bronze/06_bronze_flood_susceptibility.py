@@ -63,8 +63,9 @@ source["source_version"] = dbutils.widgets.get("source_version").strip() or None
 # MAGIC ## Step 3 — Preserve the selected snapshot
 # MAGIC
 # MAGIC The shared loader checks metadata and the rating header before the full Spark read,
-# MAGIC verifies the current snapshot before skipping, preserves source strings, attaches
-# MAGIC lineage, uses an atomic Delta overwrite, and reconciles source and Bronze row counts.
+# MAGIC verifies the current snapshot before skipping, strictly rejects unreadable or
+# MAGIC wrong-width CRLF records, preserves source strings, attaches lineage, uses an atomic
+# MAGIC Delta overwrite, and reconciles source and Bronze row counts.
 
 # COMMAND ----------
 
