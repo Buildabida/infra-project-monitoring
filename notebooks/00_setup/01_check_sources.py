@@ -28,6 +28,7 @@
 
 # COMMAND ----------
 
+import importlib
 import os
 import sys
 
@@ -35,7 +36,7 @@ repo_root = os.path.abspath("../..")
 sys.path.insert(0, repo_root)
 
 from src import bronze, config
-import importlib
+
 importlib.reload(config)
 importlib.reload(bronze)
 
