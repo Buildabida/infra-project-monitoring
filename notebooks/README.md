@@ -32,6 +32,72 @@ shared mechanics to `src/bronze.py` and source contracts to `src/config.py`.
 | 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning data. |
 | Coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete batch. |
 
+## Load Bronze
+
+### Before running
+
+Confirm that you can access the `buildabida-capstone` catalog and this R2-backed
+volume directory:
+
+```text
+/Volumes/buildabida-capstone/00-source/cloudflare-r2/buildabida/
+```
+
+The directory must contain the six files configured in `src/config.py`:
+
+```text
+dpwh_projects.csv
+flood_control_projects.csv
+psgc.csv
+population_2024_table_c_test.csv
+boundary_bettergov.csv
+flood_susceptibility.csv
+```
+
+Run these setup notebooks first:
+
+1. `00_setup/00_setup_workspace.sql` defines missing schemas and verifies the
+   existing source volume.
+2. `00_setup/01_check_sources.py` checks file access, metadata, CSV headers, and
+   required field groups without scanning each complete dataset.
+
+Resolve any setup or source-precheck failure before loading Bronze.
+
+### Run the complete batch
+
+Open `run_all.py` in Databricks, select Serverless compute, and run all cells. The
+coordinator runs the six source notebooks in order. It starts grouped Bronze
+validation only after every source returns a safe status.
+
+The coordinator accepts these optional parameters:
+
+- `snapshot_id`: Leave blank to derive a deterministic ID from each file's metadata.
+- `source_version`: Supply a publisher or release label when one is available.
+- `force_reload`: Keep `false` for a normal run. Use `true` only for an intentional
+  replacement of an otherwise identical selected snapshot.
+
+Use each source notebook directly only for a controlled test that needs the
+`source_path` override.
+
+### Expected result
+
+Each source must return one of these statuses:
+
+- `SUCCESS`: The selected snapshot was committed and audited.
+- `SKIPPED_IDEMPOTENT`: The current table already contains the exact snapshot,
+  matching artifact identity, and expected row count.
+
+Any other source result blocks validation. A successful coordinated run also
+finishes `04_validation/01_validation_bronze` without a blocking check failure.
+
+Review the stored results here:
+
+- `buildabida-capstone`.`01-bronze`.`load_log` contains ingestion audit records.
+- `buildabida-capstone`.`04-validation`.`dq_results` contains grouped validation
+  results.
+- `04_validation/02_bronze_acceptance_evidence.sql` summarizes the latest accepted
+  load and validation evidence without rescanning the Bronze tables.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
