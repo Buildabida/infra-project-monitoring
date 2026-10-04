@@ -2,30 +2,35 @@
 
 ## Scope
 
-This report records Databricks evidence for the six-source Bronze ingestion
-from the approved Cloudflare R2 volume. It covers workspace setup, source
-prechecks, per-source snapshot loading, idempotent reruns, grouped data-quality
-validation, and the corrective changes made after validation gates identified
-source-contract and source-quality findings.
+This report records Databricks evidence for the six-source Bronze ingestion.
+All sources come from the approved Cloudflare R2 volume.
 
-The evidence was captured on October 4, 2026 in the
-`buildabida-capstone` Unity Catalog. The exported validation result has run ID
-`732b92cd-496e-4386-94ce-befbb5f06bdf` and timestamp
-`2026-10-04T14:12:42.759Z` (`2026-10-04 22:12:42.759` Asia/Manila).
+The evidence covers:
+
+- workspace setup
+- source prechecks
+- per-source snapshot loading
+- idempotent reruns
+- grouped data-quality validation
+- corrective changes prompted by validation findings
+
+The evidence was captured on October 4, 2026 in the `buildabida-capstone` Unity Catalog.
+The exported validation result has run ID `732b92cd-496e-4386-94ce-befbb5f06bdf`.
+Its timestamp is `2026-10-04T14:12:42.759Z`.
+The equivalent Asia/Manila timestamp is `2026-10-04 22:12:42.759`.
 
 ## Outcome
 
-- The workspace setup confirmed the five project schemas and the existing
-  `00-source.cloudflare-r2` volume.
-- The source precheck returned `OK` for all six configured CSV artifacts.
+- Workspace setup confirmed the five project schemas and existing `00-source.cloudflare-r2` volume.
+- Source precheck returned `OK` for all six configured CSV artifacts.
 - All six Bronze notebooks completed for their selected snapshots.
-- The captured reruns returned `SKIPPED_IDEMPOTENT`, with the expected Bronze
-  row count retained for every source.
-- The grouped validation export contains 126 checks: 105 `PASS`, 21 `FLAG`,
-  zero `FAIL`, and zero `ERROR`.
+- Captured reruns returned `SKIPPED_IDEMPOTENT`.
+  Each source retained its expected Bronze row count.
+- Grouped validation exported 126 checks.
+  Results were 105 `PASS`, 21 `FLAG`, zero `FAIL`, and zero `ERROR`.
 - All 96 checks configured with blocking action `stop` passed.
-- Validation flags remain visible for review. They do not remove, deduplicate,
-  correct, or rewrite Bronze rows.
+- Validation flags remain visible for review.
+  They do not remove, deduplicate, correct, or rewrite Bronze rows.
 
 The complete machine-readable result is in
 [`validation-results.csv`](validation-results.csv).
@@ -44,12 +49,12 @@ The complete machine-readable result is in
 
 For every table, the validation export confirms:
 
-- at least one row exists;
-- exactly one selected snapshot is present;
-- required ingestion metadata is populated;
-- the current Bronze row count matches `load_log`;
-- the current Bronze snapshot matches `load_log`; and
-- the latest audit status is `SUCCESS` or `SKIPPED_IDEMPOTENT`.
+- at least one row exists
+- exactly one selected snapshot is present
+- required ingestion metadata is populated
+- the current Bronze row count matches `load_log`
+- the current Bronze snapshot matches `load_log`
+- the latest audit status is `SUCCESS` or `SKIPPED_IDEMPOTENT`
 
 ## Corrective changes recorded during validation
 
@@ -61,26 +66,30 @@ The initial source precheck stopped with:
 dpwh_projects /Volumes/buildabida-capstone/00-source/cloudflare-r2/buildabida/dpwh_projects.csv FAILED null - null Required source field groups are missing: reported budget (one of: budget, project_cost, projectCost)
 ```
 
-The CSV header uses `reported_budget`. The DPWH `required_column_groups`
-configuration accepted `budget`, `project_cost`, and `projectCost`, but did not
-accept the actual header.
+The CSV header uses `reported_budget`.
+The DPWH `required_column_groups` configuration accepted three other aliases.
+Those aliases were `budget`, `project_cost`, and `projectCost`.
+The configuration did not accept the actual header.
 
-The configuration was corrected by adding `reported_budget` to the accepted
-aliases for the reported-budget field group. The precheck gate itself was not
-weakened. It continued to reject missing source contracts and then returned
-`OK` for all six artifacts after the alias correction.
+The configuration now includes `reported_budget` in the reported-budget aliases.
+The precheck gate itself was not weakened.
+It still rejects missing source contracts.
+After the correction, all six artifacts returned `OK`.
 
 ### 2. Known source imperfections were separated from blocking safety checks
 
-The grouped validator initially stopped with:
+The grouped validator initially blocked three checks:
 
 ```text
-RuntimeError: 3 checks blocked the run: dpwh_projects / source-grain key is unique (FAIL); boundaries / source file/feature lineage is unique (FAIL); flood_susceptibility / flood-area geometry is not null or empty (FAIL)
+dpwh_projects / source-grain key is unique (FAIL)
+boundaries / source file and feature lineage is unique (FAIL)
+flood_susceptibility / flood-area geometry is not null or empty (FAIL)
 ```
 
-These checks were changed from blocking action `stop` to review action `flag`.
-The conditions remain measured and exported; only their pipeline action
-changed. Bronze continues to preserve the source rows for downstream review.
+These checks changed from blocking action `stop` to review action `flag`.
+The conditions remain measured and exported.
+Only their pipeline action changed.
+Bronze continues to preserve the source rows for downstream review.
 
 | Source | Check | Finding | Share | Action |
 | --- | --- | ---: | ---: | --- |
@@ -88,13 +97,13 @@ changed. Bronze continues to preserve the source rows for downstream review.
 | `boundaries` | Duplicate source file and feature lineage | 232 | 0.53% of 43,760 rows | `stop` to `flag` |
 | `flood_susceptibility` | Null or empty geometry | 1,815 | 2.85% of 63,684 rows | `stop` to `flag` |
 
-This severity change does not classify the affected values as correct. It
-keeps them visible for Silver-layer handling while reserving blocking failures
-for conditions that make the Bronze snapshot unsafe or untraceable.
+The severity change does not classify the affected values as correct.
+It keeps them visible for Silver handling.
+Blocking failures remain reserved for unsafe or untraceable Bronze snapshots.
 
 ## Validation flags
 
-The following non-blocking findings are present in the exported result.
+The exported result contains the following non-blocking findings.
 
 ### DPWH projects
 
@@ -124,8 +133,8 @@ The following non-blocking findings are present in the exported result.
 | Non-positive population when present | 12 rows |
 | Difference from the 45,611-row historical reference | 1,861 rows |
 
-The selected CSV contains 43,750 rows. The difference from the historical
-reference is reported rather than repaired in Bronze.
+The selected CSV contains 43,750 rows.
+Bronze reports the historical-count difference without repairing it.
 
 ### Boundaries
 
@@ -145,13 +154,14 @@ reference is reported rather than repaired in Bronze.
 | Very-high reference-count difference | 6,156 rows |
 | Missing-rating reference-count difference | 1,799 rows |
 
-The five documented reference counts total 63,684, which exactly matches the
-selected MGB snapshot row count. At the same time, the validator flags nearly
-all populated `flood_susceptibility_code` values against text labels. This
-pattern indicates that the rating validator and the coded source values use
-different representations. The code-to-label contract must be reconciled
-before the MGB category-distribution checks are described as passing. This is
-a validation-interpretation follow-up; Bronze values should remain unchanged.
+The five documented reference counts total 63,684.
+This total exactly matches the selected MGB snapshot row count.
+
+The validator also flags nearly all populated `flood_susceptibility_code` values against text labels.
+This pattern shows that source values and validation labels use different representations.
+Reconcile the code-to-label contract before describing the category-distribution checks as passing.
+This is a validation-interpretation follow-up.
+Bronze values must remain unchanged.
 
 ### PSGC
 
@@ -163,11 +173,11 @@ No validation flags were recorded.
 | --- | --- |
 | Batch-based | Each notebook selects one bounded CSV snapshot and invokes the shared loader once. |
 | Idempotent | All six captured reruns returned `SKIPPED_IDEMPOTENT` and retained their row counts. |
-| Parameterized | The notebooks expose snapshot ID, source version, force reload, and optional source-path widgets. |
-| Snapshot-aware | Every table contains one snapshot ID, and table metadata reconciles with `load_log`. |
-| Raw-preserving | Source-quality findings remain as flags; validation does not filter, correct, or deduplicate Bronze. |
-| Low-cost | Source metadata and headers are checked before full reads, and validation metrics are grouped by source. |
-| Resilient | Missing source contracts and blocking safety failures stop the workflow with specific diagnostics. |
+| Parameterized | Notebooks expose snapshot ID, source version, force reload, and optional source-path widgets. |
+| Snapshot-aware | Every table contains one snapshot ID. Table metadata reconciles with `load_log`. |
+| Raw-preserving | Source-quality findings remain as flags. Validation does not filter, correct, or deduplicate Bronze. |
+| Low-cost | Source metadata and headers are checked before full reads. Validation metrics are grouped by source. |
+| Resilient | Missing contracts and blocking safety failures stop the workflow with specific diagnostics. |
 | Traceable | Rows carry ingestion metadata, snapshot IDs, run IDs, source metadata, and matching load-log evidence. |
 
 ## Evidence images
@@ -210,11 +220,13 @@ No validation flags were recorded.
 
 ## Acceptance note
 
-The evidence supports successful setup, six-source availability, snapshot
-loading, table-to-audit reconciliation, and safe same-snapshot reruns. It also
-shows that every blocking safety check passed.
+The evidence supports successful setup and six-source availability.
+It also supports snapshot loading, table-to-audit reconciliation, and safe same-snapshot reruns.
+Every blocking safety check passed.
 
-The result should be described as **completed with non-blocking findings**, not
-as “all data-quality checks passed.” Before closing the MGB category-validation
-acceptance item, reconcile the numeric or coded susceptibility values with the
-documented text rating labels and capture the resulting check output.
+Describe the result as **completed with non-blocking findings**.
+Do not describe it as "all data-quality checks passed."
+
+The MGB category-validation acceptance item remains open.
+Reconcile coded susceptibility values with the documented text labels.
+Then capture the updated validation output before closing that item.
