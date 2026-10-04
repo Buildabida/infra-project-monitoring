@@ -1,19 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Validation: bronze checks
+# MAGIC # Validation: six R2 Bronze sources
 # MAGIC
-# MAGIC Runs our checks on every bronze table and adds the results to `04-validation`.`dq_results`, with the same columns as Week 9: `column`, `data_quality_check`, `failed_rows`, `total_rows`, `percentage` and `status`.
-# MAGIC
-# MAGIC - **stop**: the data is broken. Fix the load before anyone uses the table.
-# MAGIC - **flag**: the data is usable, but silver has to handle these rows. The percentage tells us how big the problem is.
-# MAGIC
-# MAGIC The run is blocked, and this notebook fails, if a stop check fails, if a check can't run (`ERROR`) or if a required table is missing. The required tables come from the DPWH projects API, the flood control layer, the PSGC file, census Table C and the boundary maps.
-# MAGIC
-# MAGIC Bronze keeps the source values as they came, so the checks use `TRY_CAST` when they need a number or a date. The stored values never change.
-# MAGIC
-# MAGIC Each check is one line in the lists below. To add a check, add a line. All the checks of one table run in one query, so each table is read once. The row counts come from one query on `load_log`, and the checks across two tables run on their own.
-# MAGIC
-# MAGIC Most checks count rows. The checks that add up counts are different: `failed_rows` is how far off the total is (places or people), and `total_rows` is the total we expect. So the percentage still means how far off we are.
+# MAGIC `stop` checks block downstream use. `flag` checks report a known source issue or
+# MAGIC reference mismatch for Silver/review; validation never edits Bronze. Each large
+# MAGIC Bronze table is aggregated once and is not cached.
 
 # COMMAND ----------
 
@@ -21,248 +12,421 @@ import os
 import sys
 
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 
-repo_root = os.path.abspath("../..")  # the repo root, so the import below works everywhere
+repo_root = os.path.abspath("../..")
 sys.path.insert(0, repo_root)
 
 from src import bronze, config
 
-run_id = bronze.new_run_id()
-LEVELS = {"Reg": 18, "Prov": 82, "City": 149, "Mun": 1493, "SubMun": 14, "Bgy": 42010}  # PSGC 2Q 2026 summary
-PEOPLE_IN_REGIONS = 112_727_776  # 2024 census: 112,729,484 minus 1,708 Filipinos in embassies abroad
-
-# Every bronze table, in the order the results show.
-TABLES = [
-    "dpwh_projects",
-    "flood_control_projects",
-    "psgc",
-    "psgc_sheet_manifest",
-    "psgc_parse_issues",
-    "population_2024",
-    "census_2024_table_c",
-    "census_2024_table_c_sheet_manifest",
-    "census_2024_table_c_parse_issues",
-    "boundaries",
-]
-
-# Bronze keeps values as they came, so the checks turn them into numbers and dates here.
-PROGRESS = "TRY_CAST(progress AS DOUBLE)"
-BUDGET = "TRY_CAST(budget AS DECIMAL(18, 2))"
-PAID = "TRY_CAST(amountPaid AS DECIMAL(18, 2))"
-START, END = "TRY_CAST(startDate AS DATE)", "TRY_CAST(completionDate AS DATE)"
-DPWH_LAT, DPWH_LON = "TRY_CAST(latitude AS DOUBLE)", "TRY_CAST(longitude AS DOUBLE)"
-FLOOD_LAT, FLOOD_LON = "TRY_CAST(attributes.Latitude AS DOUBLE)", "TRY_CAST(attributes.Longitude AS DOUBLE)"
-COST = "TRY_CAST(attributes.ContractCost AS DECIMAL(18, 2))"
-SHAPE = "GET_JSON_OBJECT(source_feature_json, '$.geometry')"
-SHAPE_CODE = "GET_JSON_OBJECT(source_feature_json, '$.properties.psgc_code')"
-BARANGAYS = "NOT is_sheet_head AND NOT is_block_head AND NOT is_known_duplicate_sheet"
+validation_run_id = bronze.new_run_id()
+results = []
 
 
-def in_ph(lat, lon):
-    """SQL that is true when a map point is inside the rough box around the Philippines."""
-    return f"{lat} BETWEEN {config.PH_LAT[0]} AND {config.PH_LAT[1]} AND {lon} BETWEEN {config.PH_LON[0]} AND {config.PH_LON[1]}"
-
-
-def check(column, name, failed, action, total=None):
-    """One check: the column, what we check, SQL that counts the failed rows, and stop or flag.
-
-    For a check that adds things up, total is the total we expect. Otherwise it is the row count.
-    """
-    return {"column": column, "check": name, "failed": failed, "action": action, "total": total}
-
-
-# The checks of each table. All the checks of one table run in one query.
-TABLE_CHECKS = {
-    "dpwh_projects": [
-        check("contractId", "not null", "COUNT_IF(contractId IS NULL)", "stop"),
-        check("contractId", "unique", "COUNT(*) - COUNT(DISTINCT contractId)", "stop"),
-        check("status", "one of the five known values", "COUNT_IF(status IS NULL OR status NOT IN ('Completed', 'On-Going', 'Not Yet Started', 'For Procurement', 'Terminated'))", "flag"),
-        check("progress", "between 0 and 100", f"COUNT_IF({PROGRESS} IS NULL OR {PROGRESS} NOT BETWEEN 0 AND 100)", "flag"),
-        check("status, progress", "Completed means 100 percent", f"COUNT_IF(NOT ((status = 'Completed') <=> ({PROGRESS} = 100)))", "flag"),
-        check("budget", "more than 0", f"COUNT_IF({BUDGET} IS NULL OR {BUDGET} <= 0)", "flag"),
-        check("amountPaid", "filled in (more than 0)", f"COUNT_IF({PAID} IS NULL OR {PAID} <= 0)", "flag"),
-        check("amountPaid", "not more than budget", f"COUNT_IF({PAID} > {BUDGET})", "flag"),
-        check("latitude, longitude", "has a map point", f"COUNT_IF({DPWH_LAT} IS NULL OR {DPWH_LON} IS NULL)", "flag"),
-        check("latitude, longitude", "inside the coarse Philippines screening box", f"COUNT_IF({DPWH_LAT} IS NOT NULL AND {DPWH_LON} IS NOT NULL AND NOT ({in_ph(DPWH_LAT, DPWH_LON)}))", "flag"),
-        check("startDate", "has a start date", f"COUNT_IF({START} IS NULL)", "flag"),
-        check("completionDate", "not before startDate", f"COUNT_IF({END} < {START})", "flag"),
-        check("location.province", "names a district office, not a region office", "COUNT_IF(location.province IS NULL OR location.province NOT LIKE '%DEO%')", "flag"),
-    ],
-    "flood_control_projects": [
-        check("attributes.ObjectId", "not null and unique", "COUNT(*) - COUNT(DISTINCT attributes.ObjectId)", "stop"),
-        check("attributes.ContractID", "not null", "COUNT_IF(attributes.ContractID IS NULL)", "stop"),
-        check("attributes.ContractID", "repeated at the source row grain", "COUNT(*) - COUNT(DISTINCT attributes.ContractID)", "flag"),
-        check("attributes.ContractCost", "more than 0", f"COUNT_IF({COST} IS NULL OR {COST} <= 0)", "flag"),
-        check("attributes.Latitude, attributes.Longitude", "has a map point inside the coarse Philippines screening box", f"COUNT_IF({FLOOD_LAT} IS NULL OR {FLOOD_LON} IS NULL OR NOT ({in_ph(FLOOD_LAT, FLOOD_LON)}))", "flag"),
-        check("attributes.TypeofWork", "more exact than the general label", "COUNT_IF(attributes.TypeofWork = 'Construction of Flood Mitigation Structure')", "flag"),
-    ],
-    "psgc": [
-        check("psgc_code_parsed", "not null", "COUNT_IF(psgc_code_parsed IS NULL)", "stop"),
-        check("psgc_code_parsed", "unique", "COUNT(*) - COUNT(DISTINCT psgc_code_parsed)", "stop"),
-        check("psgc_code_parsed", "10 digits", "COUNT_IF(NOT psgc_code_parsed RLIKE '^[0-9]{10}$')", "flag"),
-        check("geographic_level", "counts match the PSA summary", " + ".join(f"ABS(COUNT_IF(TRIM(geographic_level) = '{k}') - {v})" for k, v in LEVELS.items()), "flag", total=sum(LEVELS.values())),
-        check("geographic_level", "is one of the documented levels", "COUNT_IF(geographic_level IS NULL OR TRIM(geographic_level) NOT IN ('Reg', 'Prov', 'City', 'Mun', 'SubMun', 'Bgy'))", "flag"),
-    ],
-    "psgc_sheet_manifest": [
-        check("physical_row_count", "rows add up", "COUNT_IF(physical_row_count <> expected_non_data_row_count + parsed_data_row_count + parse_issue_row_count)", "stop"),
-    ],
-    "psgc_parse_issues": [
-        check("reason", "no rows we could not read", "COUNT(*)", "stop"),
-    ],
-    "population_2024": [
-        check("population_2024_parsed", "is a whole number", "COUNT_IF(population_2024_parsed IS NULL)", "flag"),
-        check("population_2024_parsed", "regions add up to the census total", f"ABS(COALESCE(SUM(IF(TRIM(geographic_level) = 'Reg', population_2024_parsed, 0)), 0) - {PEOPLE_IN_REGIONS})", "flag", total=PEOPLE_IN_REGIONS),
-        check("population_2024_parsed", "barangays add up to the census total", f"ABS(COALESCE(SUM(IF(TRIM(geographic_level) = 'Bgy', population_2024_parsed, 0)), 0) - {PEOPLE_IN_REGIONS})", "flag", total=PEOPLE_IN_REGIONS),
-    ],
-    "census_2024_table_c": [
-        check("source_file", "has all 18 region files", f"ABS(COUNT(DISTINCT source_file) - {config.TABLE_C_FILE_COUNT})", "stop", total=config.TABLE_C_FILE_COUNT),
-        check("source_file, sheet_name, source_row_number", "unique", "COUNT(*) - COUNT(DISTINCT source_file, sheet_name, source_row_number)", "stop"),
-        check("population_parsed", "barangays add up to the census total", f"ABS(COALESCE(SUM(IF({BARANGAYS}, population_parsed, 0)), 0) - {PEOPLE_IN_REGIONS})", "stop", total=PEOPLE_IN_REGIONS),
-        check("sheet_name", "has all 4 known copied BARMM sheets", f"ABS(COUNT(DISTINCT IF(is_known_duplicate_sheet, sheet_name, NULL)) - {len(config.TABLE_C_DUPLICATE_SHEETS)})", "stop", total=len(config.TABLE_C_DUPLICATE_SHEETS)),
-        check("is_known_duplicate_sheet", f"has {config.TABLE_C_DUPLICATE_ROWS:,} copied BARMM rows", f"ABS(COUNT_IF(is_known_duplicate_sheet) - {config.TABLE_C_DUPLICATE_ROWS})", "stop", total=config.TABLE_C_DUPLICATE_ROWS),
-        check("sheet_name", "copied BARMM rows kept for silver to drop", "COUNT_IF(is_known_duplicate_sheet)", "flag"),
-    ],
-    "census_2024_table_c_sheet_manifest": [
-        check("physical_row_count", "rows add up", "COUNT_IF(physical_row_count <> expected_non_data_row_count + parsed_data_row_count + parse_issue_row_count)", "stop"),
-        check("is_data_sheet", f"has {config.TABLE_C_NON_DATA_SHEETS} sheets that are not Table C", f"ABS(COUNT_IF(NOT is_data_sheet) - {config.TABLE_C_NON_DATA_SHEETS})", "stop", total=config.TABLE_C_NON_DATA_SHEETS),
-    ],
-    "census_2024_table_c_parse_issues": [
-        check("reason", "no rows we could not read", "COUNT(*)", "stop"),
-    ],
-    "boundaries": [
-        check("source_file, source_feature_index", "unique", "COUNT(*) - COUNT(DISTINCT source_file, source_feature_index)", "stop"),
-        check("source_feature_json", "has a shape", f"COUNT_IF({SHAPE} IS NULL)", "stop"),
-        check("properties.psgc_code", "not null", f"COUNT_IF({SHAPE_CODE} IS NULL)", "flag"),
-    ],
-}
-
-# Row counts: the latest load_log row of each table. The source total and the rows we loaded must match.
-ROW_COUNT_CHECKS = {
-    "dpwh_projects": "matches the API total",
-    "flood_control_projects": "matches the layer total",
-    "psgc": "matches the file",
-    "population_2024": "matches the file",
-    "census_2024_table_c": "matches the files",
-    "boundaries": "matches the files",
-}
-LATEST_LOADS = f"""
-    SELECT table_name, rows_expected, rows_loaded
-    FROM (
-        SELECT table_name, rows_expected, rows_loaded,
-            ROW_NUMBER() OVER (PARTITION BY table_name ORDER BY load_ts DESC) AS newest
-        FROM {bronze.table_name('load_log')}
-    )
-    WHERE newest = 1
-"""
-
-# Checks across two tables. Each one is a whole query that returns failed_rows and total_rows.
-# NOT EXISTS stays right when a code is null, and NOT IN does not.
-FLOOD, DPWH, BOUNDARIES, PSGC = (bronze.table_name(t) for t in ("flood_control_projects", "dpwh_projects", "boundaries", "psgc"))
-CROSS_CHECKS = {
-    "flood_control_projects": [
-        check("attributes.ContractID", "found in dpwh_projects", f"""
-            SELECT COUNT(*) AS failed_rows, (SELECT COUNT(*) FROM {FLOOD}) AS total_rows
-            FROM {FLOOD} AS flood
-            WHERE flood.attributes.ContractID IS NULL
-                OR NOT EXISTS (SELECT 1 FROM {DPWH} AS dpwh WHERE dpwh.contractId = flood.attributes.ContractID)
-        """, "flag"),
-    ],
-    "boundaries": [
-        # Shapes with no code are counted by the not null check, so this check skips them.
-        check("properties.psgc_code", "found in the current PSGC", f"""
-            WITH shape AS (SELECT {SHAPE_CODE} AS psgc_code FROM {BOUNDARIES})
-            SELECT COUNT(*) AS failed_rows, (SELECT COUNT(*) FROM shape) AS total_rows
-            FROM shape
-            WHERE shape.psgc_code IS NOT NULL
-                AND NOT EXISTS (SELECT 1 FROM {PSGC} AS place WHERE place.psgc_code_parsed = shape.psgc_code)
-        """, "flag"),
-    ],
-}
-
-# COMMAND ----------
-
-
-def make_result(table, column, name, action, failed_rows, total_rows):
-    """One row of dq_results. No failed_rows means the check could not run, so its status is ERROR."""
+def result(table, column, name, action, failed_rows, total_rows, details=None, snapshot_id=None):
+    """Add one PASS, FAIL, FLAG, or ERROR row."""
     if failed_rows is None:
         status = "ERROR"
-    elif failed_rows == 0:
+    elif int(failed_rows) == 0:
         status = "PASS"
     else:
         status = "FAIL" if action == "stop" else "FLAG"
-    percentage = round(100 * failed_rows / total_rows, 2) if failed_rows is not None and total_rows else None
-    return (run_id, table, column, name, failed_rows, total_rows, percentage, status, action)
+    percentage = (
+        round(100 * int(failed_rows) / int(total_rows), 2)
+        if failed_rows is not None and total_rows
+        else None
+    )
+    results.append(
+        (
+            validation_run_id,
+            table,
+            column,
+            name,
+            None if failed_rows is None else int(failed_rows),
+            None if total_rows is None else int(total_rows),
+            percentage,
+            status,
+            action,
+            details,
+            snapshot_id,
+        )
+    )
 
 
-def whole(value):
-    return None if value is None else int(value)
+def find_column(frame, candidates):
+    """Return the first documented alias present, without changing source columns."""
+    actual = {name.casefold(): name for name in frame.columns}
+    return next((actual[name.casefold()] for name in candidates if name.casefold() in actual), None)
 
 
-def run_query(query):
-    """Run a query that returns failed_rows and total_rows. Return (None, None) if it can't run."""
-    try:
-        row = spark.sql(query).first()
-    except Exception as error:  # noqa: BLE001 save the error as an ERROR row, and it blocks the run
-        print("Could not run a check:", str(error).strip().splitlines()[0])
-        return None, None
-    return whole(row["failed_rows"]), whole(row["total_rows"])
+def q(name):
+    return bronze.quoted_name(name)
 
 
-def run_table_checks(table, checks):
-    """Run all the checks of one table in one query. If it can't run, run them one by one to find the broken one."""
-    parts = []
-    for index, one in enumerate(checks):
-        parts.append(f"{one['failed']} AS failed_{index}")
-        parts.append(f"{one['total'] if one['total'] is not None else 'COUNT(*)'} AS total_{index}")
-    try:
-        row = spark.sql(f"SELECT {', '.join(parts)} FROM {bronze.table_name(table)}").first()
-        values = [(whole(row[f"failed_{i}"]), whole(row[f"total_{i}"])) for i in range(len(checks))]
-    except Exception:  # noqa: BLE001 find which check can't run, then keep going
-        values = [
-            run_query(
-                f"SELECT {one['failed']} AS failed_rows, "
-                f"{one['total'] if one['total'] is not None else 'COUNT(*)'} AS total_rows "
-                f"FROM {bronze.table_name(table)}"
-            )
-            for one in checks
-        ]
-    return [
-        make_result(table, one["column"], one["check"], one["action"], failed_rows, total_rows)
-        for one, (failed_rows, total_rows) in zip(checks, values)
-    ]
+def count_if(condition):
+    return F.coalesce(F.sum(F.when(condition, 1).otherwise(0)), F.lit(0)).cast("long")
 
 
-results = []
-has_log = spark.catalog.tableExists(bronze.table_name("load_log"))
-latest = {row["table_name"]: row for row in spark.sql(LATEST_LOADS).collect()} if has_log else {}
-for table in TABLES:
-    if not spark.catalog.tableExists(bronze.table_name(table)):
-        results.append(make_result(table, "table", "required table exists", "stop", None, None))
+def invalid_cast(column, data_type):
+    return F.expr(f"{q(column)} IS NOT NULL AND TRY_CAST({q(column)} AS {data_type}) IS NULL")
+
+
+def add_metric(metrics, key, column, name, action, expression, expected_total=None, details=None):
+    metrics.append((key, column, name, action, expression.alias(key), expected_total, details))
+
+
+def missing_column(table, label, candidates, action="flag"):
+    result(
+        table,
+        label,
+        "documented identifying field is present",
+        action,
+        1,
+        1,
+        "None of these documented aliases exists: " + ", ".join(candidates),
+    )
+
+
+# Latest terminal result is tiny audit metadata, not source data.
+latest_logs = {}
+log_name = bronze.table_name("load_log")
+if spark.catalog.tableExists(log_name):
+    log = spark.table(log_name)
+    required_log_columns = {
+        "table_name",
+        "status",
+        "started_at",
+        "completed_at",
+        "rows_loaded",
+        "snapshot_id",
+    }
+    if required_log_columns.issubset(log.columns):
+        window = Window.partitionBy("table_name").orderBy(
+            F.coalesce(F.col("completed_at"), F.col("started_at")).desc_nulls_last()
+        )
+        latest = (
+            log.where(F.col("status").isin("STARTED", "SUCCESS", "FAILED", "SKIPPED_IDEMPOTENT"))
+            .withColumn("_newest", F.row_number().over(window))
+            .where(F.col("_newest") == 1)
+            .drop("_newest")
+        )
+        latest_logs = {row["table_name"]: row for row in latest.toLocalIterator()}
+
+
+for source_name in config.SOURCE_ORDER:
+    source = config.source_config(source_name)
+    table = source["table"]
+    full_name = bronze.table_name(table)
+    if not spark.catalog.tableExists(full_name):
+        result(table, "table", "required table exists", "stop", None, None, "Table is missing")
         continue
-    if table in ROW_COUNT_CHECKS:
-        log = latest.get(table)
-        failed_rows = None if log is None else abs(log["rows_expected"] - log["rows_loaded"])
-        total_rows = None if log is None else log["rows_expected"]
-        results.append(make_result(table, "row count", ROW_COUNT_CHECKS[table], "stop", failed_rows, total_rows))
-    results.extend(run_table_checks(table, TABLE_CHECKS[table]))
-    for one in CROSS_CHECKS.get(table, []):
-        results.append(make_result(table, one["column"], one["check"], one["action"], *run_query(one["failed"])))
+
+    frame = spark.table(full_name)
+    metrics = []
+    add_metric(metrics, "rows", "table", "has at least one row", "stop", F.count(F.lit(1)))
+    add_metric(
+        metrics,
+        "snapshot_count",
+        "_source_snapshot_id",
+        "contains exactly one selected snapshot",
+        "stop",
+        F.countDistinct(F.col("_source_snapshot_id")),
+        1,
+    )
+    add_metric(
+        metrics,
+        "snapshot_value",
+        "_source_snapshot_id",
+        "snapshot matches latest successful load",
+        "stop",
+        F.first(F.col("_source_snapshot_id"), ignorenulls=True),
+    )
+    for index, metadata_column in enumerate(config.INGEST_METADATA_COLUMNS):
+        if metadata_column not in frame.columns:
+            missing_column(table, metadata_column, [metadata_column], "stop")
+            continue
+        add_metric(
+            metrics,
+            f"metadata_null_{index}",
+            metadata_column,
+            "ingestion metadata is not null",
+            "stop",
+            count_if(F.col(metadata_column).isNull()),
+        )
+
+    key = find_column(frame, source.get("key_candidates", ()))
+    if source.get("key_candidates"):
+        if key:
+            add_metric(metrics, "key_null", key, "source key is not null", "stop", count_if(F.col(key).isNull()))
+            add_metric(
+                metrics,
+                "key_duplicate",
+                key,
+                "source-grain key is unique",
+                "stop",
+                (F.count(F.lit(1)) - F.countDistinct(F.col(key))).cast("long"),
+            )
+        else:
+            missing_column(table, "source key", source["key_candidates"], "stop")
+
+    if source_name == "dpwh_projects":
+        status_column = find_column(frame, ["status", "project_status"])
+        if status_column:
+            known = ["completed", "on-going", "ongoing", "not yet started", "for procurement", "terminated"]
+            add_metric(
+                metrics,
+                "unknown_status",
+                status_column,
+                "status is a documented category",
+                "flag",
+                count_if(
+                    F.col(status_column).isNull()
+                    | ~F.lower(F.trim(F.col(status_column))).isin(*known)
+                ),
+            )
+        for metric_key, candidates, data_type in (
+            ("invalid_budget", ["budget", "project_cost"], "DECIMAL(38, 6)"),
+            ("invalid_progress", ["progress", "accomplishment"], "DOUBLE"),
+            ("invalid_amount_paid", ["amountPaid", "amount_paid"], "DECIMAL(38, 6)"),
+            ("invalid_start_date", ["startDate", "start_date"], "DATE"),
+            ("invalid_completion_date", ["completionDate", "completion_date"], "DATE"),
+        ):
+            column = find_column(frame, candidates)
+            if column:
+                add_metric(metrics, metric_key, column, f"values cast to {data_type}", "flag", count_if(invalid_cast(column, data_type)))
+
+    elif source_name == "flood_control_projects":
+        contract = find_column(frame, ["ContractID", "contract_id", "contractId"])
+        if contract:
+            add_metric(metrics, "contract_null", contract, "Contract ID is not null", "stop", count_if(F.col(contract).isNull()))
+            add_metric(
+                metrics,
+                "repeated_contract",
+                contract,
+                "repeated Contract IDs are preserved for Silver review",
+                "flag",
+                (F.count(F.lit(1)) - F.countDistinct(F.col(contract))).cast("long"),
+            )
+        else:
+            missing_column(table, "Contract ID", ["ContractID", "contract_id", "contractId"], "stop")
+        cost = find_column(frame, ["ContractCost", "contract_cost"])
+        if cost:
+            add_metric(metrics, "invalid_cost", cost, "contract cost casts to a number", "flag", count_if(invalid_cast(cost, "DECIMAL(38, 6)")))
+
+    elif source_name == "psgc":
+        population = find_column(frame, ["population_2024_parsed", "population_2024", "population"])
+        if population:
+            add_metric(metrics, "invalid_population", population, "population casts to a whole number", "flag", count_if(invalid_cast(population, "BIGINT")))
+
+    elif source_name == "census_2024_table_c":
+        lineage = [find_column(frame, [name]) for name in ("source_file", "sheet_name", "source_row_number")]
+        if all(lineage):
+            add_metric(
+                metrics,
+                "lineage_duplicate",
+                ", ".join(lineage),
+                "source file/sheet/row lineage is unique",
+                "stop",
+                (F.count(F.lit(1)) - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))).cast("long"),
+            )
+        else:
+            result(
+                table,
+                "source_file, sheet_name, source_row_number",
+                "original Table C row provenance is available",
+                "flag",
+                1,
+                1,
+                "Missing exact lineage fields; the loader deliberately does not fabricate them.",
+            )
+        population = find_column(frame, ["population_parsed", "population_2024", "population", "total_population"])
+        if population:
+            add_metric(metrics, "invalid_population", population, "population casts to a whole number", "flag", count_if(invalid_cast(population, "BIGINT")))
+        duplicate_flag = find_column(frame, ["is_known_duplicate_sheet", "is_known_barmm_duplicate"])
+        if duplicate_flag:
+            duplicate_condition = F.lower(F.trim(F.col(duplicate_flag))).isin("true", "1", "yes", "y")
+            add_metric(
+                metrics,
+                "known_barmm_rows",
+                duplicate_flag,
+                "known BARMM duplicate rows are preserved",
+                "flag",
+                F.abs(count_if(duplicate_condition) - F.lit(config.TABLE_C_DUPLICATE_ROWS)).cast("long"),
+                config.TABLE_C_DUPLICATE_ROWS,
+            )
+        else:
+            result(
+                table,
+                "is_known_duplicate_sheet",
+                "known BARMM duplicates can be identified",
+                "flag",
+                1,
+                1,
+                "Current CSV does not expose a documented duplicate-sheet marker.",
+            )
+
+    elif source_name == "boundaries":
+        lineage = [find_column(frame, [name]) for name in ("source_file", "source_feature_index")]
+        if all(lineage):
+            add_metric(
+                metrics,
+                "boundary_lineage_duplicate",
+                ", ".join(lineage),
+                "source file/feature lineage is unique",
+                "stop",
+                (F.count(F.lit(1)) - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))).cast("long"),
+            )
+        else:
+            result(
+                table,
+                "source_file, source_feature_index",
+                "original seven-file feature provenance is available",
+                "flag",
+                1,
+                1,
+                "Combined CSV provenance is incomplete unless both fields are supplied.",
+            )
+        geometry = find_column(frame, ["source_feature_json", "geometry", "geometry_wkt", "wkt", "geom"])
+        if geometry:
+            add_metric(metrics, "geometry_null", geometry, "geometry representation is not null", "stop", count_if(F.col(geometry).isNull()))
+        else:
+            missing_column(table, "geometry", ["source_feature_json", "geometry", "geometry_wkt", "wkt", "geom"], "stop")
+
+    elif source_name == "flood_susceptibility":
+        rating = find_column(frame, ["susceptibility", "flood_susceptibility", "rating", "hazard", "hazard_rating"])
+        if rating:
+            normalized = F.lower(F.trim(F.col(rating)))
+            allowed = ["very high", "high", "moderate", "low"]
+            add_metric(
+                metrics,
+                "unknown_rating",
+                rating,
+                "rating is very high, high, moderate, low, or missing",
+                "flag",
+                count_if(F.col(rating).isNotNull() & (F.trim(F.col(rating)) != "") & ~normalized.isin(*allowed)),
+            )
+            for index, category in enumerate(allowed):
+                expected = source["rating_reference"][category]
+                add_metric(
+                    metrics,
+                    f"rating_{index}",
+                    rating,
+                    f"{category} row count matches documented reference",
+                    "flag",
+                    F.abs(count_if(normalized == category) - F.lit(expected)).cast("long"),
+                    expected,
+                )
+            expected_missing = source["rating_reference"]["missing"]
+            add_metric(
+                metrics,
+                "rating_missing",
+                rating,
+                "missing-rating row count matches documented reference",
+                "flag",
+                F.abs(count_if(F.col(rating).isNull() | (F.trim(F.col(rating)) == "")) - F.lit(expected_missing)).cast("long"),
+                expected_missing,
+            )
+        else:
+            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "rating", "hazard", "hazard_rating"], "flag")
+
+    try:
+        observed = frame.agg(*[item[4] for item in metrics]).first()
+    except Exception as error:  # noqa: BLE001 - save a blocking validation result
+        result(table, "table", "table checks execute", "stop", None, None, str(error)[:1_000])
+        continue
+
+    total_rows = int(observed["rows"])
+    snapshot_value = observed["snapshot_value"]
+    result(table, "table", "has at least one row", "stop", 0 if total_rows > 0 else 1, 1, snapshot_id=snapshot_value)
+    result(
+        table,
+        "_source_snapshot_id",
+        "contains exactly one selected snapshot",
+        "stop",
+        abs(int(observed["snapshot_count"]) - 1),
+        1,
+        snapshot_id=snapshot_value,
+    )
+    for key_name, column, name, action, _, expected_total, details in metrics:
+        if key_name in {"rows", "snapshot_count", "snapshot_value"}:
+            continue
+        result(
+            table,
+            column,
+            name,
+            action,
+            observed[key_name],
+            expected_total if expected_total is not None else total_rows,
+            details,
+            snapshot_value,
+        )
+
+    reference_rows = source.get("reference_rows")
+    if reference_rows is not None:
+        result(
+            table,
+            "row count",
+            "row count matches documented historical reference",
+            "flag",
+            abs(total_rows - reference_rows),
+            reference_rows,
+            "Reference mismatch is reviewed; Bronze rows are not removed or added.",
+            snapshot_value,
+        )
+
+    audit = latest_logs.get(table)
+    if audit is None:
+        result(table, "load_log", "latest load is SUCCESS or SKIPPED_IDEMPOTENT", "stop", None, None, "No terminal audit row", snapshot_value)
+    else:
+        load_ok = audit["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
+        result(
+            table,
+            "load_log.status",
+            "latest load is SUCCESS or SKIPPED_IDEMPOTENT",
+            "stop",
+            0 if load_ok else 1,
+            1,
+            f"latest status={audit['status']}",
+            snapshot_value,
+        )
+        if not load_ok or audit["rows_loaded"] is None:
+            continue
+        result(
+            table,
+            "load_log.rows_loaded",
+            "current Bronze row count matches load_log",
+            "stop",
+            abs(total_rows - int(audit["rows_loaded"])),
+            int(audit["rows_loaded"]),
+            snapshot_id=snapshot_value,
+        )
+        result(
+            table,
+            "load_log.snapshot_id",
+            "current Bronze snapshot matches load_log",
+            "stop",
+            0 if snapshot_value == audit["snapshot_id"] else 1,
+            1,
+            f"load_log snapshot={audit['snapshot_id']!r}",
+            snapshot_value,
+        )
+
 
 columns = (
-    "run_id string, table_name string, column string, data_quality_check string, failed_rows long, "
-    "total_rows long, percentage double, status string, action string"
+    "run_id string, table_name string, column string, data_quality_check string, "
+    "failed_rows long, total_rows long, percentage double, status string, action string, "
+    "details string, snapshot_id string"
 )
-frame = spark.createDataFrame(results, columns).withColumn("run_ts", F.current_timestamp())
-frame.write.mode("append").saveAsTable(bronze.table_name("dq_results", config.VALIDATION))
-print(f"Run {run_id}: {len(results)} checks saved.")
+output = spark.createDataFrame(results, columns).withColumn("run_ts", F.current_timestamp())
+output.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(
+    bronze.table_name("dq_results", config.VALIDATION)
+)
+display(output.orderBy("table_name", "action", "data_quality_check"))
 
-# COMMAND ----------
-
-display(frame.select("table_name", "column", "data_quality_check", "failed_rows", "total_rows", "percentage", "status", "action"))
-
-# COMMAND ----------
-
-blocked = [r for r in results if r[7] == "ERROR" or (r[8] == "stop" and r[7] == "FAIL")]
+blocked = [row for row in results if row[7] == "ERROR" or (row[8] == "stop" and row[7] == "FAIL")]
 if blocked:
-    raise RuntimeError(f"{len(blocked)} checks blocked the run: " + "; ".join(f"{r[1]} {r[2]} {r[3]} ({r[7]})" for r in blocked))
-print("No blocking check failed.")
+    raise RuntimeError(
+        f"{len(blocked)} checks blocked the run: "
+        + "; ".join(f"{row[1]} / {row[3]} ({row[7]})" for row in blocked)
+    )
+print(f"Validation {validation_run_id}: no blocking check failed; review FLAG rows before Silver.")

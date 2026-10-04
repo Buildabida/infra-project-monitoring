@@ -1,9 +1,9 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Bronze: PSGC from R2
+# MAGIC # Bronze: MGB flood susceptibility from R2
 # MAGIC
-# MAGIC Loads `psgc.csv` as geographic reference data. Its population field, if present,
-# MAGIC is only a cross-check; authoritative project population remains Census Table C.
+# MAGIC Loads the approved trimmed `flood_susceptibility.csv` extract. It has no place names
+# MAGIC or PSGC codes, so geographic matching and all spatial work remain downstream.
 
 # COMMAND ----------
 
@@ -21,7 +21,7 @@ dbutils.widgets.text("source_version", "", "Optional publisher/source version")
 dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
-source = config.source_config("psgc")
+source = config.source_config("flood_susceptibility")
 source["path"] = dbutils.widgets.get("source_path").strip() or source["path"]
 source["source_version"] = dbutils.widgets.get("source_version").strip() or None
 result = bronze.load_csv_snapshot(

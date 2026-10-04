@@ -1,53 +1,66 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Run everything
+# MAGIC # Run Source → Bronze → Bronze validation
 # MAGIC
-# MAGIC Runs the setup, the bronze loads, then the bronze checks. Click **Run all**. It takes about 15 minutes.
-# MAGIC
-# MAGIC Put the PSA files in the landing volume first. The steps are at the top of `03_bronze_psgc` and `06_bronze_census_table_c`.
-# MAGIC
-# MAGIC - **Required loads:** DPWH projects, flood control, PSGC, boundaries and Table C. If one of them fails or says `SKIPPED`, the checks don't run and say `BLOCKED`. That way the checks can never pass on an older table.
-# MAGIC
-# MAGIC When it is done, check the table at the end. The notebook fails if any step says `FAILED` or `BLOCKED`.
+# MAGIC Runs setup validation, all six independent Bronze loads, then validation. An exact
+# MAGIC completed snapshot may return `SKIPPED_IDEMPOTENT`; that is safe and does not block
+# MAGIC validation. A failed source always blocks validation even if an older table exists.
 
 # COMMAND ----------
 
+import json
+
+dbutils.widgets.text("snapshot_id", "", "Snapshot ID for all sources (blank = per-file metadata)")
+dbutils.widgets.text("source_version", "", "Optional shared publisher/source version")
+dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+
 setup_step = "00_setup/00_setup_workspace"
-required_loads = [
+source_steps = [
     "01_bronze/01_bronze_dpwh_projects",
     "01_bronze/02_bronze_flood_control",
     "01_bronze/03_bronze_psgc",
+    "01_bronze/04_bronze_census_table_c",
     "01_bronze/05_bronze_boundaries",
-    "01_bronze/06_bronze_census_table_c",
+    "01_bronze/06_bronze_flood_susceptibility",
 ]
 validation_step = "04_validation/01_validation_bronze"
+arguments = {
+    "snapshot_id": dbutils.widgets.get("snapshot_id"),
+    "source_version": dbutils.widgets.get("source_version"),
+    "force_reload": dbutils.widgets.get("force_reload"),
+}
 
 
-def run_step(step):
-    """Run one notebook. Return "done", its SKIPPED message, or FAILED with the first line of the error."""
+def run_step(step, parameters=None):
+    """Run a child notebook and retain a concise result for the final table."""
     try:
-        return dbutils.notebook.run(f"./{step}", 3600) or "done"
-    except Exception as error:  # noqa: BLE001 keep going, so we see every broken source in one run
-        return "FAILED: " + str(error).strip().splitlines()[0][:300]
+        return dbutils.notebook.run(f"./{step}", 0, parameters or {}) or "SUCCESS"
+    except Exception as error:  # noqa: BLE001 - report every source failure together
+        return "FAILED: " + str(error).strip().splitlines()[0][:500]
 
 
 results = []
 setup_result = run_step(setup_step)
 results.append((setup_step, setup_result))
-if setup_result.startswith(("FAILED", "SKIPPED")):
+if setup_result.startswith("FAILED"):
     display(spark.createDataFrame(results, "step string, result string"))
     raise RuntimeError(f"Setup did not finish: {setup_result}")
 
-for step in required_loads:
-    result = run_step(step)
+source_ok = True
+for step in source_steps:
+    result = run_step(step, arguments)
     results.append((step, result))
-    print(f"{step}: {result}")
+    try:
+        status = json.loads(result)["status"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        status = "FAILED"
+    if status not in {"SUCCESS", "SKIPPED_IDEMPOTENT"}:
+        source_ok = False
 
-blocked = [step for step, result in results if step in required_loads and result.startswith(("FAILED", "SKIPPED"))]
-if blocked:
-    results.append((validation_step, "BLOCKED: required bronze load did not finish: " + ", ".join(blocked)))
-else:
+if source_ok:
     results.append((validation_step, run_step(validation_step)))
+else:
+    results.append((validation_step, "BLOCKED: this orchestration run has a failed source"))
 
 # COMMAND ----------
 

@@ -12,6 +12,8 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
 | Set up VS Code and run your first notebook | [Set up VS Code](vscode-setup.md) |
 | See what each notebook folder does | [Notebooks guide](../notebooks/README.md) |
+| Understand R2 snapshots, provenance and Bronze reruns | [Bronze R2 architecture](bronze_r2_architecture.md) |
+| Review optional cleanup after migration | [Bronze cleanup plan](bronze_cleanup_plan.md) |
 
 Source cards stay in the team Doc until Oct 3. After that, each source gets a card here.
 
