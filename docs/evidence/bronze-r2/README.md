@@ -180,27 +180,27 @@ No validation flags were recorded.
 
 ![All configured source artifacts returned OK](images/02-source-precheck.png)
 
-### DPWH projects
+### DPWH projects Bronze notebook
 
 ![DPWH Bronze notebook and idempotent result](images/03-dpwh-projects.png)
 
-### Flood-control projects
+### Flood-control projects Bronze notebook
 
 ![Flood-control Bronze notebook and idempotent result](images/04-flood-control-projects.png)
 
-### PSGC
+### PSGC Bronze notebook
 
 ![PSGC Bronze notebook and idempotent result](images/05-psgc.png)
 
-### Census Table C
+### Census Table C Bronze notebook
 
 ![Census Table C Bronze notebook and idempotent result](images/06-census-table-c.png)
 
-### Boundaries
+### Boundaries Bronze notebook
 
 ![Boundary Bronze notebook and idempotent result](images/07-boundaries.png)
 
-### MGB flood susceptibility
+### MGB flood susceptibility Bronze notebook
 
 ![MGB flood-susceptibility Bronze notebook and idempotent result](images/08-mgb-flood-susceptibility.png)
 
@@ -218,4 +218,3 @@ The result should be described as **completed with non-blocking findings**, not
 as “all data-quality checks passed.” Before closing the MGB category-validation
 acceptance item, reconcile the numeric or coded susceptibility values with the
 documented text rating labels and capture the resulting check output.
-
