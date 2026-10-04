@@ -109,6 +109,7 @@ SOURCES = {
         "table": "flood_susceptibility",
         "file_name": "flood_susceptibility.csv",
         "source_system": "DENR MGB flood susceptibility approved extract",
+        "line_sep": "\r\n",
         "provenance_class": "C",
         "provenance": "Approved trimmed extract containing project-required fields; not the complete original MGB service response.",
         "grain": "one source flood-area row in the approved extract",

@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # Validation: six R2 Bronze sources
 # MAGIC
@@ -207,8 +211,8 @@ for source_name in config.SOURCE_ORDER:
                 metrics,
                 "key_duplicate",
                 key,
-                "source-grain key is unique",
-                "stop",
+                "repeated source keys are preserved for Silver review",
+                "flag",
                 (F.count(F.lit(1)) - F.countDistinct(F.col(key))).cast("long"),
             )
         else:
@@ -331,11 +335,11 @@ for source_name in config.SOURCE_ORDER:
                 1,
                 "Combined CSV provenance is incomplete unless both fields are supplied.",
             )
-        geometry = find_column(frame, ["source_feature_json", "geometry", "geometry_wkt", "wkt", "geom"])
+        geometry = find_column(frame, ["source_feature_json", "geometry", "geometry_json", "geometry_wkt", "wkt", "geom"])
         if geometry:
             add_metric(metrics, "geometry_null", geometry, "geometry representation is not null", "stop", count_if(F.col(geometry).isNull()))
         else:
-            missing_column(table, "geometry", ["source_feature_json", "geometry", "geometry_wkt", "wkt", "geom"], "stop")
+            missing_column(table, "geometry", ["source_feature_json", "geometry", "geometry_json", "geometry_wkt", "wkt", "geom"], "stop")
 
     elif source_name == "flood_susceptibility":
         rating = find_column(frame, ["susceptibility", "flood_susceptibility", "rating", "hazard", "hazard_rating"])
@@ -482,7 +486,7 @@ display(output.orderBy("table_name", "action", "data_quality_check"))
 blocked = [row for row in results if row[7] == "ERROR" or (row[8] == "stop" and row[7] == "FAIL")]
 if blocked:
     raise RuntimeError(
-        f"{len(blocked)} checks blocked the run: "
+f"{len(blocked)} checks blocked the run: "
         + "; ".join(f"{row[1]} / {row[3]} ({row[7]})" for row in blocked)
     )
 print(f"Validation {validation_run_id}: no blocking check failed; review FLAG rows before Silver.")

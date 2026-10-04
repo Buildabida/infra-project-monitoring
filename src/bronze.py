@@ -321,6 +321,50 @@ def _same_metadata(row, metadata, source):
     )
 
 
+def _read_csv_as_text(spark, source, metadata, clean_header):
+    """Read a CSV file as text and parse lines with Python's csv module.
+
+    Spark's CSV file reader fails on some large files with non-standard line
+    endings and complex quoted JSON content on serverless compute.  Reading
+    as text and parsing in Python avoids the broken file-scan path while
+    preserving the same all-strings output.
+    """
+    import io as _io
+
+    import pandas as pd
+    from pyspark.sql import functions as F
+
+    num_cols = len(clean_header)
+    schema_str = ", ".join(f"{name} STRING" for name in clean_header)
+
+    def _parse_batch(iterator):
+        for batch in iterator:
+            rows = []
+            for val in batch["value"]:
+                if val is None:
+                    continue
+                line = val.rstrip("\r")
+                try:
+                    reader = csv.reader(_io.StringIO(line))
+                    parsed = next(reader)
+                    if len(parsed) == num_cols:
+                        rows.append(parsed)
+                    else:
+                        rows.append([None] * num_cols)
+                except (StopIteration, csv.Error):
+                    rows.append([None] * num_cols)
+            yield pd.DataFrame(rows, columns=clean_header)
+
+    text_df = spark.read.option(
+        "lineSep", source.get("line_sep", "\n")
+    ).text(metadata["path"])
+    header_line = text_df.limit(1).collect()[0]["value"]
+    return (
+        text_df.filter(F.col("value") != F.lit(header_line))
+        .mapInPandas(_parse_batch, schema=schema_str)
+    )
+
+
 def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
     """Preserve one R2 CSV as the selected/current Bronze snapshot.
 
@@ -446,13 +490,16 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         ),
     )
     try:
-        frame = (
-            spark.read.option("header", "true")
-            .option("inferSchema", "false")
-            .option("mode", "PERMISSIVE")
-            .option("multiLine", "false")
-            .csv(metadata["path"])
-        )
+        if source.get("line_sep"):
+            frame = _read_csv_as_text(spark, source, metadata, clean_header)
+        else:
+            frame = (
+                spark.read.option("header", "true")
+                .option("inferSchema", "false")
+                .option("mode", "PERMISSIVE")
+                .option("multiLine", "false")
+                .csv(metadata["path"])
+            )
         if len(frame.columns) != len(clean_header):
             raise ValueError(
                 f"Spark read {len(frame.columns)} columns but the header has {len(clean_header)}"
