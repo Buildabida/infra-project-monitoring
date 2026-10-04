@@ -41,7 +41,9 @@ meaning.
    metadata; the full file is never hashed for routine identity.
 4. Existing audit metadata and the current Delta table are compared. A safe match can
    skip replacement; conflicting reuse of a snapshot ID fails clearly.
-5. Spark reads the CSV with strings, `FAILFAST`, and no inferred business schema.
+5. Spark reads standard CSVs as strings with `FAILFAST` and no inferred business
+   schema. The CRLF-delimited MGB extract uses a strict line parser that rejects
+   unreadable or wrong-width records instead of fabricating null values.
 6. Only technical lineage columns are added. Source values and row multiplicity remain.
 7. Delta atomically replaces the selected/current table, source and Bronze row counts
    are reconciled, and `load_log` records the outcome.
@@ -107,7 +109,8 @@ table's snapshot, artifact metadata and row count, then records an idempotent sk
 
 ## Low-compute choices
 
-- Spark reads CSV with `header=true`, strings, `inferSchema=false` and `FAILFAST`.
+- Standard sources use Spark CSV with `header=true`, strings, `inferSchema=false` and
+  `FAILFAST`; the MGB text parser is also fail-closed.
 - File identity uses metadata, not full-file checksums.
 - Each normal load scans its source once; validation aggregates each Bronze table once.
 - The MGB table is not cached, collected to the driver, spatially joined, sorted,
