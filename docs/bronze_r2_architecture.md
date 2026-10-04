@@ -34,20 +34,22 @@ meaning.
 ## How one source becomes Bronze
 
 1. `source_config` resolves the approved path, target table, grain, provenance, and
-   documented identifying aliases.
+   required alias groups for identifiers and downstream-critical source fields.
 2. `inspect_source` checks existence, size, readability, header quality, and a small
    proof of data without parsing the complete artifact.
 3. Snapshot identity is accepted from the caller or derived from inexpensive artifact
    metadata; the full file is never hashed for routine identity.
 4. Existing audit metadata and the current Delta table are compared. A safe match can
    skip replacement; conflicting reuse of a snapshot ID fails clearly.
-5. Spark reads standard CSVs as strings with `FAILFAST` and no inferred business
+5. Every required source field group is verified before replacement. For example,
+   the MGB extract must contain both a susceptibility field and geometry.
+6. Spark reads standard CSVs as strings with `FAILFAST` and no inferred business
    schema. The CRLF-delimited MGB extract uses a strict line parser that rejects
    unreadable or wrong-width records instead of fabricating null values.
-6. Only technical lineage columns are added. Source values and row multiplicity remain.
-7. Delta atomically replaces the selected/current table, source and Bronze row counts
+7. Only technical lineage columns are added. Source values and row multiplicity remain.
+8. Delta atomically replaces the selected/current table, source and Bronze row counts
    are reconciled, and `load_log` records the outcome.
-8. Grouped validation records STOP and FLAG checks without transforming Bronze.
+9. Grouped validation records STOP and FLAG checks without transforming Bronze.
 
 ## Six sources and provenance
 
@@ -111,6 +113,8 @@ table's snapshot, artifact metadata and row count, then records an idempotent sk
 
 - Standard sources use Spark CSV with `header=true`, strings, `inferSchema=false` and
   `FAILFAST`; the MGB text parser is also fail-closed.
+- Header validation checks every configured business-critical field family without
+  reading or transforming business rows.
 - File identity uses metadata, not full-file checksums.
 - Each normal load scans its source once; validation aggregates each Bronze table once.
 - The MGB table is not cached, collected to the driver, spatially joined, sorted,
@@ -150,7 +154,8 @@ table's snapshot, artifact metadata and row count, then records an idempotent sk
    trimming steps.
 3. Update the configured file name if the path changes.
 4. Use a meaningful new `snapshot_id`, or keep deterministic metadata identity.
-5. Add the source-specific header contract and validation rules supported by evidence.
+5. Add required alias groups for every field family needed by the downstream model,
+   plus source-specific validation rules supported by evidence.
 6. Resolve `FLAG` findings in review or Silver, never by changing Bronze source rows.
 
 ## Summary

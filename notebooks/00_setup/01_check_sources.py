@@ -21,7 +21,7 @@
 # MAGIC
 # MAGIC Every source is inspected so the result table shows the complete set of problems.
 # MAGIC Missing files, empty files, duplicate or unusable headers, reserved metadata-name
-# MAGIC collisions, and missing identifying aliases are reported clearly. Any failed source
+# MAGIC collisions, and missing required source-field groups are reported clearly. Any failed source
 # MAGIC blocks Bronze replacement.
 # MAGIC
 # MAGIC ## Step 1 — Load shared source definitions
@@ -70,7 +70,9 @@ for source_name in config.SOURCE_ORDER:
             )
         )
     except Exception as error:  # noqa: BLE001 - show every unavailable source in one run
-        rows.append((source_name, source["path"], "FAILED", None, None, None, str(error)[:500]))
+        rows.append(
+            (source_name, source["path"], "FAILED", None, None, None, str(error)[:500])
+        )
 
 # COMMAND ----------
 
@@ -91,7 +93,9 @@ checks = spark.createDataFrame(
 display(checks)
 failed = [row for row in rows if row[2] == "FAILED"]
 if failed:
-    raise RuntimeError(f"{len(failed)} of {len(rows)} required R2 sources failed metadata/header checks")
+    raise RuntimeError(
+        f"{len(failed)} of {len(rows)} required R2 sources failed metadata/header checks"
+    )
 
 # COMMAND ----------
 

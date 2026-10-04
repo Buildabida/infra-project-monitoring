@@ -40,7 +40,9 @@ from src import bronze, config
 
 dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
 dbutils.widgets.text("source_version", "", "Optional publisher/source version")
-dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
@@ -49,7 +51,8 @@ dbutils.widgets.text("source_path", "", "Optional source path override")
 # MAGIC ## Step 2 — Resolve the MGB source contract
 # MAGIC
 # MAGIC Shared configuration provides the exact file and table names, approved-extract
-# MAGIC provenance, source grain, documented rating references, and accepted rating aliases.
+# MAGIC provenance, source grain, documented rating references, and separate required alias
+# MAGIC groups for susceptibility and geometry.
 
 # COMMAND ----------
 
@@ -62,7 +65,7 @@ source["source_version"] = dbutils.widgets.get("source_version").strip() or None
 # MAGIC %md
 # MAGIC ## Step 3 — Preserve the selected snapshot
 # MAGIC
-# MAGIC The shared loader checks metadata and the rating header before the full Spark read,
+# MAGIC The shared loader checks metadata, rating, and geometry headers before the full read,
 # MAGIC verifies the current snapshot before skipping, strictly rejects unreadable or
 # MAGIC wrong-width CRLF records, preserves source strings, attaches lineage, uses an atomic
 # MAGIC Delta overwrite, and reconciles source and Bronze row counts.

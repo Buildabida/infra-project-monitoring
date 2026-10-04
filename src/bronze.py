@@ -319,16 +319,25 @@ def _has_required_alias(header, candidates):
 
 
 def validate_source_header(source, header):
-    """Fail before a write when documented identifying columns are absent."""
+    """Fail before a write when a required source field family is absent."""
     required = source.get("required_columns", ())
     missing = [name for name in required if name not in header]
     if missing:
         raise ValueError(f"Required identifying columns are missing: {missing}")
-    required_any = source.get("required_any_columns", source.get("key_candidates", ()))
-    if required_any and not _has_required_alias(header, required_any):
+
+    groups = source.get("required_column_groups")
+    if groups is None:
+        aliases = source.get("required_any_columns", source.get("key_candidates", ()))
+        groups = {"documented identifying field": aliases} if aliases else {}
+
+    missing_groups = [
+        f"{label} (one of: {', '.join(candidates)})"
+        for label, candidates in groups.items()
+        if not _has_required_alias(header, candidates)
+    ]
+    if missing_groups:
         raise ValueError(
-            "None of the documented identifying columns is present: "
-            + ", ".join(required_any)
+            "Required source field groups are missing: " + "; ".join(missing_groups)
         )
 
 

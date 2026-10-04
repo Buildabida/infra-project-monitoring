@@ -22,7 +22,7 @@ cells delegate shared mechanics to `src/bronze.py` and source contracts to
 | Step | Notebook | Responsibility |
 | --- | --- | --- |
 | 1 | `00_setup/00_setup_workspace` | Define missing schemas and verify the existing R2-backed volume without destructive setup. |
-| 2 | `00_setup/01_check_sources` | Check all six files, metadata, CSV headers, and required aliases without full Spark scans. |
+| 2 | `00_setup/01_check_sources` | Check all six files, metadata, CSV headers, and required field groups without full Spark scans. |
 | 3 | `01_bronze/01_bronze_dpwh_projects` | Preserve DPWH project rows and raw business values. |
 | 4 | `01_bronze/02_bronze_flood_control` | Preserve source features and legitimate repeated Contract IDs. |
 | 5 | `01_bronze/03_bronze_psgc` | Preserve the geographic reference; keep population as a cross-check only. |
@@ -30,6 +30,7 @@ cells delegate shared mechanics to `src/bronze.py` and source contracts to
 | 7 | `01_bronze/05_bronze_boundaries` | Preserve boundary geometry without project mapping or spatial joins. |
 | 8 | `01_bronze/06_bronze_flood_susceptibility` | Preserve the approved trimmed MGB extract with low-compute mechanics. |
 | 9 | `04_validation/01_validation_bronze` | Record grouped STOP and FLAG checks without changing Bronze. |
+| 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning source or Bronze data. |
 | Coordinator | `run_all.py` | Enforce order, require all six safe results, and keep validation behind the complete batch. |
 
 ## Central source contract

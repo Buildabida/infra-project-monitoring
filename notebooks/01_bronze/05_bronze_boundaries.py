@@ -21,7 +21,8 @@
 # MAGIC
 # MAGIC ## Why this design
 # MAGIC
-# MAGIC A documented geometry alias is required before replacement. Shared batch,
+# MAGIC Documented geographic identity, feature lineage, and geometry are required before
+# MAGIC replacement. Shared batch,
 # MAGIC idempotency, parameter, and snapshot mechanics keep this loader consistent with
 # MAGIC the other sources without embedding a geospatial framework in Bronze.
 # MAGIC
@@ -40,7 +41,9 @@ from src import bronze, config
 
 dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
 dbutils.widgets.text("source_version", "", "Optional publisher/source version")
-dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
@@ -49,7 +52,8 @@ dbutils.widgets.text("source_path", "", "Optional source path override")
 # MAGIC ## Step 2 — Resolve the boundary source contract
 # MAGIC
 # MAGIC Shared configuration provides the exact file and table names, provenance class,
-# MAGIC source grain, historical row reference, and accepted geometry-field aliases.
+# MAGIC source grain, historical row reference, and required geographic identifier,
+# MAGIC administrative level, source feature lineage, and geometry aliases.
 
 # COMMAND ----------
 

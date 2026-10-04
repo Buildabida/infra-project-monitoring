@@ -29,7 +29,7 @@ SOURCE_VOLUME_PATH = f"/Volumes/{CATALOG}/{SOURCE}/{SOURCE_VOLUME}/{SOURCE_SUBDI
 # - table/file_name/source_system route the artifact without notebook hardcoding;
 # - provenance/grain explain what one raw row represents and what can be claimed;
 # - key_candidates drive source-grain validation only where uniqueness is justified;
-# - required_any_columns protect the current table before a structurally wrong CSV write;
+# - required_column_groups protect every downstream-critical field family before a write;
 # - reference counts support non-destructive FLAG checks, never row filtering.
 SOURCES = {
     "dpwh_projects": {
@@ -40,7 +40,32 @@ SOURCES = {
         "provenance": "CSV derived from the DPWH projects API; export procedure and losslessness are unverified.",
         "grain": "one source project row per selected snapshot",
         "key_candidates": ["contractId", "contract_id", "ContractID"],
-        "required_any_columns": ["contractId", "contract_id", "ContractID"],
+        "required_column_groups": {
+            "project identifier": ["contractId", "contract_id", "ContractID"],
+            "project description": [
+                "description",
+                "projectDescription",
+                "project_description",
+            ],
+            "reported budget": ["budget", "project_cost", "projectCost"],
+            "project category": [
+                "category",
+                "infraType",
+                "infra_type",
+                "projectType",
+                "project_type",
+            ],
+            "project status": ["status", "project_status"],
+            "physical progress": [
+                "progress",
+                "physical_progress_pct",
+                "accomplishment",
+            ],
+            "start date": ["startDate", "start_date"],
+            "completion date": ["completionDate", "completion_date"],
+            "latitude": ["latitude", "Latitude"],
+            "longitude": ["longitude", "Longitude"],
+        },
     },
     "flood_control_projects": {
         "table": "flood_control_projects",
@@ -50,7 +75,30 @@ SOURCES = {
         "provenance": "CSV derived from the ArcGIS feature layer; export procedure and losslessness are unverified.",
         "grain": "one source feature row; repeated Contract IDs are preserved",
         "key_candidates": ["ObjectId", "ObjectID", "object_id", "OBJECTID"],
-        "required_any_columns": ["ObjectId", "ObjectID", "object_id", "OBJECTID"],
+        "required_column_groups": {
+            "source feature identifier": [
+                "ObjectId",
+                "ObjectID",
+                "object_id",
+                "OBJECTID",
+            ],
+            "contract identifier": ["ContractID", "contract_id", "contractId"],
+            "project description": [
+                "ProjectDescription",
+                "project_description",
+                "description",
+            ],
+            "contract cost": ["ContractCost", "contract_cost"],
+            "work or infrastructure type": [
+                "TypeofWork",
+                "TypeOfWork",
+                "type_of_work",
+                "infra_type",
+                "InfraType",
+            ],
+            "latitude": ["Latitude", "latitude"],
+            "longitude": ["Longitude", "longitude"],
+        },
     },
     "psgc": {
         "table": "psgc",
@@ -65,12 +113,20 @@ SOURCES = {
             "10-digit PSGC",
             "10-digit_PSGC",
         ],
-        "required_any_columns": [
-            "psgc_code_parsed",
-            "psgc_code",
-            "10-digit PSGC",
-            "10-digit_PSGC",
-        ],
+        "required_column_groups": {
+            "PSGC code": [
+                "psgc_code_parsed",
+                "psgc_code",
+                "10-digit PSGC",
+                "10-digit_PSGC",
+            ],
+            "place name": ["name", "place_name", "geographic_name"],
+            "geographic level": [
+                "geographic_level",
+                "geo_level",
+                "administrative_level",
+            ],
+        },
     },
     "census_2024_table_c": {
         "table": "census_2024_table_c",
@@ -81,12 +137,18 @@ SOURCES = {
         "grain": "one exported Table C source row, including known BARMM copies",
         "reference_rows": 45_611,
         "known_duplicate_rows": 1_861,
-        "required_any_columns": [
-            "population_parsed",
-            "population_2024",
-            "population",
-            "total_population",
-        ],
+        "required_column_groups": {
+            "place name": ["place_name", "name", "geographic_name"],
+            "population": [
+                "population_parsed",
+                "population_2024",
+                "population",
+                "total_population",
+            ],
+            "source file": ["source_file"],
+            "source sheet": ["sheet_name", "source_sheet"],
+            "source row": ["source_row_number"],
+        },
     },
     "boundaries": {
         "table": "boundaries",
@@ -96,14 +158,28 @@ SOURCES = {
         "provenance": "Combined CSV derived from geographic boundary data; original seven-file lineage is unverified unless present in the CSV.",
         "grain": "one exported geographic shape row",
         "reference_rows": 43_760,
-        "required_any_columns": [
-            "source_feature_json",
-            "geometry",
-            "geometry_json",
-            "geometry_wkt",
-            "wkt",
-            "geom",
-        ],
+        "required_column_groups": {
+            "geographic identifier": [
+                "psgc_code",
+                "psgc_code_parsed",
+                "source_feature_id",
+            ],
+            "administrative level": [
+                "administrative_level",
+                "geographic_level",
+                "geo_level",
+            ],
+            "source file": ["source_file"],
+            "source feature": ["source_feature_id", "source_feature_index"],
+            "geometry": [
+                "source_feature_json",
+                "geometry",
+                "geometry_json",
+                "geometry_wkt",
+                "wkt",
+                "geom",
+            ],
+        },
     },
     "flood_susceptibility": {
         "table": "flood_susceptibility",
@@ -121,14 +197,28 @@ SOURCES = {
             "low": 17_092,
             "missing": 23,
         },
-        "required_any_columns": [
-            "susceptibility",
-            "flood_susceptibility",
-            "flood_susceptibility_code",
-            "rating",
-            "hazard",
-            "hazard_rating",
-        ],
+        "required_column_groups": {
+            "susceptibility rating": [
+                "susceptibility",
+                "flood_susceptibility",
+                "flood_susceptibility_code",
+                "FloodSusc",
+                "rating",
+                "hazard",
+                "hazard_rating",
+            ],
+            "geometry": [
+                "source_feature_json",
+                "geometry",
+                "geometry_json",
+                "geometry_wkt",
+                "wkt",
+                "geom",
+                "shape",
+                "shape_json",
+                "rings",
+            ],
+        },
     },
 }
 

@@ -22,7 +22,8 @@
 # MAGIC ## Why this design
 # MAGIC
 # MAGIC The notebook is batch-based, parameterized, snapshot-aware, and idempotent through
-# MAGIC the shared loader. A documented PSGC-code alias is required before replacement,
+# MAGIC the shared loader. Documented code, place-name, and geographic-level aliases are
+# MAGIC required before replacement,
 # MAGIC while geographic standardization and hierarchy logic remain in Silver.
 # MAGIC
 # MAGIC ## Step 1 — Define the batch parameters
@@ -40,7 +41,9 @@ from src import bronze, config
 
 dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
 dbutils.widgets.text("source_version", "", "Optional publisher/source version")
-dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
@@ -49,8 +52,8 @@ dbutils.widgets.text("source_path", "", "Optional source path override")
 # MAGIC ## Step 2 — Resolve the PSGC source contract
 # MAGIC
 # MAGIC Shared configuration provides the approved file name, target table, provenance,
-# MAGIC row grain, and accepted PSGC-code aliases. This avoids hardcoded paths and table
-# MAGIC names inside the notebook.
+# MAGIC row grain, and accepted aliases for PSGC code, place name, and geographic level.
+# MAGIC This avoids hardcoded paths and table names inside the notebook.
 
 # COMMAND ----------
 

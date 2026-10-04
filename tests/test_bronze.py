@@ -1,6 +1,6 @@
 import pytest
 
-from src import bronze
+from src import bronze, config
 
 
 def test_snapshot_id_uses_metadata_not_file_contents(tmp_path):
@@ -51,8 +51,32 @@ def test_source_header_contract_fails_before_write():
     source = {"required_any_columns": ["objectid", "object_id"]}
 
     bronze.validate_source_header(source, ["ObjectID", "name"])
-    with pytest.raises(ValueError, match="None of the documented"):
+    with pytest.raises(ValueError, match="Required source field groups are missing"):
         bronze.validate_source_header(source, ["name", "value"])
+
+
+def test_every_required_source_field_group_must_be_present():
+    source = {
+        "required_column_groups": {
+            "identifier": ["id", "source_id"],
+            "geometry": ["geometry", "geometry_json"],
+        }
+    }
+
+    bronze.validate_source_header(source, ["source_id", "geometry_json"])
+    with pytest.raises(ValueError, match="geometry"):
+        bronze.validate_source_header(source, ["source_id", "rating"])
+
+
+def test_mgb_contract_requires_rating_and_geometry():
+    source = config.source_config("flood_susceptibility")
+
+    bronze.validate_source_header(
+        source,
+        ["flood_susceptibility_code", "geometry_json"],
+    )
+    with pytest.raises(ValueError, match="geometry"):
+        bronze.validate_source_header(source, ["flood_susceptibility_code"])
 
 
 def test_current_table_must_match_requested_snapshot_and_artifact():

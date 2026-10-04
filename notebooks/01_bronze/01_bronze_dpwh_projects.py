@@ -44,7 +44,9 @@ from src import bronze, config
 
 dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
 dbutils.widgets.text("source_version", "", "Optional publisher/source version")
-dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
@@ -53,7 +55,8 @@ dbutils.widgets.text("source_path", "", "Optional source path override")
 # MAGIC ## Step 2 — Resolve the DPWH source contract
 # MAGIC
 # MAGIC `source_config` supplies the approved file name, target table, source system,
-# MAGIC grain, provenance statement, and accepted project-key aliases. A controlled path
+# MAGIC grain, provenance statement, and alias groups for the project key, description,
+# MAGIC budget, category, status, progress, dates, and coordinates. A controlled path
 # MAGIC override changes only the selected artifact; it does not duplicate path logic.
 
 # COMMAND ----------

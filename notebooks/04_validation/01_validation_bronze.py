@@ -44,7 +44,9 @@ validation_run_id = bronze.new_run_id()
 results = []
 
 
-def result(table, column, name, action, failed_rows, total_rows, details=None, snapshot_id=None):
+def result(
+    table, column, name, action, failed_rows, total_rows, details=None, snapshot_id=None
+):
     """Add one PASS, FAIL, FLAG, or ERROR row."""
     if failed_rows is None:
         status = "ERROR"
@@ -77,7 +79,10 @@ def result(table, column, name, action, failed_rows, total_rows, details=None, s
 def find_column(frame, candidates):
     """Return the first documented alias present, without changing source columns."""
     actual = {name.casefold(): name for name in frame.columns}
-    return next((actual[name.casefold()] for name in candidates if name.casefold() in actual), None)
+    return next(
+        (actual[name.casefold()] for name in candidates if name.casefold() in actual),
+        None,
+    )
 
 
 def q(name):
@@ -89,18 +94,24 @@ def count_if(condition):
 
 
 def invalid_cast(column, data_type):
-    return F.expr(f"{q(column)} IS NOT NULL AND TRY_CAST({q(column)} AS {data_type}) IS NULL")
+    return F.expr(
+        f"{q(column)} IS NOT NULL AND TRY_CAST({q(column)} AS {data_type}) IS NULL"
+    )
 
 
-def add_metric(metrics, key, column, name, action, expression, expected_total=None, details=None):
-    metrics.append((key, column, name, action, expression.alias(key), expected_total, details))
+def add_metric(
+    metrics, key, column, name, action, expression, expected_total=None, details=None
+):
+    metrics.append(
+        (key, column, name, action, expression.alias(key), expected_total, details)
+    )
 
 
 def missing_column(table, label, candidates, action="flag"):
     result(
         table,
         label,
-        "documented identifying field is present",
+        "required source field is present",
         action,
         1,
         1,
@@ -137,7 +148,11 @@ if spark.catalog.tableExists(log_name):
             F.coalesce(F.col("completed_at"), F.col("started_at")).desc_nulls_last()
         )
         latest = (
-            log.where(F.col("status").isin("STARTED", "SUCCESS", "FAILED", "SKIPPED_IDEMPOTENT"))
+            log.where(
+                F.col("status").isin(
+                    "STARTED", "SUCCESS", "FAILED", "SKIPPED_IDEMPOTENT"
+                )
+            )
             .withColumn("_newest", F.row_number().over(window))
             .where(F.col("_newest") == 1)
             .drop("_newest")
@@ -157,8 +172,10 @@ if spark.catalog.tableExists(log_name):
 # MAGIC - Flood-control ContractID repetition is a `flag`, never a deduplication rule.
 # MAGIC - PSGC population remains a cross-check field.
 # MAGIC - Table C keeps BARMM copies and reports missing original-row provenance.
-# MAGIC - Boundaries require geometry but perform no spatial assignment.
-# MAGIC - MGB ratings and documented reference counts are checked without place mapping.
+# MAGIC - Boundaries require identifiers, feature lineage, and geometry but perform no
+# MAGIC   spatial assignment.
+# MAGIC - MGB ratings, geometry, and documented reference counts are checked without place
+# MAGIC   mapping.
 
 # COMMAND ----------
 
@@ -167,12 +184,22 @@ for source_name in config.SOURCE_ORDER:
     table = source["table"]
     full_name = bronze.table_name(table)
     if not spark.catalog.tableExists(full_name):
-        result(table, "table", "required table exists", "stop", None, None, "Table is missing")
+        result(
+            table,
+            "table",
+            "required table exists",
+            "stop",
+            None,
+            None,
+            "Table is missing",
+        )
         continue
 
     frame = spark.table(full_name)
     metrics = []
-    add_metric(metrics, "rows", "table", "has at least one row", "stop", F.count(F.lit(1)))
+    add_metric(
+        metrics, "rows", "table", "has at least one row", "stop", F.count(F.lit(1))
+    )
     add_metric(
         metrics,
         "snapshot_count",
@@ -203,10 +230,21 @@ for source_name in config.SOURCE_ORDER:
             count_if(F.col(metadata_column).isNull()),
         )
 
+    for label, candidates in source.get("required_column_groups", {}).items():
+        if not find_column(frame, candidates):
+            missing_column(table, label, candidates, "stop")
+
     key = find_column(frame, source.get("key_candidates", ()))
     if source.get("key_candidates"):
         if key:
-            add_metric(metrics, "key_null", key, "source key is not null", "stop", count_if(F.col(key).isNull()))
+            add_metric(
+                metrics,
+                "key_null",
+                key,
+                "source key is not null",
+                "stop",
+                count_if(F.col(key).isNull()),
+            )
             add_metric(
                 metrics,
                 "key_duplicate",
@@ -221,7 +259,14 @@ for source_name in config.SOURCE_ORDER:
     if source_name == "dpwh_projects":
         status_column = find_column(frame, ["status", "project_status"])
         if status_column:
-            known = ["completed", "on-going", "ongoing", "not yet started", "for procurement", "terminated"]
+            known = [
+                "completed",
+                "on-going",
+                "ongoing",
+                "not yet started",
+                "for procurement",
+                "terminated",
+            ]
             add_metric(
                 metrics,
                 "unknown_status",
@@ -242,12 +287,83 @@ for source_name in config.SOURCE_ORDER:
         ):
             column = find_column(frame, candidates)
             if column:
-                add_metric(metrics, metric_key, column, f"values cast to {data_type}", "flag", count_if(invalid_cast(column, data_type)))
+                add_metric(
+                    metrics,
+                    metric_key,
+                    column,
+                    f"values cast to {data_type}",
+                    "flag",
+                    count_if(invalid_cast(column, data_type)),
+                )
+
+        budget = find_column(frame, ["budget", "project_cost", "projectCost"])
+        if budget:
+            parsed_budget = F.expr(f"TRY_CAST({q(budget)} AS DECIMAL(38, 6))")
+            add_metric(
+                metrics,
+                "negative_budget",
+                budget,
+                "reported budget is non-negative when present",
+                "flag",
+                count_if(parsed_budget < 0),
+            )
+
+        progress = find_column(
+            frame, ["progress", "physical_progress_pct", "accomplishment"]
+        )
+        if progress:
+            parsed_progress = F.expr(f"TRY_CAST({q(progress)} AS DOUBLE)")
+            add_metric(
+                metrics,
+                "progress_range",
+                progress,
+                "physical progress is between 0 and 100 when present",
+                "flag",
+                count_if((parsed_progress < 0) | (parsed_progress > 100)),
+            )
+
+        latitude = find_column(frame, ["latitude", "Latitude"])
+        longitude = find_column(frame, ["longitude", "Longitude"])
+        if latitude and longitude:
+            parsed_latitude = F.expr(f"TRY_CAST({q(latitude)} AS DOUBLE)")
+            parsed_longitude = F.expr(f"TRY_CAST({q(longitude)} AS DOUBLE)")
+            add_metric(
+                metrics,
+                "coordinate_missing",
+                f"{latitude}, {longitude}",
+                "project coordinate pair is present",
+                "flag",
+                count_if(F.col(latitude).isNull() | F.col(longitude).isNull()),
+            )
+            add_metric(
+                metrics,
+                "coordinate_range",
+                f"{latitude}, {longitude}",
+                "project coordinates fall in the Philippines screening box",
+                "flag",
+                count_if(
+                    parsed_latitude.isNotNull()
+                    & parsed_longitude.isNotNull()
+                    & (
+                        (parsed_latitude < config.PH_LAT[0])
+                        | (parsed_latitude > config.PH_LAT[1])
+                        | (parsed_longitude < config.PH_LON[0])
+                        | (parsed_longitude > config.PH_LON[1])
+                    )
+                ),
+            )
 
     elif source_name == "flood_control_projects":
         contract = find_column(frame, ["ContractID", "contract_id", "contractId"])
         if contract:
-            add_metric(metrics, "contract_null", contract, "Contract ID is not null", "stop", count_if(F.col(contract).isNull()))
+            add_metric(
+                metrics,
+                "contract_null",
+                contract,
+                "Contract ID is not null",
+                "stop",
+                count_if(F.col(contract).isNull()),
+            )
             add_metric(
                 metrics,
                 "repeated_contract",
@@ -257,18 +373,74 @@ for source_name in config.SOURCE_ORDER:
                 (F.count(F.lit(1)) - F.countDistinct(F.col(contract))).cast("long"),
             )
         else:
-            missing_column(table, "Contract ID", ["ContractID", "contract_id", "contractId"], "stop")
+            missing_column(
+                table,
+                "Contract ID",
+                ["ContractID", "contract_id", "contractId"],
+                "stop",
+            )
         cost = find_column(frame, ["ContractCost", "contract_cost"])
         if cost:
-            add_metric(metrics, "invalid_cost", cost, "contract cost casts to a number", "flag", count_if(invalid_cast(cost, "DECIMAL(38, 6)")))
+            add_metric(
+                metrics,
+                "invalid_cost",
+                cost,
+                "contract cost casts to a number",
+                "flag",
+                count_if(invalid_cast(cost, "DECIMAL(38, 6)")),
+            )
+            parsed_cost = F.expr(f"TRY_CAST({q(cost)} AS DECIMAL(38, 6))")
+            add_metric(
+                metrics,
+                "negative_cost",
+                cost,
+                "contract cost is non-negative when present",
+                "flag",
+                count_if(parsed_cost < 0),
+            )
+
+        latitude = find_column(frame, ["Latitude", "latitude"])
+        longitude = find_column(frame, ["Longitude", "longitude"])
+        if latitude and longitude:
+            parsed_latitude = F.expr(f"TRY_CAST({q(latitude)} AS DOUBLE)")
+            parsed_longitude = F.expr(f"TRY_CAST({q(longitude)} AS DOUBLE)")
+            add_metric(
+                metrics,
+                "coordinate_range",
+                f"{latitude}, {longitude}",
+                "flood-control coordinates fall in the Philippines screening box",
+                "flag",
+                count_if(
+                    parsed_latitude.isNotNull()
+                    & parsed_longitude.isNotNull()
+                    & (
+                        (parsed_latitude < config.PH_LAT[0])
+                        | (parsed_latitude > config.PH_LAT[1])
+                        | (parsed_longitude < config.PH_LON[0])
+                        | (parsed_longitude > config.PH_LON[1])
+                    )
+                ),
+            )
 
     elif source_name == "psgc":
-        population = find_column(frame, ["population_2024_parsed", "population_2024", "population"])
+        population = find_column(
+            frame, ["population_2024_parsed", "population_2024", "population"]
+        )
         if population:
-            add_metric(metrics, "invalid_population", population, "population casts to a whole number", "flag", count_if(invalid_cast(population, "BIGINT")))
+            add_metric(
+                metrics,
+                "invalid_population",
+                population,
+                "population casts to a whole number",
+                "flag",
+                count_if(invalid_cast(population, "BIGINT")),
+            )
 
     elif source_name == "census_2024_table_c":
-        lineage = [find_column(frame, [name]) for name in ("source_file", "sheet_name", "source_row_number")]
+        lineage = [
+            find_column(frame, [name])
+            for name in ("source_file", "sheet_name", "source_row_number")
+        ]
         if all(lineage):
             add_metric(
                 metrics,
@@ -276,31 +448,59 @@ for source_name in config.SOURCE_ORDER:
                 ", ".join(lineage),
                 "source file/sheet/row lineage is unique",
                 "stop",
-                (F.count(F.lit(1)) - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))).cast("long"),
+                (
+                    F.count(F.lit(1))
+                    - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))
+                ).cast("long"),
             )
         else:
             result(
                 table,
                 "source_file, sheet_name, source_row_number",
                 "original Table C row provenance is available",
-                "flag",
+                "stop",
                 1,
                 1,
                 "Missing exact lineage fields; the loader deliberately does not fabricate them.",
             )
-        population = find_column(frame, ["population_parsed", "population_2024", "population", "total_population"])
+        population = find_column(
+            frame,
+            ["population_parsed", "population_2024", "population", "total_population"],
+        )
         if population:
-            add_metric(metrics, "invalid_population", population, "population casts to a whole number", "flag", count_if(invalid_cast(population, "BIGINT")))
-        duplicate_flag = find_column(frame, ["is_known_duplicate_sheet", "is_known_barmm_duplicate"])
+            add_metric(
+                metrics,
+                "invalid_population",
+                population,
+                "population casts to a whole number",
+                "flag",
+                count_if(invalid_cast(population, "BIGINT")),
+            )
+            parsed_population = F.expr(f"TRY_CAST({q(population)} AS BIGINT)")
+            add_metric(
+                metrics,
+                "nonpositive_population",
+                population,
+                "population is positive when present",
+                "flag",
+                count_if(parsed_population <= 0),
+            )
+        duplicate_flag = find_column(
+            frame, ["is_known_duplicate_sheet", "is_known_barmm_duplicate"]
+        )
         if duplicate_flag:
-            duplicate_condition = F.lower(F.trim(F.col(duplicate_flag))).isin("true", "1", "yes", "y")
+            duplicate_condition = F.lower(F.trim(F.col(duplicate_flag))).isin(
+                "true", "1", "yes", "y"
+            )
             add_metric(
                 metrics,
                 "known_barmm_rows",
                 duplicate_flag,
                 "known BARMM duplicate rows are preserved",
                 "flag",
-                F.abs(count_if(duplicate_condition) - F.lit(config.TABLE_C_DUPLICATE_ROWS)).cast("long"),
+                F.abs(
+                    count_if(duplicate_condition) - F.lit(config.TABLE_C_DUPLICATE_ROWS)
+                ).cast("long"),
                 config.TABLE_C_DUPLICATE_ROWS,
             )
         else:
@@ -315,7 +515,10 @@ for source_name in config.SOURCE_ORDER:
             )
 
     elif source_name == "boundaries":
-        lineage = [find_column(frame, [name]) for name in ("source_file", "source_feature_index")]
+        lineage = [
+            find_column(frame, ["source_file"]),
+            find_column(frame, ["source_feature_id", "source_feature_index"]),
+        ]
         if all(lineage):
             add_metric(
                 metrics,
@@ -323,26 +526,38 @@ for source_name in config.SOURCE_ORDER:
                 ", ".join(lineage),
                 "source file/feature lineage is unique",
                 "stop",
-                (F.count(F.lit(1)) - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))).cast("long"),
+                (
+                    F.count(F.lit(1))
+                    - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))
+                ).cast("long"),
             )
         else:
             result(
                 table,
-                "source_file, source_feature_index",
+                "source_file, source_feature_id/source_feature_index",
                 "original seven-file feature provenance is available",
                 "flag",
                 1,
                 1,
                 "Combined CSV provenance is incomplete unless both fields are supplied.",
             )
-        geometry = find_column(frame, ["source_feature_json", "geometry", "geometry_json", "geometry_wkt", "wkt", "geom"])
+        geometry_candidates = source["required_column_groups"]["geometry"]
+        geometry = find_column(frame, geometry_candidates)
         if geometry:
-            add_metric(metrics, "geometry_null", geometry, "geometry representation is not null", "stop", count_if(F.col(geometry).isNull()))
+            add_metric(
+                metrics,
+                "geometry_null",
+                geometry,
+                "geometry representation is not null or empty",
+                "stop",
+                count_if(F.col(geometry).isNull() | (F.trim(F.col(geometry)) == "")),
+            )
         else:
-            missing_column(table, "geometry", ["source_feature_json", "geometry", "geometry_json", "geometry_wkt", "wkt", "geom"], "stop")
+            missing_column(table, "geometry", geometry_candidates, "stop")
 
     elif source_name == "flood_susceptibility":
-        rating = find_column(frame, ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"])
+        rating_candidates = source["required_column_groups"]["susceptibility rating"]
+        rating = find_column(frame, rating_candidates)
         if rating:
             normalized = F.lower(F.trim(F.col(rating)))
             allowed = ["very high", "high", "moderate", "low"]
@@ -352,7 +567,11 @@ for source_name in config.SOURCE_ORDER:
                 rating,
                 "rating is very high, high, moderate, low, or missing",
                 "flag",
-                count_if(F.col(rating).isNotNull() & (F.trim(F.col(rating)) != "") & ~normalized.isin(*allowed)),
+                count_if(
+                    F.col(rating).isNotNull()
+                    & (F.trim(F.col(rating)) != "")
+                    & ~normalized.isin(*allowed)
+                ),
             )
             for index, category in enumerate(allowed):
                 expected = source["rating_reference"][category]
@@ -362,7 +581,9 @@ for source_name in config.SOURCE_ORDER:
                     rating,
                     f"{category} row count matches documented reference",
                     "flag",
-                    F.abs(count_if(normalized == category) - F.lit(expected)).cast("long"),
+                    F.abs(count_if(normalized == category) - F.lit(expected)).cast(
+                        "long"
+                    ),
                     expected,
                 )
             expected_missing = source["rating_reference"]["missing"]
@@ -372,21 +593,54 @@ for source_name in config.SOURCE_ORDER:
                 rating,
                 "missing-rating row count matches documented reference",
                 "flag",
-                F.abs(count_if(F.col(rating).isNull() | (F.trim(F.col(rating)) == "")) - F.lit(expected_missing)).cast("long"),
+                F.abs(
+                    count_if(F.col(rating).isNull() | (F.trim(F.col(rating)) == ""))
+                    - F.lit(expected_missing)
+                ).cast("long"),
                 expected_missing,
             )
         else:
-            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"], "stop")
+            missing_column(table, "susceptibility rating", rating_candidates, "stop")
+
+        geometry_candidates = source["required_column_groups"]["geometry"]
+        geometry = find_column(frame, geometry_candidates)
+        if geometry:
+            add_metric(
+                metrics,
+                "geometry_null",
+                geometry,
+                "flood-area geometry is not null or empty",
+                "stop",
+                count_if(F.col(geometry).isNull() | (F.trim(F.col(geometry)) == "")),
+            )
+        else:
+            missing_column(table, "geometry", geometry_candidates, "stop")
 
     try:
         observed = frame.agg(*[item[4] for item in metrics]).first()
     except Exception as error:  # noqa: BLE001 - save a blocking validation result
-        result(table, "table", "table checks execute", "stop", None, None, str(error)[:1_000])
+        result(
+            table,
+            "table",
+            "table checks execute",
+            "stop",
+            None,
+            None,
+            str(error)[:1_000],
+        )
         continue
 
     total_rows = int(observed["rows"])
     snapshot_value = observed["snapshot_value"]
-    result(table, "table", "has at least one row", "stop", 0 if total_rows > 0 else 1, 1, snapshot_id=snapshot_value)
+    result(
+        table,
+        "table",
+        "has at least one row",
+        "stop",
+        0 if total_rows > 0 else 1,
+        1,
+        snapshot_id=snapshot_value,
+    )
     result(
         table,
         "_source_snapshot_id",
@@ -425,7 +679,16 @@ for source_name in config.SOURCE_ORDER:
 
     audit = latest_logs.get(table)
     if audit is None:
-        result(table, "load_log", "latest load is SUCCESS or SKIPPED_IDEMPOTENT", "stop", None, None, "No terminal audit row", snapshot_value)
+        result(
+            table,
+            "load_log",
+            "latest load is SUCCESS or SKIPPED_IDEMPOTENT",
+            "stop",
+            None,
+            None,
+            "No terminal audit row",
+            snapshot_value,
+        )
     else:
         load_ok = audit["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
         result(
@@ -477,19 +740,27 @@ columns = (
     "failed_rows long, total_rows long, percentage double, status string, action string, "
     "details string, snapshot_id string"
 )
-output = spark.createDataFrame(results, columns).withColumn("run_ts", F.current_timestamp())
+output = spark.createDataFrame(results, columns).withColumn(
+    "run_ts", F.current_timestamp()
+)
 output.write.format("delta").mode("append").option("mergeSchema", "true").saveAsTable(
     bronze.table_name("dq_results", config.VALIDATION)
 )
 display(output.orderBy("table_name", "action", "data_quality_check"))
 
-blocked = [row for row in results if row[7] == "ERROR" or (row[8] == "stop" and row[7] == "FAIL")]
+blocked = [
+    row
+    for row in results
+    if row[7] == "ERROR" or (row[8] == "stop" and row[7] == "FAIL")
+]
 if blocked:
     raise RuntimeError(
-f"{len(blocked)} checks blocked the run: "
+        f"{len(blocked)} checks blocked the run: "
         + "; ".join(f"{row[1]} / {row[3]} ({row[7]})" for row in blocked)
     )
-print(f"Validation {validation_run_id}: no blocking check failed; review FLAG rows before Silver.")
+print(
+    f"Validation {validation_run_id}: no blocking check failed; review FLAG rows before Silver."
+)
 
 # COMMAND ----------
 

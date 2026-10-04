@@ -10,9 +10,12 @@ These tests protect the low-cost Bronze contract without requiring Spark:
 - deterministic metadata-based snapshot IDs;
 - duplicate and Delta-incompatible header handling;
 - explicit widget boolean parsing;
-- required source-header aliases;
+- required source-field alias groups, including separate MGB rating and geometry
+  requirements;
 - exact current-table artifact matching; and
-- the rule that a historical snapshot is not the current selected snapshot.
+- the rule that a historical snapshot is not the current selected snapshot;
+- strict quoted-record parsing and wrong-width rejection; and
+- canonical snapshot identity after a rejected conflict.
 
 ## `test_xlsx.py`
 

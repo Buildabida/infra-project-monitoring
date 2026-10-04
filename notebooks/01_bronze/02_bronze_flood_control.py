@@ -40,7 +40,9 @@ from src import bronze, config
 
 dbutils.widgets.text("snapshot_id", "", "Snapshot ID (blank = source metadata)")
 dbutils.widgets.text("source_version", "", "Optional publisher/source version")
-dbutils.widgets.dropdown("force_reload", "false", ["false", "true"], "Force identical snapshot reload")
+dbutils.widgets.dropdown(
+    "force_reload", "false", ["false", "true"], "Force identical snapshot reload"
+)
 dbutils.widgets.text("source_path", "", "Optional source path override")
 
 # COMMAND ----------
@@ -49,8 +51,8 @@ dbutils.widgets.text("source_path", "", "Optional source path override")
 # MAGIC ## Step 2 — Resolve the flood-control source contract
 # MAGIC
 # MAGIC Central configuration supplies the approved file, target table, source grain,
-# MAGIC provenance, and acceptable object-ID aliases. This keeps paths and contracts out
-# MAGIC of the notebook logic.
+# MAGIC provenance, and required aliases for source/contract IDs, description, cost,
+# MAGIC work type, and coordinates. This keeps paths and contracts out of notebook logic.
 
 # COMMAND ----------
 

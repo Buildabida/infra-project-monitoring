@@ -40,20 +40,24 @@ Every table checks:
 - documented keys are non-null and unique only where source grain guarantees it;
 - historical row-count references are flags, not filters.
 
-Before a target overwrite, each loader also requires at least one documented
-identifying/header alias for that source. This keeps a readable but structurally
-wrong CSV from replacing the last valid table.
+Before a target overwrite, each loader requires every configured source-field group.
+Each group accepts documented aliases without renaming the source column. This prevents
+a readable CSV that has an identifier but has lost a business-critical field—such as
+budget, place name, population, susceptibility, or geometry—from replacing the last
+valid table.
 
 Source-specific checks include:
 
-- DPWH known status values and `TRY_CAST` checks for available numeric/date fields;
+- DPWH known status values, numeric/date casts, non-negative budget, progress range,
+  coordinate completeness, and a Philippines bounding-box screen;
 - flood-control source object identity, Contract ID nulls, and a flag that preserves
-  repeated Contract IDs;
+  repeated Contract IDs, plus cost and coordinate checks;
 - PSGC code identity and population integer casting when present;
-- Table C file/sheet/row lineage when present, known BARMM duplicate markers, and
-  population integer casting;
-- boundary geometry presence and seven-file feature lineage when present;
-- MGB susceptibility categories and the documented rating/count references.
+- Table C file/sheet/row lineage, known BARMM duplicate markers, population integer
+  casting, and positive population checks;
+- boundary identifier, administrative level, file/feature lineage, and geometry presence;
+- MGB susceptibility categories, required non-empty geometry, and documented
+  rating/count references.
 
 The results append to `04-validation.dq_results` with `PASS`, `FLAG`, `FAIL`, or
 `ERROR`. Known 45,611 Table C rows, 43,760 boundary shapes and 63,684 flood areas

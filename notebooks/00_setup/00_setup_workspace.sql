@@ -39,7 +39,7 @@ SHOW SCHEMAS;
 -- MAGIC %md
 -- MAGIC ## Step 2 — Verify the existing R2-backed volume
 -- MAGIC
--- MAGIC `DESCRIBE VOLUME` checks that Unity Catalog can resolve the approved source volume.
+-- MAGIC `SHOW VOLUMES` confirms that Unity Catalog can list the approved source volume.
 -- MAGIC Keeping volume provisioning outside this notebook prevents accidental replacement
 -- MAGIC of the durable source boundary.
 
