@@ -47,7 +47,7 @@ SOURCES = {
                 "projectDescription",
                 "project_description",
             ],
-            "reported budget": ["budget", "project_cost", "projectCost"],
+            "reported budget": ["budget", "project_cost", "projectCost", "reported_budget"],
             "project category": [
                 "category",
                 "infraType",

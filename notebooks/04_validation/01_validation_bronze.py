@@ -250,7 +250,7 @@ for source_name in config.SOURCE_ORDER:
                 "key_duplicate",
                 key,
                 "source-grain key is unique",
-                "stop",
+                "flag",
                 (F.count(F.lit(1)) - F.countDistinct(F.col(key))).cast("long"),
             )
         else:
@@ -525,7 +525,7 @@ for source_name in config.SOURCE_ORDER:
                 "boundary_lineage_duplicate",
                 ", ".join(lineage),
                 "source file/feature lineage is unique",
-                "stop",
+                "flag",
                 (
                     F.count(F.lit(1))
                     - F.countDistinct(F.struct(*[F.col(name) for name in lineage]))
@@ -610,7 +610,7 @@ for source_name in config.SOURCE_ORDER:
                 "geometry_null",
                 geometry,
                 "flood-area geometry is not null or empty",
-                "stop",
+                "flag",
                 count_if(F.col(geometry).isNull() | (F.trim(F.col(geometry)) == "")),
             )
         else:
