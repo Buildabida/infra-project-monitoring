@@ -14,6 +14,7 @@ schema inference or full-file hashing for the large MGB CSV.
 import csv
 import datetime as dt
 import hashlib
+import io
 import json
 import os
 import re
@@ -188,7 +189,7 @@ def _append_log(spark, row):
 
 
 def _snapshot_audit_rows(spark, source_name, snapshot_id, functions):
-    """Return the newest audit event that claims a source/snapshot identity."""
+    """Return audit claims ordered from the canonical first claim to the newest."""
     log_name = table_name("load_log")
     if not spark.catalog.tableExists(log_name):
         return []
@@ -199,21 +200,41 @@ def _snapshot_audit_rows(spark, source_name, snapshot_id, functions):
         "status",
         "started_at",
         "completed_at",
+        "run_id",
+        "rows_loaded",
+        "source_path",
+        "source_size_bytes",
+        "source_modified_ns",
+        "source_version",
     }
     if not needed.issubset(log.columns):
         return []
-    row = (
+    return list(
         log.where(
             (log["source_name"] == source_name) & (log["snapshot_id"] == snapshot_id)
         )
         .orderBy(
-            functions.coalesce(log["completed_at"], log["started_at"]).desc(),
-            log["completed_at"].desc_nulls_last(),
+            functions.coalesce(log["completed_at"], log["started_at"]).asc(),
+            log["started_at"].asc_nulls_last(),
+            log["run_id"].asc(),
         )
-        .limit(1)
-        .first()
+        .toLocalIterator()
     )
-    return [] if row is None else [row]
+
+
+def _snapshot_audit_state(audits):
+    """Return the canonical identity claim and newest completed audit event."""
+    canonical = audits[0] if audits else None
+    completed = next(
+        (
+            row
+            for row in reversed(audits)
+            if row["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
+            and row["rows_loaded"] is not None
+        ),
+        None,
+    )
+    return canonical, completed
 
 
 def _current_table_state(spark, source, functions):
@@ -321,16 +342,29 @@ def _same_metadata(row, metadata, source):
     )
 
 
+def _parse_csv_line(value, num_cols):
+    """Parse one physical CSV record and fail instead of fabricating null values."""
+    if value is None:
+        raise ValueError("CSV contains a null physical record")
+    try:
+        parsed = next(csv.reader(io.StringIO(value.rstrip("\r")), strict=True))
+    except (StopIteration, csv.Error) as error:
+        raise ValueError("CSV contains an unreadable record") from error
+    if len(parsed) != num_cols:
+        raise ValueError(
+            f"CSV record has {len(parsed)} columns; expected exactly {num_cols}"
+        )
+    return parsed
+
+
 def _read_csv_as_text(spark, source, metadata, clean_header):
     """Read a CSV file as text and parse lines with Python's csv module.
 
     Spark's CSV file reader fails on some large files with non-standard line
-    endings and complex quoted JSON content on serverless compute.  Reading
+    endings and complex quoted JSON content on serverless compute. Reading
     as text and parsing in Python avoids the broken file-scan path while
     preserving the same all-strings output.
     """
-    import io as _io
-
     import pandas as pd
     from pyspark.sql import functions as F
 
@@ -341,18 +375,7 @@ def _read_csv_as_text(spark, source, metadata, clean_header):
         for batch in iterator:
             rows = []
             for val in batch["value"]:
-                if val is None:
-                    continue
-                line = val.rstrip("\r")
-                try:
-                    reader = csv.reader(_io.StringIO(line))
-                    parsed = next(reader)
-                    if len(parsed) == num_cols:
-                        rows.append(parsed)
-                    else:
-                        rows.append([None] * num_cols)
-                except (StopIteration, csv.Error):
-                    rows.append([None] * num_cols)
+                rows.append(_parse_csv_line(val, num_cols))
             yield pd.DataFrame(rows, columns=clean_header)
 
     text_df = spark.read.option("lineSep", source.get("line_sep", "\n")).text(
@@ -383,17 +406,11 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
     )
     force_reload = parse_bool(force_reload)
     audits = _snapshot_audit_rows(spark, source["name"], snapshot_id, F)
-    completed = (
-        audits
-        if audits
-        and audits[0]["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
-        and audits[0]["rows_loaded"] is not None
-        else []
-    )
+    canonical, completed = _snapshot_audit_state(audits)
     started_at = dt.datetime.now(UTC)
     run_id = new_run_id()
 
-    if audits and not _same_metadata(audits[0], metadata, source):
+    if canonical is not None and not _same_metadata(canonical, metadata, source):
         error = RuntimeError(
             f"Snapshot conflict for {source['name']!r}: {snapshot_id!r} was already used "
             "with a different version, path, size, or modification time. Use a new snapshot ID."
@@ -418,7 +435,7 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         raise error
 
     current = _current_table_state(spark, source, F)
-    previous_rows = completed[0]["rows_loaded"] if completed else None
+    previous_rows = completed["rows_loaded"] if completed is not None else None
     current_matches = _same_current_table(
         current,
         metadata,
@@ -495,7 +512,7 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
             frame = (
                 spark.read.option("header", "true")
                 .option("inferSchema", "false")
-                .option("mode", "PERMISSIVE")
+                .option("mode", "FAILFAST")
                 .option("multiLine", "false")
                 .csv(metadata["path"])
             )
