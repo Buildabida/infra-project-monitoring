@@ -106,3 +106,34 @@ def test_historical_snapshot_is_not_current_after_a_new_snapshot():
         "snapshot-a",
         expected_rows=12,
     )
+
+def test_parse_csv_line_preserves_quoted_commas_and_crlf():
+    assert bronze._parse_csv_line('"geometry,with,commas",high\r', 2) == [
+        "geometry,with,commas",
+        "high",
+    ]
+
+
+def test_parse_csv_line_rejects_wrong_width_and_invalid_quotes():
+    with pytest.raises(ValueError, match="expected exactly 2"):
+        bronze._parse_csv_line("one,two,three", 2)
+    with pytest.raises(ValueError, match="unreadable record"):
+        bronze._parse_csv_line('"unterminated', 1)
+
+
+def test_snapshot_conflict_does_not_poison_the_canonical_claim():
+    canonical_a = {
+        "status": "SUCCESS",
+        "rows_loaded": 12,
+        "source_path": "/source/a.csv",
+    }
+    rejected_b = {
+        "status": "FAILED",
+        "rows_loaded": None,
+        "source_path": "/source/b.csv",
+    }
+
+    canonical, completed = bronze._snapshot_audit_state([canonical_a, rejected_b])
+
+    assert canonical is canonical_a
+    assert completed is canonical_a
