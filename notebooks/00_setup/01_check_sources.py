@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # Check the six R2 source files
 # MAGIC
@@ -31,6 +35,9 @@ repo_root = os.path.abspath("../..")
 sys.path.insert(0, repo_root)
 
 from src import bronze, config
+import importlib
+importlib.reload(config)
+importlib.reload(bronze)
 
 # COMMAND ----------
 

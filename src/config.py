@@ -17,7 +17,9 @@ VALIDATION = "04-validation"
 
 # Unity Catalog exposes the durable Cloudflare R2 source boundary through this volume.
 SOURCE_VOLUME = "cloudflare-r2"
-SOURCE_VOLUME_PATH = f"/Volumes/{CATALOG}/{SOURCE}/{SOURCE_VOLUME}"
+# The six project source CSVs live under this subdirectory inside the R2 volume.
+SOURCE_SUBDIR = "buildabida"
+SOURCE_VOLUME_PATH = f"/Volumes/{CATALOG}/{SOURCE}/{SOURCE_VOLUME}/{SOURCE_SUBDIR}"
 
 # provenance_class: A original publisher artifact; B lossless export;
 # C approved trimmed extract; D preprocessed/derived artifact; E unknown.
@@ -97,6 +99,7 @@ SOURCES = {
         "required_any_columns": [
             "source_feature_json",
             "geometry",
+            "geometry_json",
             "geometry_wkt",
             "wkt",
             "geom",
@@ -120,6 +123,7 @@ SOURCES = {
         "required_any_columns": [
             "susceptibility",
             "flood_susceptibility",
+            "flood_susceptibility_code",
             "rating",
             "hazard",
             "hazard_rating",

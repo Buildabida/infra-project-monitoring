@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # Bronze: DPWH projects from R2
 # MAGIC
@@ -68,6 +72,9 @@ source["source_version"] = dbutils.widgets.get("source_version").strip() or None
 # MAGIC snapshot, reconciles row counts, and appends a concise status to `load_log`.
 
 # COMMAND ----------
+
+import importlib
+importlib.reload(bronze)
 
 result = bronze.load_csv_snapshot(
     spark,

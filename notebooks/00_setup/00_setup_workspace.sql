@@ -46,7 +46,7 @@ SHOW SCHEMAS;
 -- COMMAND ----------
 
 -- Verify access only; ownership and provisioning stay outside the Bronze batch.
-DESCRIBE VOLUME `buildabida-capstone`.`00-source`.`cloudflare-r2`;
+SHOW VOLUMES IN `buildabida-capstone`.`00-source`;
 
 -- COMMAND ----------
 

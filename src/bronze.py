@@ -449,7 +449,7 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         frame = (
             spark.read.option("header", "true")
             .option("inferSchema", "false")
-            .option("mode", "FAILFAST")
+            .option("mode", "PERMISSIVE")
             .option("multiLine", "false")
             .csv(metadata["path"])
         )
