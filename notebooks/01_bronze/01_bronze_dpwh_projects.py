@@ -74,7 +74,6 @@ source["source_version"] = dbutils.widgets.get("source_version").strip() or None
 
 # COMMAND ----------
 
-import importlib
 importlib.reload(bronze)
 
 result = bronze.load_csv_snapshot(
