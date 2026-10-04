@@ -376,7 +376,7 @@ for source_name in config.SOURCE_ORDER:
                 expected_missing,
             )
         else:
-            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"], "flag")
+            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"], "stop")
 
     try:
         observed = frame.agg(*[item[4] for item in metrics]).first()
