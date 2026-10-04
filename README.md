@@ -94,7 +94,7 @@ To load bronze, upload the PSA files to the landing volume, then run `notebooks/
 
 We load five sources now: the DPWH projects API, the flood control map layer, the PSGC file, census Table C and the boundary maps. Each one has its own job. That is decision [D-22](docs/decisions.md). Table C is our population source, and the PSGC count is its cross-check.
 
-We plan a sixth source, the DENR MGB flood susceptibility map. It would add flood hazard, a sign of how much a place needs flood control. The team decides it in [D-21](docs/decisions.md). It is not built yet. We won't call it loaded until its source card, license, snapshot, grain and checks are approved and its bronze load is tested.
+Our sixth source is the DENR MGB flood susceptibility map. It adds flood hazard, a sign of how much a place needs flood control. We agreed to add it in [D-24](docs/decisions.md), and we keep only the columns we need so it fits our workspace. It is not built yet. We won't call it loaded until its source card, license, snapshot, grain and checks are approved and its bronze load is tested.
 
 Three things to know:
 
