@@ -1,14 +1,21 @@
-"""Central configuration for the R2-to-Bronze batch.
+"""Single source of truth for the six-source R2-to-Bronze batch.
 
-The six files already exist in the Unity Catalog volume. Notebooks may override
-the snapshot ID and force-reload flag, but paths and table names live here.
+The module separates source differences from shared ingestion mechanics. Catalog,
+schema, volume, file, table, grain, provenance, identifier aliases, and documented
+references live here so notebooks do not repeat paths or business contracts.
+
+Adding another CSV source requires one readable configuration entry, one thin source
+notebook, source-specific validation, and focused tests. It does not require another
+copy of the ingestion engine.
 """
 
+# Stable namespace contract shared by setup, ingestion, validation, and documentation.
 CATALOG = "buildabida-capstone"
 SOURCE = "00-source"
 BRONZE = "01-bronze"
 VALIDATION = "04-validation"
 
+# Unity Catalog exposes the durable Cloudflare R2 source boundary through this volume.
 SOURCE_VOLUME = "cloudflare-r2"
 SOURCE_VOLUME_PATH = f"/Volumes/{CATALOG}/{SOURCE}/{SOURCE_VOLUME}"
 
@@ -16,6 +23,12 @@ SOURCE_VOLUME_PATH = f"/Volumes/{CATALOG}/{SOURCE}/{SOURCE_VOLUME}"
 # C approved trimmed extract; D preprocessed/derived artifact; E unknown.
 # The first five originals were API JSON, XLSX, or GeoJSON. Their CSV export
 # process is not recorded, so the CSVs are not claimed to be lossless.
+# Each source entry documents both mechanics and meaning:
+# - table/file_name/source_system route the artifact without notebook hardcoding;
+# - provenance/grain explain what one raw row represents and what can be claimed;
+# - key_candidates drive source-grain validation only where uniqueness is justified;
+# - required_any_columns protect the current table before a structurally wrong CSV write;
+# - reference counts support non-destructive FLAG checks, never row filtering.
 SOURCES = {
     "dpwh_projects": {
         "table": "dpwh_projects",
@@ -114,6 +127,7 @@ SOURCES = {
     },
 }
 
+# The authoritative six-source sequence used by precheck, orchestration, and validation.
 SOURCE_ORDER = (
     "dpwh_projects",
     "flood_control_projects",
@@ -123,6 +137,8 @@ SOURCE_ORDER = (
     "flood_susceptibility",
 )
 
+# Required technical lineage added to every business-source Bronze row. These names are
+# reserved so a source column cannot silently overwrite ingestion metadata.
 INGEST_METADATA_COLUMNS = (
     "_source_system",
     "_source_path",
@@ -149,7 +165,11 @@ PH_LON = (116.0, 127.0)
 
 
 def source_config(source_name):
-    """Return one source config with its absolute volume path."""
+    """Return an isolated source contract with its absolute volume path.
+
+    Copying the dictionary keeps notebook-level overrides local. The default path is
+    always derived from the centralized catalog, schema, volume, and file name.
+    """
     if source_name not in SOURCES:
         raise KeyError(
             f"Unknown source {source_name!r}. Expected one of {tuple(SOURCES)}"

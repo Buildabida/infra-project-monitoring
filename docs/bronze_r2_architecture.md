@@ -18,6 +18,35 @@ cast business fields, remove duplicates, map categories, match PSGC places, or r
 spatial joins. Those decisions belong in Silver because they change analytical
 meaning.
 
+## Design goals
+
+| Goal | Implementation |
+| --- | --- |
+| Batch-based | One finite CSV artifact is selected per source; there is no streaming state or checkpoint. |
+| Idempotent | A skip requires the requested artifact to match the current Delta table and its expected row count. |
+| Parameterized | Catalog, schemas, volume root, source files, tables, grains, aliases, and references are centralized. |
+| Snapshot-aware | Artifact identity is derived from source name, version, path, size, and modification metadata. |
+| Raw preserving | Business columns remain source strings and legitimate duplicate rows remain present. |
+| Low cost | Header checks precede Spark, schema inference is disabled, and large-table checks share one aggregate. |
+| Resilient | Conflicts fail closed, Delta replacement is atomic, failures are audited, and current state is reconciled. |
+| Reusable | A thin source notebook supplies configuration to one shared loader instead of copying mechanics. |
+
+## How one source becomes Bronze
+
+1. `source_config` resolves the approved path, target table, grain, provenance, and
+   documented identifying aliases.
+2. `inspect_source` checks existence, size, readability, header quality, and a small
+   proof of data without parsing the complete artifact.
+3. Snapshot identity is accepted from the caller or derived from inexpensive artifact
+   metadata; the full file is never hashed for routine identity.
+4. Existing audit metadata and the current Delta table are compared. A safe match can
+   skip replacement; conflicting reuse of a snapshot ID fails clearly.
+5. Spark reads the CSV with strings, `FAILFAST`, and no inferred business schema.
+6. Only technical lineage columns are added. Source values and row multiplicity remain.
+7. Delta atomically replaces the selected/current table, source and Bronze row counts
+   are reconciled, and `load_log` records the outcome.
+8. Grouped validation records STOP and FLAG checks without transforming Bronze.
+
 ## Six sources and provenance
 
 The classification describes the current R2 CSV, not the original publisher.
@@ -41,8 +70,9 @@ Bronze interface.
 ## Snapshots and idempotency
 
 The caller may pass `snapshot_id`. When it is blank, the loader derives a stable ID
-from source name, configured source version, path, byte size and modification time. This is intentionally cheap:
-normal runs never hash the full 2 GB flood-susceptibility file.
+from source name, configured source version, path, byte size and modification time. This
+is intentionally cheap: routine snapshot identity never hashes the full 2 GB
+flood-susceptibility file.
 
 - Same snapshot ID and same metadata: return `SKIPPED_IDEMPOTENT` only when
   the current Bronze table also contains that one snapshot, the same artifact
@@ -85,23 +115,22 @@ table's snapshot, artifact metadata and row count, then records an idempotent sk
 - Validation uses `TRY_CAST`; Bronze does not cast business values.
 - No streaming or continuous compute is used.
 
-## Rerun and recovery
+## Failure and recovery contract
 
-1. Run `00_setup/00_setup_workspace`; missing schemas are created and the external
-   volume is described. A missing volume stops setup.
-2. Run the six source notebooks, or `run_all.py`.
-3. On `FAILED`, fix the file/header/access issue or choose the correct new snapshot ID.
-   A failure before the Delta commit leaves the previous version visible. A failure
-   after the commit can leave the new complete version visible without its terminal
-   audit row; this is safe to rerun and reconcile.
-4. Rerun. The loader skips only when the current table and artifact identity agree;
-   otherwise it reloads the requested historical snapshot or reports a conflict.
-5. Run validation only after all six return `SUCCESS` or `SKIPPED_IDEMPOTENT`.
+- A missing, empty, unreadable, or structurally unexpected source fails before target
+  replacement.
+- Reusing a snapshot ID for different artifact metadata records a failed conflict and
+  leaves the selected table unchanged.
+- A failure before Delta commit leaves the previous complete version visible.
+- A table commit and `load_log` append cannot share one cross-table transaction. When the
+  table commit is complete but the terminal audit append is interrupted, the next attempt
+  verifies table snapshot, artifact metadata, and row count before recording an
+  idempotent skip.
+- Validation accepts only `SUCCESS` or a verified `SKIPPED_IDEMPOTENT`; `STARTED`,
+  `FAILED`, missing audit state, row mismatch, or snapshot mismatch blocks downstream use.
 
-## Known limitations
+## Provenance limits
 
-- The current files and Databricks tables were not executed during this local review.
-- Actual CSV headers and exact row counts still require a Databricks run.
 - To fully reproduce earlier Table C lineage, the CSV needs exact original
   `source_file`, `sheet_name` and `source_row_number` fields, plus a reliable marker
   for the four known copied BARMM sheets.
@@ -111,13 +140,19 @@ table's snapshot, artifact metadata and row count, then records an idempotent sk
 - The other derived CSVs need documented export commands, source versions and
   reconciliation evidence before they can be called lossless exports.
 
-## Add a future source snapshot
+## Extend the source contract
 
 1. Preserve the raw file in R2; do not overwrite an old snapshot if history matters.
 2. Record publisher, original format, retrieval/version information and any export or
    trimming steps.
 3. Update the configured file name if the path changes.
-4. Pass a meaningful new `snapshot_id`, or accept the deterministic metadata ID.
-5. Run the source notebook, then the complete Bronze validation.
-6. Record observed counts and resolve `FLAG` results in review or Silver, not by
-   changing Bronze source rows.
+4. Use a meaningful new `snapshot_id`, or keep deterministic metadata identity.
+5. Add the source-specific header contract and validation rules supported by evidence.
+6. Resolve `FLAG` findings in review or Silver, never by changing Bronze source rows.
+
+## Summary
+
+R2 retains source history; Bronze exposes one selected raw snapshot per source with
+technical lineage and audit evidence. The design is deliberately small: configuration
+describes source differences, one shared loader owns mechanics, thin notebooks explain
+intent, and validation reports quality without turning Bronze into a transformation layer.

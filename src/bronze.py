@@ -1,4 +1,15 @@
-"""Small, shared mechanics for snapshot-aware CSV-to-Delta Bronze loads."""
+"""Shared mechanics for raw, snapshot-aware CSV-to-Delta Bronze ingestion.
+
+The module intentionally owns only reusable technical behavior: source prechecks,
+deterministic artifact identity, minimal Delta-safe header handling, current-table
+reconciliation, atomic selected-snapshot replacement, row-count preservation, and
+operational lineage. Source meaning stays in ``config.py`` and business transformation
+stays downstream.
+
+The design favors a small functional API over classes or metaprogramming. This keeps six
+source notebooks thin, makes failure paths explicit, and avoids expensive work such as
+schema inference or full-file hashing for the large MGB CSV.
+"""
 
 import csv
 import datetime as dt
@@ -147,6 +158,7 @@ def _log_row(
     error_message=None,
     column_mapping=None,
 ):
+    """Build one compact load-log event using the fixed audit schema."""
     return (
         run_id,
         source["name"],
@@ -168,6 +180,7 @@ def _log_row(
 
 
 def _append_log(spark, row):
+    """Append one operational event without storing source rows or large metadata blobs."""
     frame = spark.createDataFrame([row], LOAD_LOG_COLUMNS)
     frame.write.format("delta").mode("append").option(
         "mergeSchema", "true"
@@ -175,6 +188,7 @@ def _append_log(spark, row):
 
 
 def _snapshot_audit_rows(spark, source_name, snapshot_id, functions):
+    """Return the newest audit event that claims a source/snapshot identity."""
     log_name = table_name("load_log")
     if not spark.catalog.tableExists(log_name):
         return []
@@ -298,6 +312,7 @@ def validate_source_header(source, header):
 
 
 def _same_metadata(row, metadata, source):
+    """Compare an audit claim with the selected artifact's inexpensive identity."""
     return (
         row["source_path"] == metadata["path"]
         and int(row["source_size_bytes"]) == metadata["size_bytes"]
@@ -307,10 +322,13 @@ def _same_metadata(row, metadata, source):
 
 
 def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
-    """Load one R2 CSV as the selected/current Bronze snapshot.
+    """Preserve one R2 CSV as the selected/current Bronze snapshot.
 
-    The write scans the source once. Delta overwrite is atomic: readers keep
-    seeing the previous valid table until the replacement commits.
+    The function checks the artifact and header before replacement, fails closed on
+    snapshot conflicts, verifies current table state before a skip, reads business
+    values as strings, adds technical lineage, and reconciles source and target rows.
+    The source is scanned once during the write. Delta overwrite is atomic, so readers
+    see either the previous complete table or the new complete table.
     """
     from pyspark.sql import Observation
     from pyspark.sql import functions as F

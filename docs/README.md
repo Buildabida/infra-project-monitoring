@@ -12,7 +12,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
 | Set up VS Code and run your first notebook | [Set up VS Code](vscode-setup.md) |
 | See what each notebook folder does | [Notebooks guide](../notebooks/README.md) |
-| Understand R2 snapshots, provenance and Bronze reruns | [Bronze R2 architecture](bronze_r2_architecture.md) |
+| Understand Bronze purpose, step-by-step mechanics, snapshots, provenance, cost and recovery | [Bronze R2 architecture](bronze_r2_architecture.md) |
 | Review optional cleanup after migration | [Bronze cleanup plan](bronze_cleanup_plan.md) |
 
 Source cards stay in the team Doc until Oct 3. After that, each source gets a card here.
@@ -24,4 +24,5 @@ Source cards stay in the team Doc until Oct 3. After that, each source gets a ca
 - If a doc and the code disagree, fix one of them before you merge.
 - Don't rewrite an old decision. Add a new decision that replaces it.
 - Keep old proof. Add new proof with its own date instead of changing an old result.
-- When you say something ran, give the date and the notebook, so anyone can check it.
+- When documenting evidence, name the artifact, snapshot ID, check, and result so another
+  engineer can trace the claim.

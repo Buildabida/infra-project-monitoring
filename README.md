@@ -65,7 +65,10 @@ Each layer is a schema in our `buildabida-capstone` catalog. The numbers show th
 | `03-gold` | Ready-to-use tables for the dashboard and Genie |
 | `04-validation` | The result of every data quality check |
 
-Python loads our sources into `01-bronze` and runs grouped Spark Bronze checks. The checks save their results in `04-validation`. SQL will build the planned `02-silver` and `03-gold` layers. The dashboard and Genie are not built yet.
+Python preserves the six selected source snapshots in `01-bronze` and applies grouped
+Spark Bronze checks. The checks save their results in `04-validation`. Silver owns
+cleaning and geographic matching; Gold owns analytical models for the dashboard and
+Genie.
 
 ## Quickstart
 

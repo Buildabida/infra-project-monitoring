@@ -2,9 +2,28 @@
 # MAGIC %md
 # MAGIC # Run Source → Bronze → Bronze validation
 # MAGIC
-# MAGIC Runs setup validation, all six independent Bronze loads, then validation. An exact
-# MAGIC completed snapshot may return `SKIPPED_IDEMPOTENT`; that is safe and does not block
-# MAGIC validation. A failed source always blocks validation even if an older table exists.
+# MAGIC ## Purpose
+# MAGIC
+# MAGIC Coordinate the complete Source-to-Bronze batch in one explicit order:
+# MAGIC
+# MAGIC 1. establish the workspace and source-volume contract;
+# MAGIC 2. preserve each of the six independent source snapshots;
+# MAGIC 3. apply grouped Bronze validation only when every source result is safe.
+# MAGIC
+# MAGIC ## Why this orchestration stays simple
+# MAGIC
+# MAGIC Databricks notebook tasks are enough for six batch sources. The coordinator adds no
+# MAGIC streaming service, scheduler framework, queue, or hidden state. Each source notebook
+# MAGIC owns only its source contract; shared ingestion mechanics stay in `src/bronze.py`.
+# MAGIC
+# MAGIC ## Batch result contract
+# MAGIC
+# MAGIC `SUCCESS` means a selected snapshot was committed and audited.
+# MAGIC `SKIPPED_IDEMPOTENT` means the current table and artifact identity were verified and
+# MAGIC no replacement was needed. Any other result blocks validation, so an older table
+# MAGIC cannot hide a failed current source attempt.
+# MAGIC
+# MAGIC ## Step 1 — Define shared parameters and ordered tasks
 
 # COMMAND ----------
 
@@ -30,6 +49,17 @@ arguments = {
     "force_reload": dbutils.widgets.get("force_reload"),
 }
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 2 — Capture each child result without hiding failures
+# MAGIC
+# MAGIC The wrapper converts a notebook exception into a short result for the final status
+# MAGIC table. It does not treat the exception as success. This allows all independent
+# MAGIC source problems to be visible together while preserving a blocking final outcome.
+
+# COMMAND ----------
+
 
 def run_step(step, parameters=None):
     """Run a child notebook and retain a concise result for the final table."""
@@ -38,6 +68,17 @@ def run_step(step, parameters=None):
     except Exception as error:  # noqa: BLE001 - report every source failure together
         return "FAILED: " + str(error).strip().splitlines()[0][:500]
 
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 3 — Verify setup, load six sources, then gate validation
+# MAGIC
+# MAGIC Setup must succeed first. Source notebooks remain independent, so one failure does
+# MAGIC not erase the status of the other sources. Validation is added only when all six
+# MAGIC return a safe terminal status.
+
+# COMMAND ----------
 
 results = []
 setup_result = run_step(setup_step)
@@ -64,7 +105,24 @@ else:
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Step 4 — Publish the batch summary
+# MAGIC
+# MAGIC The compact status table names every setup, source, and validation step. A final
+# MAGIC blocking exception preserves failure visibility for jobs and reviewers.
+
+# COMMAND ----------
+
 display(spark.createDataFrame(results, "step string, result string"))
 failed = [step for step, result in results if result.startswith(("FAILED", "BLOCKED"))]
 if failed:
     raise RuntimeError("Pipeline did not finish: " + ", ".join(failed))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Summary
+# MAGIC
+# MAGIC The coordinator is batch-based, parameterized, and fail-closed. It accepts an
+# MAGIC idempotent skip as safe, requires all six sources, and keeps validation downstream
+# MAGIC of the complete current batch.

@@ -2,9 +2,26 @@
 # MAGIC %md
 # MAGIC # Validation: six R2 Bronze sources
 # MAGIC
-# MAGIC `stop` checks block downstream use. `flag` checks report a known source issue or
-# MAGIC reference mismatch for Silver/review; validation never edits Bronze. Each large
-# MAGIC Bronze table is aggregated once and is not cached.
+# MAGIC ## Purpose
+# MAGIC
+# MAGIC Prove that each selected Bronze snapshot is structurally safe, traceable to its
+# MAGIC artifact and audit event, and faithful to source row grain. Validation reports
+# MAGIC conditions; it never cleans, filters, deduplicates, or rewrites Bronze.
+# MAGIC
+# MAGIC ## Two levels of findings
+# MAGIC
+# MAGIC - **stop:** a missing table, failed/current audit, broken snapshot identity,
+# MAGIC   missing required metadata, or violated source-grain contract blocks downstream use.
+# MAGIC - **flag:** a known source anomaly, provenance gap, cast concern, or historical
+# MAGIC   reference difference remains visible for review and Silver handling.
+# MAGIC
+# MAGIC ## Low-cost strategy
+# MAGIC
+# MAGIC Metrics for each table are combined into one Spark aggregate. The large MGB table is
+# MAGIC not cached, collected as business rows, sorted, repartitioned, or scanned once per
+# MAGIC individual check. Only the small audit result set reaches the driver.
+# MAGIC
+# MAGIC ## Step 1 — Define reusable validation result helpers
 
 # COMMAND ----------
 
@@ -87,6 +104,17 @@ def missing_column(table, label, candidates, action="flag"):
     )
 
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 2 — Resolve the latest audit state
+# MAGIC
+# MAGIC Validation reads only the small `load_log` table to find the latest status for each
+# MAGIC Bronze target. `STARTED` or `FAILED` cannot be hidden by an older `SUCCESS`, and an
+# MAGIC idempotent skip remains acceptable only when its table metadata agrees.
+
+# COMMAND ----------
+
 # Latest terminal result is tiny audit metadata, not source data.
 latest_logs = {}
 log_name = bronze.table_name("load_log")
@@ -112,6 +140,23 @@ if spark.catalog.tableExists(log_name):
         )
         latest_logs = {row["table_name"]: row for row in latest.toLocalIterator()}
 
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 3 — Build one grouped check set per source
+# MAGIC
+# MAGIC Every table receives common row, snapshot, metadata, key, and audit checks. The
+# MAGIC source-specific branch then adds only rules supported by that source contract:
+# MAGIC
+# MAGIC - DPWH values are checked non-destructively for category and cast concerns.
+# MAGIC - Flood-control ContractID repetition is a `flag`, never a deduplication rule.
+# MAGIC - PSGC population remains a cross-check field.
+# MAGIC - Table C keeps BARMM copies and reports missing original-row provenance.
+# MAGIC - Boundaries require geometry but perform no spatial assignment.
+# MAGIC - MGB ratings and documented reference counts are checked without place mapping.
+
+# COMMAND ----------
 
 for source_name in config.SOURCE_ORDER:
     source = config.source_config(source_name)
@@ -412,6 +457,17 @@ for source_name in config.SOURCE_ORDER:
         )
 
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Step 4 — Store the validation evidence and enforce the gate
+# MAGIC
+# MAGIC One row is appended to `04-validation.dq_results` for each check. `PASS` and `FLAG`
+# MAGIC remain visible for review; `FAIL` on a stop rule and any `ERROR` produce a blocking
+# MAGIC exception after the complete result set is saved.
+
+# COMMAND ----------
+
 columns = (
     "run_id string, table_name string, column string, data_quality_check string, "
     "failed_rows long, total_rows long, percentage double, status string, action string, "
@@ -430,3 +486,12 @@ if blocked:
         + "; ".join(f"{row[1]} / {row[3]} ({row[7]})" for row in blocked)
     )
 print(f"Validation {validation_run_id}: no blocking check failed; review FLAG rows before Silver.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Summary
+# MAGIC
+# MAGIC The validation layer separates pipeline safety from known source imperfections. It
+# MAGIC protects raw preservation, snapshot lineage, source grain, and source-to-Bronze row
+# MAGIC reconciliation while leaving all business transformations to Silver.

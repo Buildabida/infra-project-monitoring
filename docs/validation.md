@@ -11,6 +11,24 @@ Bronze tables after the six loaders return `SUCCESS` or `SKIPPED_IDEMPOTENT`.
 Validation reports problems; it never fixes or deletes rows. Each Bronze table is
 aggregated once, including the 2 GB MGB extract, and is not cached.
 
+## Why STOP and FLAG are separate
+
+A source can be usable while still containing a documented imperfection. Treating every
+imperfection as a failure would encourage cleaning in Bronze; ignoring every imperfection
+would make unsafe tables look acceptable. STOP protects pipeline correctness. FLAG keeps
+source limitations visible without changing raw rows.
+
+## Validation flow
+
+1. Resolve the latest audit state for every target from the small `load_log` table.
+2. Confirm each required table and one selected snapshot exist.
+3. Build common metadata, row-count, source-key, and audit expressions.
+4. Add only source-specific checks supported by the documented source contract.
+5. Evaluate each table's metrics in one grouped Spark aggregate.
+6. Compare the table snapshot and row count with its latest safe audit event.
+7. Append one result row per check to `04-validation.dq_results`.
+8. Block downstream use when a STOP check fails or a check cannot be evaluated.
+
 ## Checks
 
 Every table checks:
@@ -39,4 +57,26 @@ Source-specific checks include:
 
 The results append to `04-validation.dq_results` with `PASS`, `FLAG`, `FAIL`, or
 `ERROR`. Known 45,611 Table C rows, 43,760 boundary shapes and 63,684 flood areas
-remain reference checks until the current R2 files are executed and verified.
+remain non-blocking historical reference checks rather than processing rules.
+
+## Result fields
+
+| Field | Meaning |
+| --- | --- |
+| `run_id` | Identifier shared by the check rows in one validation attempt |
+| `table_name` | Bronze table being evaluated |
+| `column` | Column or table-level subject of the check |
+| `data_quality_check` | Human-readable rule |
+| `failed_rows` | Rows or units outside the rule |
+| `total_rows` | Denominator or documented expected total |
+| `percentage` | Relative size of the finding when meaningful |
+| `status` | `PASS`, `FLAG`, `FAIL`, or `ERROR` |
+| `action` | `stop` or `flag` |
+| `details` | Concise context for reviewers |
+| `snapshot_id` | Selected snapshot represented by the table |
+
+## Summary
+
+Validation preserves the Bronze boundary: it measures and reports, while Silver owns
+business changes. Grouped expressions keep the checks efficient, and the audit/table
+comparison prevents a stale table from representing a failed current batch.

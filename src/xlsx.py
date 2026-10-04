@@ -1,6 +1,9 @@
-"""Read Excel files with only the Python standard library, so nothing has to be installed.
+"""Reproduce the earlier PSA workbook inspection with the standard library.
 
-Bronze keeps every cell as PSA wrote it. These helpers only read the file and sort its rows.
+The current R2 Bronze contract reads the approved combined CSV, so this module is not part
+of the six-source loader path. It remains as tested historical evidence for how exact cell
+text, sheet names, row numbers, notes, blanks, and parse issues were classified without
+third-party Excel dependencies. It does not clean names or remove source rows.
 """
 
 import json

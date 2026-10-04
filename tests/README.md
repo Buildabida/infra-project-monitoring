@@ -1,16 +1,28 @@
 # Tests
 
-Small automated tests for the code in `src` go here. Name each file `test_<what>.py`.
+Small automated tests protect reusable behavior in `src`. Test files follow
+`test_<what>.py` naming so CI and reviewers can map them to the shared module.
 
-`test_xlsx.py` checks our Excel reader, `src/xlsx.py`. The PSGC and Table C loads use it. It checks how we read text, empty cells, numbers and saved formula results. It also checks that cells keep their exact text, and that every row of a sheet is counted once.
+## `test_bronze.py`
 
-Run the tests from the repo root:
+These tests protect the low-cost Bronze contract without requiring Spark:
 
-```bash
-python -m pip install pytest
-python -m pytest -q
-```
+- deterministic metadata-based snapshot IDs;
+- duplicate and Delta-incompatible header handling;
+- explicit widget boolean parsing;
+- required source-header aliases;
+- exact current-table artifact matching; and
+- the rule that a historical snapshot is not the current selected snapshot.
 
-Every pull request runs them too, in the Python check.
+## `test_xlsx.py`
 
-Tests are not data checks. A test checks that our code works. The bronze checks in `04_validation` check that the real data is complete and makes sense, and they save their results in `04-validation.dq_results`.
+`src/xlsx.py` is retained for reproducibility of the earlier workbook-migration logic,
+not for the current R2 CSV loaders. Its tests check exact text preservation, empty cells,
+numbers, saved formula results, and complete row classification.
+
+## Boundary between tests and data quality
+
+Unit tests verify deterministic helper behavior. Bronze validation evaluates selected
+Delta snapshots and records its results in `04-validation.dq_results`. Keeping these
+responsibilities separate makes local tests fast while preserving source-aware checks in
+the data platform.
