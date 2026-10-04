@@ -1,18 +1,21 @@
 # Optional Bronze cleanup plan
 
-Do not run cleanup until the six R2 loaders and Bronze validation pass in Databricks,
-downstream dependencies are checked, and the team manually approves each object.
-Nothing in setup or orchestration executes these commands.
+Do not run cleanup until all six R2 loaders pass in Databricks.
+Bronze validation must also pass.
+Check downstream dependencies before removing any object.
+The team must approve every cleanup action manually.
 
-| Object | Why it may be obsolete | Dependency check needed | Manual example only |
+Setup and orchestration never run these commands.
+
+| Object | Why it may be obsolete | Dependency check | Manual example |
 | --- | --- | --- | --- |
-| `01-bronze.population_2024` | Table C is the authoritative population table; PSGC population remains in `psgc` as a cross-check. | Search Silver, Gold, validation, dashboards and queries for references. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.population_2024;` |
-| `01-bronze.psgc_sheet_manifest` | R2 input is CSV, so the current batch does not parse the original workbook. | Preserve it if it is needed as historical evidence; check downstream references. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.psgc_sheet_manifest;` |
-| `01-bronze.psgc_parse_issues` | Same CSV migration reason. | Check audit/report dependencies and preserve prior evidence externally if required. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.psgc_parse_issues;` |
-| `01-bronze.census_2024_table_c_sheet_manifest` | Current R2 file is a combined CSV, not 18 workbooks. | Preserve it until CSV provenance limitations are accepted and documented. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.census_2024_table_c_sheet_manifest;` |
-| `01-bronze.census_2024_table_c_parse_issues` | Same CSV migration reason. | Check audit dependencies and retain historical evidence when required. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.census_2024_table_c_parse_issues;` |
-| `00-source.landing` | Deleted legacy managed volume; the new batch expects `cloudflare-r2`. | Confirm it still exists, is unused, and contains no only copy of source/audit data. | `DROP VOLUME IF EXISTS \`buildabida-capstone\`.\`00-source\`.landing;` |
+| `01-bronze.population_2024` | Table C is authoritative. PSGC population stays in `psgc` as a cross-check. | Search Silver, Gold, validation, dashboards, and queries for references. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.population_2024` |
+| `01-bronze.psgc_sheet_manifest` | The R2 input is CSV. The current batch does not parse the original workbook. | Preserve it when needed as historical evidence. Check all downstream references. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.psgc_sheet_manifest` |
+| `01-bronze.psgc_parse_issues` | This object belongs to the earlier workbook process. | Check audit and report dependencies. Preserve required evidence outside the table. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.psgc_parse_issues` |
+| `01-bronze.census_2024_table_c_sheet_manifest` | The current R2 file is one combined CSV. It does not use 18 workbooks. | Preserve it until the team accepts and documents the CSV provenance limits. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.census_2024_table_c_sheet_manifest` |
+| `01-bronze.census_2024_table_c_parse_issues` | This object belongs to the earlier workbook process. | Check audit dependencies. Retain required historical evidence outside the table. | `DROP TABLE IF EXISTS \`buildabida-capstone\`.\`01-bronze\`.census_2024_table_c_parse_issues` |
+| `00-source.landing` | The legacy managed volume was retired. The new batch uses `cloudflare-r2`. | Confirm it is unused. Confirm it does not hold the only source or audit copy. | `DROP VOLUME IF EXISTS \`buildabida-capstone\`.\`00-source\`.landing` |
 
-Before approval, run read-only dependency searches and take any required export or
-backup. Delta time travel is not a substitute for preserving externally required raw
-source history.
+Before approval, run read-only dependency searches.
+Export or back up any required data.
+Delta time travel does not replace required external raw-source history.
