@@ -1,21 +1,20 @@
 # Source-to-Bronze notebooks
 
 These Databricks notebooks present the Bronze batch as a documented sequence of
-small, reviewable steps. Narrative cells explain why each decision exists; code
-cells delegate shared mechanics to `src/bronze.py` and source contracts to
-`src/config.py`.
+small, reviewable steps. Narrative cells explain each decision. Code cells delegate
+shared mechanics to `src/bronze.py` and source contracts to `src/config.py`.
 
 ## Bronze principles
 
-- **Raw preserving:** source business values and legitimate duplicate rows remain.
-- **Batch-based:** one bounded CSV artifact per source is selected at a time.
-- **Idempotent:** a skip is safe only when the current table and artifact identity agree.
-- **Parameterized:** widgets select snapshot/version/path behavior without duplicating constants.
-- **Snapshot-aware:** rows and `load_log` link Bronze back to the R2 artifact.
-- **Low cost:** metadata/header checks precede Spark; strings avoid schema inference;
-  large-source validation is grouped.
-- **Resilient:** malformed artifacts fail before replacement, Delta writes are atomic,
-  conflicts are audited, and failures stay visible.
+- **Raw preserving:** Source business values and legitimate duplicate rows remain.
+- **Batch-based:** One bounded CSV artifact is selected for each source.
+- **Idempotent:** A skip is safe only when the current table and artifact identity agree.
+- **Parameterized:** Widgets select snapshot, version, and path behavior without duplicating constants.
+- **Snapshot-aware:** Rows and `load_log` link Bronze to the R2 artifact.
+- **Low cost:** Metadata and header checks precede Spark. Strings avoid schema inference.
+  Large-source validation uses grouped calculations.
+- **Resilient:** Malformed artifacts fail before replacement. Delta writes are atomic.
+  Conflicts are audited, and failures remain visible.
 
 ## Documented sequence
 
@@ -25,17 +24,30 @@ cells delegate shared mechanics to `src/bronze.py` and source contracts to
 | 2 | `00_setup/01_check_sources` | Check all six files, metadata, CSV headers, and required field groups without full Spark scans. |
 | 3 | `01_bronze/01_bronze_dpwh_projects` | Preserve DPWH project rows and raw business values. |
 | 4 | `01_bronze/02_bronze_flood_control` | Preserve source features and legitimate repeated Contract IDs. |
-| 5 | `01_bronze/03_bronze_psgc` | Preserve the geographic reference; keep population as a cross-check only. |
+| 5 | `01_bronze/03_bronze_psgc` | Preserve the geographic reference. Keep population as a cross-check only. |
 | 6 | `01_bronze/04_bronze_census_table_c` | Preserve authoritative Table C rows, including known BARMM copies. |
 | 7 | `01_bronze/05_bronze_boundaries` | Preserve boundary geometry without project mapping or spatial joins. |
 | 8 | `01_bronze/06_bronze_flood_susceptibility` | Preserve the approved trimmed MGB extract with low-compute mechanics. |
 | 9 | `04_validation/01_validation_bronze` | Record grouped STOP and FLAG checks without changing Bronze. |
-| 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning source or Bronze data. |
-| Coordinator | `run_all.py` | Enforce order, require all six safe results, and keep validation behind the complete batch. |
+| 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning data. |
+| Coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete batch. |
+
+## Validation connection
+
+`04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
+Each layer records checks that match its responsibility.
+
+- Bronze validates source preservation, lineage, snapshot identity, and ingestion safety.
+- Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
+- Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
+
+This notebook sequence produces the Bronze results. Silver and Gold use the same
+validation schema for their layer-specific checks. Promotion requires the current
+layer to pass its blocking checks.
 
 ## Central source contract
 
-The six default paths are derived from one volume root in `src/config.py`:
+The six default paths come from one volume root in `src/config.py`:
 
 ```text
 /Volumes/buildabida-capstone/00-source/cloudflare-r2/
@@ -43,29 +55,33 @@ The six default paths are derived from one volume root in `src/config.py`:
 
 Each source notebook accepts four widgets:
 
-- `snapshot_id`: optional caller-supplied source snapshot ID;
-- `source_version`: optional publisher/release label stored in `load_log`;
-- `force_reload`: deliberately replace an identical selected snapshot when `true`;
-- `source_path`: optional one-notebook path override for a controlled test.
+- `snapshot_id`: Optional caller-supplied source snapshot ID.
+- `source_version`: Optional publisher or release label stored in `load_log`.
+- `force_reload`: Replace an identical selected snapshot when set to `true`.
+- `source_path`: Optional path override for a controlled test.
 
-If `snapshot_id` is blank, the loader derives a deterministic ID from source name,
-configured source version, path, byte size and modification time. It never hashes the
-full source file. `SKIPPED_IDEMPOTENT` is returned only when the current Delta table
-contains the requested snapshot, matching artifact identity, and expected row count.
-Reusing an established snapshot ID for changed metadata is an explicit conflict.
+When `snapshot_id` is blank, the loader derives a deterministic ID from inexpensive
+artifact metadata. It uses the source name, configured version, path, byte size, and
+modification time. It never hashes the full source file.
 
-Bronze represents the selected/current source snapshot. R2 keeps raw history. A new
-snapshot atomically replaces the current Delta table only after Spark can read and
-write it. No loader drops tables, schemas, volumes or raw files.
+The loader returns `SKIPPED_IDEMPOTENT` only after it verifies the current Delta table.
+The requested snapshot, artifact identity, and expected row count must all match.
+Reusing an established snapshot ID with changed metadata is an explicit conflict.
 
-CSV business fields stay strings. The shared loader adds technical lineage, records
-`STARTED`, `SUCCESS`, `FAILED`, or `SKIPPED_IDEMPOTENT`, and reconciles source and
-Bronze row counts. It does not deduplicate, cast, spatially join, categorize, aggregate,
+Bronze represents the selected current source snapshot. R2 keeps the raw history.
+A new snapshot replaces the current Delta table only after Spark can read and write it.
+No loader drops tables, schemas, volumes, or raw files.
+
+CSV business fields remain strings. The shared loader adds technical lineage and
+records `STARTED`, `SUCCESS`, `FAILED`, or `SKIPPED_IDEMPOTENT`. It also reconciles
+source and Bronze row counts.
+
+The loader does not deduplicate, cast, spatially join, categorize, aggregate,
 standardize, or fill business values.
 
 ## Design summary
 
-Thin notebooks keep source intent visible while one shared loader owns mechanics. This
-structure makes a seventh CSV source straightforward: add one source contract, one thin
-documented notebook, source-specific validation, and focused tests—without introducing
-an enterprise framework or copying ingestion logic.
+Thin notebooks keep source intent visible. One shared loader owns the mechanics.
+A seventh CSV source needs one source contract and one documented notebook.
+It also needs source-specific validation and focused tests. This structure avoids
+copying ingestion logic or introducing an enterprise framework.
