@@ -1,29 +1,33 @@
 # Data quality checks
 
-`notebooks/04_validation/01_validation_bronze.py` validates all six authoritative
-Bronze tables after the six loaders return `SUCCESS` or `SKIPPED_IDEMPOTENT`.
+`notebooks/04_validation/01_validation_bronze.py` validates all six authoritative Bronze tables.
+Validation begins after every loader returns `SUCCESS` or `SKIPPED_IDEMPOTENT`.
 
 - **stop** produces `FAIL` and blocks downstream use when Bronze is unsafe.
-- **flag** produces `FLAG` for a source issue, historical-reference mismatch, or
-  provenance gap that Silver/review must handle.
-- A check that cannot execute produces `ERROR` and blocks the run.
+- **flag** produces `FLAG` for findings that require review or Silver handling.
+  These include source issues, historical-reference differences, and provenance gaps.
+- A check that cannot execute produces `ERROR` and blocks downstream use.
 
-Validation reports problems; it never fixes or deletes rows. Each Bronze table is
-aggregated once, including the 2 GB MGB extract, and is not cached.
+Validation reports problems.
+It never fixes, filters, or deletes source rows.
+Each Bronze table is aggregated once, including the 2 GB MGB extract.
+The validation process does not cache source tables.
 
 ## Why STOP and FLAG are separate
 
-A source can be usable while still containing a documented imperfection. Treating every
-imperfection as a failure would encourage cleaning in Bronze; ignoring every imperfection
-would make unsafe tables look acceptable. STOP protects pipeline correctness. FLAG keeps
-source limitations visible without changing raw rows.
+A source can remain usable while containing a documented imperfection.
+Treating every imperfection as a failure could encourage cleaning in Bronze.
+Ignoring every imperfection could make an unsafe table appear acceptable.
+
+STOP protects pipeline correctness.
+FLAG keeps source limitations visible without changing raw rows.
 
 ## Validation flow
 
 1. Resolve the latest audit state for every target from the small `load_log` table.
-2. Confirm each required table and one selected snapshot exist.
+2. Confirm that each required table exists and contains one selected snapshot.
 3. Build common metadata, row-count, source-key, and audit expressions.
-4. Add only source-specific checks supported by the documented source contract.
+4. Add source-specific checks supported by each documented source contract.
 5. Evaluate each table's metrics in one grouped Spark aggregate.
 6. Compare the table snapshot and row count with its latest safe audit event.
 7. Append one result row per check to `04-validation.dq_results`.
@@ -31,43 +35,48 @@ source limitations visible without changing raw rows.
 
 ## Checks
 
-Every table checks:
+Every table checks that:
 
-- table exists and has rows;
-- all ingestion metadata is non-null;
-- exactly one selected snapshot is present;
-- the current row count and snapshot match the latest terminal `load_log` event;
-- documented keys are non-null and unique only where source grain guarantees it;
-- historical row-count references are flags, not filters.
+- the table exists and contains rows
+- required ingestion metadata is populated
+- exactly one selected snapshot is present
+- current row count and snapshot match the latest terminal `load_log` event
+- documented keys follow the null and uniqueness rules supported by source grain
+- historical row-count references remain flags instead of processing filters
 
-Before a target overwrite, each loader requires every configured source-field group.
-Each group accepts documented aliases without renaming the source column. This prevents
-a readable CSV that has an identifier but has lost a business-critical field—such as
-budget, place name, population, susceptibility, or geometry—from replacing the last
-valid table.
+Before overwriting a target, each loader requires every configured source-field group.
+Each group accepts documented aliases without renaming the source column.
+
+This protects the last valid table from a structurally incomplete CSV.
+For example, the file may retain an identifier but lose a critical business field.
+Critical fields include budget, place name, population, susceptibility, and geometry.
 
 Source-specific checks include:
 
-- DPWH known status values, numeric/date casts, non-negative budget, progress range,
-  coordinate completeness, and a Philippines bounding-box screen;
-- flood-control source object identity, Contract ID nulls, and a flag that preserves
-  repeated Contract IDs, plus cost and coordinate checks;
-- PSGC code identity and population integer casting when present;
-- Table C file/sheet/row lineage, known BARMM duplicate markers, population integer
-  casting, and positive population checks;
-- boundary identifier, administrative level, file/feature lineage, and geometry presence;
-- MGB susceptibility categories, required non-empty geometry, and documented
-  rating/count references.
+- DPWH status values, numeric and date casts, budget, progress, coordinates, and geographic bounds
+- flood-control object identity, Contract ID nulls, repeated IDs, cost, and coordinates
+- PSGC code identity and population integer casting when population is present
+- Table C lineage, BARMM duplicate markers, population casting, and positive population
+- boundary identifiers, administrative level, file and feature lineage, and geometry presence
+- MGB susceptibility categories, geometry findings, and documented rating-count references
 
-The results append to `04-validation.dq_results` with `PASS`, `FLAG`, `FAIL`, or
-`ERROR`. Known 45,611 Table C rows, 43,760 boundary shapes and 63,684 flood areas
-remain non-blocking historical reference checks rather than processing rules.
+Results are appended to `04-validation.dq_results`.
+Each result has `PASS`, `FLAG`, `FAIL`, or `ERROR` status.
+
+Historical reference totals remain non-blocking checks:
+
+- 45,611 Table C rows
+- 43,760 boundary shapes
+- 63,684 flood areas
+
+These totals provide comparison evidence.
+They are not filtering, deduplication, or transformation rules.
 
 ## Result fields
 
 | Field | Meaning |
 | --- | --- |
-| `run_id` | Identifier shared by the check rows in one validation attempt |
+| `run_id` | Identifier shared by check rows from one validation attempt |
 | `table_name` | Bronze table being evaluated |
 | `column` | Column or table-level subject of the check |
 | `data_quality_check` | Human-readable rule |
@@ -79,8 +88,17 @@ remain non-blocking historical reference checks rather than processing rules.
 | `details` | Concise context for reviewers |
 | `snapshot_id` | Selected snapshot represented by the table |
 
+## Current interpretation note
+
+The MGB source stores susceptibility as coded values.
+Current category references use text labels.
+Validation reports this representation mismatch as a FLAG.
+Reconcile the code-to-label contract before treating category-distribution checks as passing.
+Bronze must continue preserving the source values.
+
 ## Summary
 
-Validation preserves the Bronze boundary: it measures and reports, while Silver owns
-business changes. Grouped expressions keep the checks efficient, and the audit/table
-comparison prevents a stale table from representing a failed current batch.
+Validation protects the Bronze preservation boundary.
+It measures and reports findings, while Silver owns business changes.
+Grouped expressions keep the checks efficient.
+Audit and table reconciliation prevent a stale table from representing a failed batch.
