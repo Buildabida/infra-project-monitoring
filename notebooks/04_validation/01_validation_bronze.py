@@ -211,7 +211,7 @@ for source_name in config.SOURCE_ORDER:
                 metrics,
                 "key_duplicate",
                 key,
-                "repeated source keys are preserved for Silver review",
+                "source-grain key is unique",
                 "flag",
                 (F.count(F.lit(1)) - F.countDistinct(F.col(key))).cast("long"),
             )
@@ -342,7 +342,7 @@ for source_name in config.SOURCE_ORDER:
             missing_column(table, "geometry", ["source_feature_json", "geometry", "geometry_json", "geometry_wkt", "wkt", "geom"], "stop")
 
     elif source_name == "flood_susceptibility":
-        rating = find_column(frame, ["susceptibility", "flood_susceptibility", "rating", "hazard", "hazard_rating"])
+        rating = find_column(frame, ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"])
         if rating:
             normalized = F.lower(F.trim(F.col(rating)))
             allowed = ["very high", "high", "moderate", "low"]
@@ -376,7 +376,7 @@ for source_name in config.SOURCE_ORDER:
                 expected_missing,
             )
         else:
-            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "rating", "hazard", "hazard_rating"], "flag")
+            missing_column(table, "susceptibility rating", ["susceptibility", "flood_susceptibility", "flood_susceptibility_code", "rating", "hazard", "hazard_rating"], "flag")
 
     try:
         observed = frame.agg(*[item[4] for item in metrics]).first()
