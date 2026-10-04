@@ -212,7 +212,7 @@ for source_name in config.SOURCE_ORDER:
                 "key_duplicate",
                 key,
                 "source-grain key is unique",
-                "flag",
+                "stop",
                 (F.count(F.lit(1)) - F.countDistinct(F.col(key))).cast("long"),
             )
         else:
