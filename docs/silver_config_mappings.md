@@ -74,6 +74,22 @@ Approved targets require a documented mapping rule and source reference.
 The initial table is empty.
 Observed categories remain review candidates rather than guessed taxonomy rules.
 
+### Downstream readiness
+
+`silver_project` may preserve raw project categories before the taxonomy is
+complete, but category-standardized analytical outputs must not be published
+until:
+
+1. an approved taxonomy version exists,
+2. applicable mappings are active,
+3. mapping coverage has been reviewed and accepted by the team.
+
+Downstream notebooks must not introduce temporary `CASE WHEN` category rules to
+bypass this configuration.
+
+Unmapped categories must remain visible as `Unknown` or unmapped according to
+the downstream mapping contract and must remain included in coverage reporting.
+
 ### `config_project_status_mapping`
 
 Grain: one source status per mapping version.
