@@ -6,7 +6,6 @@ This directory contains active Bronze code and one retained legacy module.
 
 - `config.py` defines the six approved source contracts and shared catalog paths.
 - `bronze.py` implements the shared R2-to-Bronze ingestion mechanics.
-- `api.py` contains the earlier API helper retained by the repository.
 - `__init__.py` marks the directory as a Python package.
 
 ## Legacy workbook module
