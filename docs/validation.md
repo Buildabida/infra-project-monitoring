@@ -204,6 +204,26 @@ The existing Bronze and Silver configuration result tables remain unchanged.
 See [Silver geography and population](silver_geography_population.md) for table contracts
 and known limitations. Runtime validation outcomes require Databricks execution.
 
+### Reconciliation lineage rule
+
+Table C source lineage is required for every row in
+`silver_population_place_reconciliation`.
+
+PSGC target lineage is required only when `match_status` is
+`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+
+Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
+have null `psgc_source_snapshot_id` and `psgc_source_ingest_run_id` because no
+single PSGC target was accepted.
+
+These unresolved rows remain visible for review and must not receive fabricated
+PSGC lineage.
+
+The lineage STOP check therefore validates:
+
+- Table C source lineage for every reconciliation row
+- PSGC target lineage only for successfully matched rows
+
 ## Future validation documents
 
 Keep layer-specific checks separate as the pipeline grows:
