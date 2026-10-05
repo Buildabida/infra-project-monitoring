@@ -36,6 +36,7 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | D-27 | Oct 2 | TWG-IDI is the primary user for comparing reported infrastructure investment by area and type. The public is the secondary user. | The sponsor identified this audience so the dashboard has a concrete decision-making purpose. |
 | D-28 | Oct 2 | Report project or contract budget, not actual payment or government disbursement. Show source gaps and coverage limitations before interpreting results. | The checked extract lacks payment data. The accepted snapshot has 50,522 DPWH rows without coordinate pairs. BARMM coverage is limited by the source. |
 | D-29 | Oct 2 | Keep every pipeline layer reproducible across source updates. Preserve snapshot, run, source version, mapping version, match status, and processing timestamps. | R2 retains raw snapshot history. Downstream lineage makes comparisons and rule changes traceable. |
+| D-30 | Oct 5 | Store Silver mapping decisions in five versioned Delta configuration tables. Seed only the documented MGB codes and keep other rules empty until approval. | This updates D-20 for the first Silver milestone. It prevents hidden mappings, guessed values, and duplicate rules across notebooks. |
 
 Additional context for D-22:
 

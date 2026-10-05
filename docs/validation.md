@@ -1,7 +1,9 @@
-# Bronze data-quality checks
+# Data-quality checks
 
-This document covers the implemented Bronze validator only. Silver and Gold checks
-remain planned and will receive separate documents when those layers are implemented.
+This document covers the implemented Bronze validator and Silver configuration validator.
+Checks for the remaining Silver outputs and Gold layer remain planned.
+
+## Bronze validation
 
 `notebooks/04_validation/01_validation_bronze.py` validates all six authoritative Bronze tables.
 Validation begins after every loader returns `SUCCESS` or `SKIPPED_IDEMPOTENT`.
@@ -120,6 +122,41 @@ It measures and reports findings, while Silver owns business changes.
 Grouped expressions keep the checks efficient.
 Audit and table reconciliation prevent a stale table from representing a failed batch.
 
+## Silver configuration validation
+
+`notebooks/04_validation/02_validation_silver_config.ipynb` validates the five
+configuration tables in `02-silver`.
+
+The validator runs after `notebooks/02_silver/00_config_mappings.ipynb`.
+It does not modify Bronze or mapping decisions.
+
+Structural `stop` checks cover:
+
+- required table presence
+- natural-key uniqueness
+- controlled approval states
+- required mapping and source versions
+- audit evidence for approved rows
+- valid category source fields
+- exclusion of the unsupported `Delayed` status
+- controlled MGB levels and ranks
+- valid PSGC targets for approved geographic rules
+
+Coverage `flag` checks report unmapped or pending Bronze values.
+They cover project categories, project statuses, and MGB susceptibility codes.
+
+An empty manual geographic mapping table is valid.
+The validator records a flag so reviewers can confirm that no exception was approved.
+
+Results append to `04-validation.silver_config_dq_results`.
+This table includes `layer`, `mapping_version`, and `run_id` fields.
+
+The existing Bronze writer uses a fixed result structure.
+A separate result table preserves backward compatibility during this milestone.
+
+See [Silver configuration mappings](silver_config_mappings.md) for the approval workflow
+and table contracts.
+
 ## Future validation documents
 
 Keep layer-specific checks separate as the pipeline grows:
@@ -132,5 +169,5 @@ docs/validation/
 └── gold.md
 ```
 
-Move this document to `docs/validation/bronze.md` only when the Silver or Gold
-validation documents are added. Update existing links in the same pull request.
+Split this document only when the remaining Silver or Gold validators are implemented.
+Update existing links in the same pull request.
