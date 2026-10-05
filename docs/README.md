@@ -6,7 +6,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | --- | --- |
 | Set up Databricks and run the first notebooks | [Quickstart](../README.md#quickstart) |
 | Know what each table holds and its key | [Data model](data-model.md) |
-| Know what we check and what happens when a check fails | [Data quality checks](validation.md) |
+| Know what Bronze checks and what happens when a check fails | [Bronze data-quality checks](validation.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
@@ -15,7 +15,9 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Understand Bronze purpose, step-by-step mechanics, snapshots, provenance, cost and recovery | [Bronze R2 architecture](bronze_r2_architecture.md) |
 | Review optional cleanup after migration | [Bronze cleanup plan](bronze_cleanup_plan.md) |
 
-Source cards stay in the team Doc until Oct 3. After that, each source gets a card here.
+The current source contracts and provenance limits are in the
+[Bronze R2 provenance table](bronze_r2_architecture.md#six-sources-and-provenance).
+Add separate source cards only when the team has approved stronger source evidence.
 
 ## Keep our docs clean
 

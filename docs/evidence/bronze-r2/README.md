@@ -230,3 +230,68 @@ Do not describe it as "all data-quality checks passed."
 The MGB category-validation acceptance item remains open.
 Reconcile coded susceptibility values with the documented text labels.
 Then capture the updated validation output before closing that item.
+
+## October 5, 2026 MGB validation follow-up
+
+### Follow-up scope
+
+This follow-up records the first Databricks run after adding the official MGB
+code-to-label mapping. The October 4 evidence above remains unchanged as the
+historical record of the earlier text-only comparison.
+
+The updated validator maps codes only while evaluating checks:
+
+| Source code | Validation label |
+| --- | --- |
+| `VHF` | `very high` |
+| `HF` | `high` |
+| `MF` | `moderate` |
+| `LF` | `low` |
+
+Bronze continues preserving the original source values.
+
+### Run identity and outcome
+
+- Validation run ID: `f530d193-5566-4bc4-abdb-3a88b65fa763`
+- UTC timestamp: `2026-10-05T10:03:36.142Z`
+- Asia/Manila timestamp: `2026-10-05 18:03:36.142`
+- Checks exported: 126
+- Results: 105 `PASS`, 21 `FLAG`, zero `FAIL`, and zero `ERROR`
+- Blocking checks: all 96 checks with action `stop` passed
+
+The rerun therefore passed the Bronze safety gate with non-blocking findings.
+The complete machine-readable follow-up is in
+[`validation-results-2026-10-05.csv`](validation-results-2026-10-05.csv).
+
+### MGB follow-up results
+
+| Check | October 4 finding | October 5 finding |
+| --- | ---: | ---: |
+| Values outside the accepted rating labels | 61,862 rows | 16 rows |
+| High reference-count difference | 15,111 rows | 869 rows |
+| Low reference-count difference | 17,092 rows | 184 rows |
+| Moderate reference-count difference | 25,302 rows | 455 rows |
+| Very-high reference-count difference | 6,156 rows | 307 rows |
+| Missing-rating reference-count difference | 1,799 rows | 1,799 rows |
+| Null or empty geometry | 1,815 rows | 1,815 rows |
+
+The decrease from 61,862 to 16 confirms that the validator now recognizes the
+official MGB codes. It does not classify the remaining 16 values as valid.
+Those values still require distinct-value profiling.
+
+The distribution checks also remain review flags. The selected snapshot differs
+from the documented category references, especially the missing-rating count.
+These differences may reflect a newer extract or a source-quality issue.
+They must not be repaired in Bronze.
+
+### Follow-up acceptance status
+
+The code-to-label representation mismatch is resolved.
+The Bronze validation gate passes without a blocking result.
+
+Keep the broader MGB category-distribution item open until the team:
+
+1. profiles the 16 remaining values
+2. confirms the actual blank-rating count
+3. decides whether the documented reference counts describe another source version
+4. records the conclusion for Silver handling

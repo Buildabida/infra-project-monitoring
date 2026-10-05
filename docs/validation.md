@@ -1,4 +1,7 @@
-# Data quality checks
+# Bronze data-quality checks
+
+This document covers the implemented Bronze validator only. Silver and Gold checks
+remain planned and will receive separate documents when those layers are implemented.
 
 `notebooks/04_validation/01_validation_bronze.py` validates all six authoritative Bronze tables.
 Validation begins after every loader returns `SUCCESS` or `SKIPPED_IDEMPOTENT`.
@@ -90,11 +93,25 @@ They are not filtering, deduplication, or transformation rules.
 
 ## Current interpretation note
 
-The MGB source stores susceptibility as coded values.
-Current category references use text labels.
-Validation reports this representation mismatch as a FLAG.
-Reconcile the code-to-label contract before treating category-distribution checks as passing.
-Bronze must continue preserving the source values.
+The official MGB layer defines `VHF`, `HF`, `MF`, and `LF` as Very High, High,
+Moderate, and Low susceptibility. Validation maps those codes only while evaluating
+checks. Bronze continues preserving the original source values.
+
+The October 4 evidence was produced by the earlier text-only comparison.
+That historical evidence remains unchanged.
+
+The updated validator ran on October 5, 2026. Run
+`f530d193-5566-4bc4-abdb-3a88b65fa763` exported 126 checks.
+The results were 105 `PASS` and 21 non-blocking `FLAG` rows.
+No check produced `FAIL` or `ERROR`, and all 96 `stop` checks passed.
+
+Only 16 of 63,684 MGB rows remained outside the accepted rating labels.
+The earlier text-only comparison flagged 61,862 rows.
+This decrease confirms that validation now recognizes the official codes.
+
+Category-count differences and the blank-rating difference remain review flags.
+Profile the 16 remaining values and confirm the blank count before closing the
+broader category-distribution item. Do not change the raw Bronze values.
 
 ## Summary
 
@@ -102,3 +119,18 @@ Validation protects the Bronze preservation boundary.
 It measures and reports findings, while Silver owns business changes.
 Grouped expressions keep the checks efficient.
 Audit and table reconciliation prevent a stale table from representing a failed batch.
+
+## Future validation documents
+
+Keep layer-specific checks separate as the pipeline grows:
+
+```text
+docs/validation/
+├── README.md
+├── bronze.md
+├── silver.md
+└── gold.md
+```
+
+Move this document to `docs/validation/bronze.md` only when the Silver or Gold
+validation documents are added. Update existing links in the same pull request.
