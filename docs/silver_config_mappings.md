@@ -114,8 +114,23 @@ The initial approved rules are:
 The source did not publish a release identifier in the approved extract.
 The value `unversioned-official-code-contract` makes that limitation explicit.
 
-Blank values and `No rating` are not approved automatically.
-They remain visible as coverage flags until the team records a decision.
+Blank values and `NO RATING` are not approved automatically.
+
+The accepted Bronze snapshot currently exposes 6 observed susceptibility values.
+Four have approved mappings (`LF`, `MF`, `HF`, and `VHF`), while 2 remain
+unmapped: blank and `NO RATING`.
+
+Until an approved mapping exists, downstream Silver must:
+
+- preserve the original raw susceptibility value,
+- leave the standardized susceptibility level unresolved (`NULL`),
+- classify the mapping result as unmapped,
+- and retain the condition as a non-blocking validation FLAG.
+
+Do not silently convert blank or `NO RATING` to `Unknown`.
+
+Gold may later resolve unknown or unmapped dimension relationships to the
+reserved key `0`, following the dimensional-model contract.
 
 ### `config_manual_geographic_match`
 
