@@ -1,8 +1,11 @@
-# Source-to-Bronze notebooks
+# Pipeline notebooks
 
 These Databricks notebooks present the Bronze batch as a documented sequence of
 small, reviewable steps. Narrative cells explain each decision. Code cells delegate
 shared mechanics to `src/bronze.py` and source contracts to `src/config.py`.
+
+The Silver configuration milestone uses SQL cells in Databricks notebooks.
+It keeps governed mappings separate from transformation code.
 
 ## Bronze principles
 
@@ -30,6 +33,8 @@ shared mechanics to `src/bronze.py` and source contracts to `src/config.py`.
 | 8 | `01_bronze/06_bronze_flood_susceptibility` | Preserve the approved trimmed MGB extract with low-compute mechanics. |
 | 9 | `04_validation/01_validation_bronze` | Record grouped STOP and FLAG checks without changing Bronze. |
 | 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning data. |
+| 11 | `02_silver/00_config_mappings` | Create five versioned configuration tables and report mapping coverage. |
+| 12 | `04_validation/02_validation_silver_config` | Validate Silver configuration structure, governance, and Bronze coverage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -99,6 +104,36 @@ Review the stored results here:
 - `04_validation/02_bronze_acceptance_evidence.sql` summarizes the latest accepted
   load and validation evidence without rescanning the Bronze tables.
 
+## Load Silver configuration
+
+The first Silver milestone implements configuration only.
+It does not build cleaned Silver output tables.
+
+Run these notebooks after Bronze has passed its blocking checks:
+
+1. `02_silver/00_config_mappings.ipynb`
+2. `04_validation/02_validation_silver_config.ipynb`
+
+The configuration notebook creates these Delta tables:
+
+- `02-silver.config_place_name_alias`
+- `02-silver.config_project_category_mapping`
+- `02-silver.config_project_status_mapping`
+- `02-silver.config_mgb_susceptibility_mapping`
+- `02-silver.config_manual_geographic_match`
+
+Only the four documented MGB code mappings are seeded.
+The other tables stay empty until a reviewer approves their rules.
+
+Review the coverage output before running the validator.
+The validator saves evidence in `04-validation.silver_config_dq_results`.
+
+Run both notebooks in Databricks.
+Local tests verify notebook structure but cannot create Unity Catalog tables.
+
+See [Silver configuration mappings](../docs/silver_config_mappings.md) for table
+grains, approval rules, and cost controls.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -108,9 +143,9 @@ Each layer records checks that match its responsibility.
 - Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
 - Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
 
-This notebook sequence produces the Bronze results. Silver and Gold use the same
-validation schema for their layer-specific checks. Promotion requires the current
-layer to pass its blocking checks.
+This notebook sequence produces the Bronze results and Silver configuration results.
+Both live in `04-validation`, using separate result tables during this milestone.
+Promotion requires the current layer to pass its blocking checks.
 
 ## Future layer organization
 
@@ -129,13 +164,14 @@ Keep validation notebooks separate too:
 ```text
 04_validation/
 ├── 01_validation_bronze.py
-├── 02_validation_silver.sql
-├── 03_validation_gold.sql
-└── 04_publish_acceptance_evidence.sql
+├── 02_validation_silver_config.ipynb
+├── 03_validation_silver.sql
+├── 04_validation_gold.sql
+└── 05_publish_acceptance_evidence.sql
 ```
 
-Shared result-writing helpers should move to `src/validation.py` when a second layer
-needs them. Do not create empty runners, validators, or shared modules before their
+Shared result-writing helpers can move to `src/validation.py` when Python-based
+downstream validators need them. Do not create empty runners or modules before their
 corresponding implementation exists.
 
 ## Central source contract

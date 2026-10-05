@@ -227,16 +227,9 @@ Every blocking safety check passed.
 Describe the result as **completed with non-blocking findings**.
 Do not describe it as "all data-quality checks passed."
 
-### Machine-readable validation evidence
-
-| Evidence run | Validation run ID | Role | File |
-| --- | --- | --- | --- |
-| October 4, 2026 baseline | `732b92cd-496e-4386-94ce-befbb5f06bdf` | Historical result before the official MGB code mapping | [`validation-results.csv`](validation-results.csv) |
-| October 5, 2026 follow-up | `f530d193-5566-4bc4-abdb-3a88b65fa763` | Current result after applying the MGB code mapping in validation | [`validation-results-2026-10-05.csv`](validation-results-2026-10-05.csv) |
-
-The October 5 run resolves the MGB code-to-label representation mismatch.
-The broader category-distribution review remains open because 16 values still need
-profiling and the selected snapshot differs from the historical reference counts.
+The MGB category-validation acceptance item remains open.
+Reconcile coded susceptibility values with the documented text labels.
+Then capture the updated validation output before closing that item.
 
 ## October 5, 2026 MGB validation follow-up
 

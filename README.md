@@ -12,8 +12,8 @@ It shows where funding is concentrated and which areas receive relatively less i
 Team Buildabida built this project for the 2026 FTW Foundation Data Engineering Track capstone.
 
 > [!NOTE]
-> Bronze ingestion and the draft schema cover the October 3 milestone.
-> Silver and Gold development follow before final judging on October 24.
+> Bronze ingestion is implemented.
+> Silver configuration mappings are implemented, while Silver outputs and Gold remain planned.
 
 ## Why we built it
 
@@ -74,8 +74,8 @@ The numbers show the pipeline order.
 | `04-validation` | Data-quality and pipeline-validation results |
 
 Python preserves six selected source snapshots in `01-bronze`.
-Grouped Spark checks write results to `04-validation`.
-Silver owns cleaning and geographic matching.
+Grouped Spark checks write Bronze results to `04-validation`.
+Silver configuration tables now govern future cleaning and geographic matching.
 Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
@@ -165,7 +165,7 @@ Three important source rules apply:
 ## Find your way around
 
 - **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
-- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), and [style guide](docs/style-guide.md)
+- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), and [style guide](docs/style-guide.md)
 - **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)

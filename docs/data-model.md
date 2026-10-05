@@ -10,7 +10,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Planned | The tables below define the intended contracts. They are not implemented yet. |
+| Silver | Partially implemented | Five governed configuration tables exist. Transformation outputs remain planned. |
 | Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
 
 ```text
@@ -18,17 +18,6 @@ R2 source snapshots → Bronze → Silver matching and reconciliation → Gold f
                       ↓                    ↓                         ↓
                  04-validation shared results for Bronze, Silver, and Gold
 ```
-
-## Planned constellation model
-
-The regional MVP uses three fact tables with shared dimensions.
-This fact constellation answers the five approved analytical questions.
-
-![Buildabida infrastructure project monitoring constellation schema](images/constellation-schema.png)
-
-The current Gold design is regional.
-Province and municipality drilldowns remain future extensions.
-They require sufficient geographic match coverage before publication.
 
 ## Bronze source contracts (implemented)
 
@@ -43,9 +32,9 @@ They require sufficient geographic match coverage before publication.
 | `01-bronze.load_log` | One ingestion status event | `run_id`, `status` |
 | `04-validation.dq_results` | One data-quality check in one validation run | `run_id`, `table_name`, `column`, `data_quality_check` |
 
-The implemented result schema is Bronze-only. Before Silver or Gold writes to the shared
-validation schema, add a pipeline batch identifier and source layer. Retain the source,
-mapping, and taxonomy versions needed to reproduce each downstream check.
+The Bronze result schema remains Bronze-only. Silver configuration checks use
+`04-validation.silver_config_dq_results`. This avoids breaking the fixed Bronze writer.
+The Silver result retains its source layer and mapping or taxonomy version.
 
 Census Table C is the authoritative population source.
 PSGC population remains a cross-check.
@@ -72,6 +61,26 @@ Business columns remain source strings.
 Only the minimum column-name substitutions required by Delta are permitted.
 `load_log.column_mapping_json` records those changes.
 
+## Silver configuration tables (implemented)
+
+These five small Delta tables govern mappings used by later Silver transformations.
+Only active `APPROVED` rows may drive downstream standardization or matching.
+
+| Table | Grain | Natural key |
+| --- | --- | --- |
+| `02-silver.config_place_name_alias` | One context-specific source alias per alias version | Source system, raw place and context fields, place type, alias version |
+| `02-silver.config_project_category_mapping` | One source category and infrastructure-type pair per taxonomy version | Source system, raw category, source infrastructure type, taxonomy version |
+| `02-silver.config_project_status_mapping` | One source status per mapping version | Source system, source status, status mapping version |
+| `02-silver.config_mgb_susceptibility_mapping` | One raw MGB code per source-contract and mapping version | Source system, raw code, source version, mapping version |
+| `02-silver.config_manual_geographic_match` | One source-record override per mapping version | Source system, record type, source record ID, mapping version |
+
+Every table records an approval status, version, active flag, and review evidence.
+The approved MGB seed maps `LF`, `MF`, `HF`, and `VHF` to the documented levels.
+Other tables begin empty until reviewers approve source-specific rules.
+
+See [Silver configuration mappings](silver_config_mappings.md) for the field contracts,
+approval workflow, validation rules, and current limits.
+
 ## Silver matching and reconciliation tables (planned)
 
 These tables preserve explainable matching decisions.
@@ -85,7 +94,6 @@ They describe the target design and do not claim that the tables already exist.
 | `02-silver.silver_project_region_map` | One project-to-region mapping result per pipeline run | `project_region_map_key` | `source_system`, `contract_id`, `psgc_region_code`, `reported_region_raw`, `mapping_method`, `match_status`, `match_quality`, `boundary_version`, `run_id`, `source_load_ts` |
 | `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
 | `02-silver.silver_population_region_reconciliation` | One population source-row reconciliation result per pipeline run | `population_reconciliation_key` | `source_name`, `source_row_number`, `source_sheet`, `source_place_name`, `matched_psgc_code`, `match_status`, `match_method`, `ambiguity_reason`, `is_duplicate_sheet_row`, `is_primary_population_record`, `run_id`, `source_load_ts` |
-| `02-silver.config_project_category_mapping` | One approved source category mapping per taxonomy version | Composite natural key | `source_system`, `raw_category`, `source_infra_type`, `standardized_sector`, `mapping_rule`, `taxonomy_version`, approval fields |
 
 Required Silver uniqueness:
 
@@ -94,7 +102,6 @@ Required Silver uniqueness:
 - Use `source_row_number` when no stable component ID exists.
 - Flood-control components: `source_contract_id`, `source_row_number`, `source_version`, `run_id`.
 - Population reconciliation: `source_name`, `source_sheet`, `source_row_number`, `run_id`.
-- Category mapping: `source_system`, `raw_category`, `source_infra_type`, `taxonomy_version`.
 
 ## Gold fact tables (planned)
 
@@ -213,9 +220,6 @@ Dimension uniqueness:
 - Status, susceptibility, and date keys join to their corresponding dimensions.
 - Population and flood-exposure facts join to `dim_region` through `region_key`.
 - Silver mapping tables retain the run, method, quality, and source version for every Gold key.
-- Facts meet through conformed dimensions. Dashboard queries do not join facts directly at row level.
-- Silver reconciles component rows before publishing one project snapshot row to Gold.
-- Matched DPWH and flood-control records must not create a second project or duplicate its budget.
 - Key `0` is reserved for unknown, unmapped, or non-geographic records.
   Central Office uses key `0` with `region_match_status = 'Non-geographic reporting unit'`.
 
@@ -233,46 +237,16 @@ Apply these checks when the corresponding Silver and Gold tables are implemented
 8. Severity rank is unique within each source system and version.
 9. `source_snapshot_id` is not null. All fact foreign keys resolve.
 10. Spatial areas use an appropriate projected CRS instead of square degrees.
-11. Gold project counts and reported budgets reconcile with the approved Silver project grain.
-12. A matched flood-control record does not duplicate a DPWH project or its reported budget.
-13. Regional outputs report matched, unmatched, ambiguous, and non-geographic coverage.
-14. Flood-area overlap and unclassified area remain visible in regional coverage results.
 
 ## Business-question coverage (planned)
 
-| Analytical question | Measures | Main tables | Interpretation boundary |
-| --- | --- | --- | --- |
-| Which regions receive the highest and lowest reported investment and project counts? | Total reported budget, project count, and average project budget | `fact_project_snapshot`, `dim_region` | Show coordinate and match coverage. Do not interpret BARMM `No Data` as the lowest investment. |
-| Which infrastructure categories receive the largest share of reported project budget? | Budget share, project count, and average project budget by category | `fact_project_snapshot`, `dim_project` | Use approved, versioned category mappings. Keep unmapped categories visible. |
-| Which regions and categories have the highest percentage of ongoing, inactive, long-running, or stalled projects? | Percentage ongoing, inactive, long-running, and stalled | Project fact plus status, date, project, and region dimensions | Long-running means more than two years from the start date. Stalled means ongoing with zero physical progress. Do not claim delay without a reliable target date. |
-| Which regions receive a larger or smaller investment share relative to population share? | Regional budget share, population share, and their ratio | Project fact, `fact_region_population`, and `dim_region` | Describe allocation differences, not fairness. Exclude non-geographic Central Office. |
-| How do flood-control investment and project coverage compare with regional flood-risk exposure? | Flood-risk exposure, project count, reported budget, budget per resident, and regional budget share | Project, flood-exposure, population, susceptibility, and region tables | Report comparative patterns. Do not claim proof of sufficient or insufficient flood protection. |
-
-## Measure definitions
-
-- **Total reported budget:** sum one reconciled reported budget per project snapshot.
-- **Project count:** count distinct `project_snapshot_key` values.
-- **Average project budget:** divide total reported budget by distinct project count.
-- **Budget share:** divide a region or category budget by the corresponding mapped total.
-- **Ongoing or inactive percentage:** divide the matching project count by the stated project denominator.
-- **Long-running percentage:** use projects more than two years from start date to snapshot date.
-- **Stalled percentage:** use ongoing projects with physical progress equal to zero.
-- **Population share:** use the primary Table C population for the same reference year.
-- **Allocation ratio:** divide regional budget share by regional population share.
-- **Flood-control budget per resident:** divide regional flood-control reported budget by primary population.
-
-`physical_progress_pct` and `share_of_region_area_pct` are non-additive.
-Dashboard queries must not sum either percentage.
-
-Regional ratios exclude `region_key = 0` from their denominators.
-The dashboard still reports unmatched and non-geographic project counts and budgets.
-
-## Regional MVP scope
-
-The current model publishes region-level rankings and comparisons.
-NCR remains a distinct region and requires separate interpretation.
-Province and municipality drilldowns are not part of this model version.
-Add them only after Silver demonstrates sufficient match coverage at those levels.
+| Analysis | Main tables | Interpretation boundary |
+| --- | --- | --- |
+| Regional investment concentration | `fact_project_snapshot` and `dim_region` | Use reported budgets. Show coordinate and match coverage. |
+| Infrastructure portfolio and categories | `fact_project_snapshot` and `dim_project` | Category rules are versioned and explainable. |
+| Project delivery and status | Project fact plus status, date, and region dimensions | Use long-running or zero-progress rules. Do not claim that a project is delayed without evidence. |
+| Investment relative to population | Project fact plus region population fact and region dimension | Describe allocation differences, not fairness. Exclude non-geographic Central Office. |
+| Flood-control alignment | Project fact, project and susceptibility dimensions, flood-exposure and population facts, and region | Report comparative patterns. Do not claim proof of insufficient protection or causation. |
 
 The available need proxies are population and flood-risk exposure.
 They do not represent every form of infrastructure need.
