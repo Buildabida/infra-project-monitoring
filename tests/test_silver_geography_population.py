@@ -224,6 +224,7 @@ def test_each_notebook_ends_with_an_explanatory_summary():
         assert markdown[-1].startswith("# Summary")
         assert "Requires Databricks execution" in markdown[-1]
 
+
 def test_psgc_lineage_is_required_only_for_matched_reconciliation_rows():
     sql = notebook_text(VALIDATION_NOTEBOOK)
 
