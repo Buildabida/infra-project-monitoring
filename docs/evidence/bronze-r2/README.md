@@ -233,7 +233,7 @@ Then capture the updated validation output before closing that item.
 
 ## October 5, 2026 MGB validation follow-up
 
-### Scope
+### Follow-up scope
 
 This follow-up records the first Databricks run after adding the official MGB
 code-to-label mapping. The October 4 evidence above remains unchanged as the
