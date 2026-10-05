@@ -112,7 +112,7 @@ Bronze loads these six approved snapshots from Cloudflare R2:
 | [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official geographic codes and place names. Population remains a cross-check for Table C. |
 | [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C provides the authoritative project population source. |
 | [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Geographic reference data for matching project coordinates to places |
-| [DENR MGB flood susceptibility](https://experience.arcgis.com/experience/c48f83f81f1548bdb0a76c61638d52d6) | Flood-hazard context from the approved trimmed extract. Spatial matching remains downstream. |
+| [DENR MGB flood susceptibility](https://controlmap.mgb.gov.ph/arcgis/rest/services/GeospatialDataInventory/GDI_Detailed_Flood_Susceptibility/FeatureServer/0/query) | Flood-hazard context from the approved trimmed extract. Spatial matching remains downstream. |
 
 ### Reference and spot-check sources
 
