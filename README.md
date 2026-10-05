@@ -95,7 +95,12 @@ The final cell lists the five project schemas.
 Next, use `01_check_sources.py` to verify access to every configured source.
 See [set up VS Code](docs/vscode-setup.md) for the full instructions.
 
-Before loading Bronze, confirm that the six configured CSVs exist in `/Volumes/buildabida-capstone/00-source/cloudflare-r2/buildabida/`.
+Before loading Bronze, confirm that the six configured CSVs exist in this volume directory:
+
+```text
+/Volumes/buildabida-capstone/00-source/cloudflare-r2/buildabida/
+```
+
 Then use `notebooks/run_all.py`, the current Source-to-Bronze coordinator.
 See [load Bronze](notebooks/README.md#load-bronze) for the complete workflow.
 
@@ -151,9 +156,9 @@ Three important source rules apply:
 - **One workspace owns the final pipeline.**
   This follows [D-01](docs/decisions.md).
   The team limits unnecessary compute and shares code through this repository.
-- **MGB category interpretation needs reconciliation.**
-  The source uses coded susceptibility values while current references use text labels.
-  Bronze preserves the values, and validation reports the mismatch.
+- **MGB category validation needs a fresh evidence run.**
+  The official layer maps `VHF`, `HF`, `MF`, and `LF` to the four documented levels.
+  The October 4 evidence predates that mapping and remains unchanged as historical proof.
 
 ## Find your way around
 

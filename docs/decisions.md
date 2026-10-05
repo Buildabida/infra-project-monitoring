@@ -29,7 +29,7 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | D-19 | Sep 29 | Bronze keeps all 9,855 flood-list rows. Rows are not removed by Contract ID. | The 157 repeated rows are not copies. Silver must prevent repeated project costs from being counted twice. |
 | D-20 | Sep 29 | Checks remain simple Bronze load checks until Silver. | Current work focuses on Bronze. Results still go to `04-validation.dq_results`. |
 | D-22 | Sep 29 | Load five sources into separate Bronze tables. Silver joins DPWH, flood control, PSGC, Table C, and boundaries. | Separate loads preserve lineage. PSGC population remains a cross-check against authoritative Table C. |
-| D-23 | Oct 4 | Cloudflare R2 stores six approved CSV snapshots, including the trimmed MGB extract. Bronze holds the selected snapshot and records its identity. | This replaces D-22 and resolves D-21. R2 retains history while Bronze avoids repeated downloads and duplicate multi-GB snapshots. D-19 records the September 29 flood-control snapshot with 9,855 rows. The accepted October 4 snapshot contains 9,861 rows. |
+| D-23 | Oct 4 | Cloudflare R2 stores six approved CSV snapshots, including the trimmed MGB extract. Bronze holds the selected snapshot and records its identity. | This replaces D-22 and resolves D-21. R2 retains history while Bronze avoids repeated downloads and duplicate multi-GB snapshots. |
 | D-24 | Oct 1 | Table B is outside the current Bronze contract. Keep it only as an optional reference for future population-growth analysis. This updates the Table B part of D-18. | The six-source Bronze contract uses Census Table C as the authoritative population source. PSGC population remains a cross-check. |
 | D-25 | Oct 1 | Start geographic analysis at the regional level. Add province-level views only where matching coverage supports them. Keep NCR separate. | The accepted snapshot contains coordinate pairs for 215,139 of 265,661 DPWH rows, about 81%. Silver must separately report actual geographic match coverage. |
 | D-26 | Oct 1 | Use flood control as the story entry point. Compare it with other infrastructure types and show where the remaining reported budget goes. | Flood control provides a familiar entry point. The broader portfolio still answers the complete business question. |
@@ -43,6 +43,11 @@ Additional context for D-22:
 - PSGC provides codes and place names.
 - Table C provides authoritative population.
 - On September 29, 43,748 of 43,750 Table C rows matched the PSGC population count.
+
+Snapshot context for D-19 and D-23:
+
+- D-19 records the September 29 flood-control snapshot with 9,855 rows.
+- The accepted October 4 snapshot contains 9,861 rows.
 
 ## Still open
 

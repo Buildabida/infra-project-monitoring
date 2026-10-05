@@ -93,11 +93,14 @@ They are not filtering, deduplication, or transformation rules.
 
 ## Current interpretation note
 
-The MGB source stores susceptibility as coded values.
-Current category references use text labels.
-Validation reports this representation mismatch as a FLAG.
-Reconcile the code-to-label contract before treating category-distribution checks as passing.
-Bronze must continue preserving the source values.
+The official MGB layer defines `VHF`, `HF`, `MF`, and `LF` as Very High, High,
+Moderate, and Low susceptibility. Validation maps those codes only while evaluating
+checks. Bronze continues preserving the original source values.
+
+The October 4 evidence was produced by the earlier text-only comparison. Keep that
+evidence unchanged. Run the updated validator against the selected snapshot, review the
+actual distinct values and blank count, and append a new dated evidence set before closing
+the category-validation item.
 
 ## Summary
 

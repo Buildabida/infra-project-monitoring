@@ -32,6 +32,10 @@ R2 source snapshots → Bronze → Silver matching and reconciliation → Gold f
 | `01-bronze.load_log` | One ingestion status event | `run_id`, `status` |
 | `04-validation.dq_results` | One data-quality check in one validation run | `run_id`, `table_name`, `column`, `data_quality_check` |
 
+The implemented result schema is Bronze-only. Before Silver or Gold writes to the shared
+validation schema, add a pipeline batch identifier and source layer. Retain the source,
+mapping, and taxonomy versions needed to reproduce each downstream check.
+
 Census Table C is the authoritative population source.
 PSGC population remains a cross-check.
 There is no authoritative generic `01-bronze.population_2024` table.

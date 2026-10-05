@@ -559,13 +559,25 @@ for source_name in config.SOURCE_ORDER:
         rating_candidates = source["required_column_groups"]["susceptibility rating"]
         rating = find_column(frame, rating_candidates)
         if rating:
-            normalized = F.lower(F.trim(F.col(rating)))
             allowed = ["very high", "high", "moderate", "low"]
+            code_map = source["rating_code_map"]
+            code_map_expression = F.create_map(
+                *[
+                    item
+                    for code, label in code_map.items()
+                    for item in (F.lit(code), F.lit(label))
+                ]
+            )
+            raw_rating = F.trim(F.col(rating))
+            normalized = F.coalesce(
+                code_map_expression[F.upper(raw_rating)],
+                F.lower(raw_rating),
+            )
             add_metric(
                 metrics,
                 "unknown_rating",
                 rating,
-                "rating is very high, high, moderate, low, or missing",
+                "rating maps to very high, high, moderate, low, or missing",
                 "flag",
                 count_if(
                     F.col(rating).isNotNull()

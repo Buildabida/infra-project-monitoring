@@ -195,6 +195,12 @@ SOURCES = {
         "provenance": "Approved trimmed extract containing project-required fields; not the complete original MGB service response.",
         "grain": "one source flood-area row in the approved extract",
         "reference_rows": 63_684,
+        "rating_code_map": {
+            "VHF": "very high",
+            "HF": "high",
+            "MF": "moderate",
+            "LF": "low",
+        },
         "rating_reference": {
             "very high": 6_156,
             "high": 15_111,

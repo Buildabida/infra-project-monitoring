@@ -79,6 +79,20 @@ def test_mgb_contract_requires_rating_and_geometry():
         bronze.validate_source_header(source, ["flood_susceptibility_code"])
 
 
+def test_mgb_rating_codes_have_documented_canonical_levels():
+    source = config.source_config("flood_susceptibility")
+
+    assert source["rating_code_map"] == {
+        "VHF": "very high",
+        "HF": "high",
+        "MF": "moderate",
+        "LF": "low",
+    }
+    assert set(source["rating_code_map"].values()) == {
+        name for name in source["rating_reference"] if name != "missing"
+    }
+
+
 def test_current_table_must_match_requested_snapshot_and_artifact():
     metadata = {
         "path": "/Volumes/catalog/source/volume/example.csv",
