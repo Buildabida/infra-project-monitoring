@@ -4,8 +4,8 @@ These Databricks notebooks present the Bronze batch as a documented sequence of
 small, reviewable steps. Narrative cells explain each decision. Code cells delegate
 shared mechanics to `src/bronze.py` and source contracts to `src/config.py`.
 
-The Silver configuration milestone uses SQL cells in Databricks notebooks.
-It keeps governed mappings separate from transformation code.
+Silver uses SQL cells in Databricks notebooks.
+Governed mappings remain separate from geography and population transformations.
 
 ## Bronze principles
 
@@ -35,6 +35,10 @@ It keeps governed mappings separate from transformation code.
 | 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning data. |
 | 11 | `02_silver/00_config_mappings` | Create five versioned configuration tables and report mapping coverage. |
 | 12 | `04_validation/02_validation_silver_config` | Validate Silver configuration structure, governance, and Bronze coverage. |
+| 13 | `02_silver/01_silver_psgc_place` | Standardize the selected official PSGC hierarchy without dropping source rows. |
+| 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through contextual PSGC matching and approved aliases. |
+| 15 | `02_silver/03_silver_region_population` | Aggregate only accepted matched barangay population to official PSGC regions. |
+| 16 | `04_validation/03_validation_silver_geography_population` | Validate row accounting, matches, lineage, region coverage, and population totals. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -104,10 +108,10 @@ Review the stored results here:
 - `04_validation/02_bronze_acceptance_evidence.sql` summarizes the latest accepted
   load and validation evidence without rescanning the Bronze tables.
 
-## Load Silver configuration
+## Load Silver
 
-The first Silver milestone implements configuration only.
-It does not build cleaned Silver output tables.
+Silver currently implements five configuration tables and three geography and population
+outputs. Project and flood transformation tables remain planned.
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -134,6 +138,28 @@ Local tests verify notebook structure but cannot create Unity Catalog tables.
 See [Silver configuration mappings](../docs/silver_config_mappings.md) for table
 grains, approval rules, and cost controls.
 
+### Geography and population
+
+After CONFIG validation passes every stop check, run:
+
+1. `02_silver/01_silver_psgc_place.ipynb`
+2. `02_silver/02_silver_population_place_reconciliation.ipynb`
+3. `02_silver/03_silver_region_population.ipynb`
+4. `04_validation/03_validation_silver_geography_population.ipynb`
+
+The PSGC table must succeed before Table C reconciliation.
+Reconciliation must succeed before region aggregation.
+Do not continue after a blocking check failure.
+
+The validator stores results in `04-validation.silver_dq_results` before enforcing its
+gate. Review every `FLAG`, especially ambiguous and unmatched rows, without deleting them.
+
+These notebooks use only current Bronze PSGC, current Bronze Table C, approved place
+aliases, and compact audit evidence. They do not scan project, boundary, or MGB data.
+
+See [Silver geography and population](../docs/silver_geography_population.md) for grains,
+matching rules, population authority, lineage, and known limitations.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -143,8 +169,8 @@ Each layer records checks that match its responsibility.
 - Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
 - Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
 
-This notebook sequence produces the Bronze results and Silver configuration results.
-Both live in `04-validation`, using separate result tables during this milestone.
+This sequence produces Bronze, Silver configuration, and Silver geography and population
+results. They live in `04-validation` using separate result tables during this milestone.
 Promotion requires the current layer to pass its blocking checks.
 
 ## Future layer organization
@@ -165,9 +191,10 @@ Keep validation notebooks separate too:
 04_validation/
 ├── 01_validation_bronze.py
 ├── 02_validation_silver_config.ipynb
-├── 03_validation_silver.sql
-├── 04_validation_gold.sql
-└── 05_publish_acceptance_evidence.sql
+├── 03_validation_silver_geography_population.ipynb
+├── 04_validation_silver_projects.sql
+├── 05_validation_gold.sql
+└── 06_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based

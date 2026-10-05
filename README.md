@@ -13,7 +13,8 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 
 > [!NOTE]
 > Bronze ingestion is implemented.
-> Silver configuration mappings are implemented, while Silver outputs and Gold remain planned.
+> Silver configuration plus geography and population outputs are implemented.
+> Other Silver outputs and Gold remain planned.
 
 ## Why we built it
 
@@ -75,7 +76,8 @@ The numbers show the pipeline order.
 
 Python preserves six selected source snapshots in `01-bronze`.
 Grouped Spark checks write Bronze results to `04-validation`.
-Silver configuration tables now govern future cleaning and geographic matching.
+Silver configuration tables govern mapping decisions.
+Silver PSGC, population reconciliation, and region population tables are implemented.
 Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
@@ -165,7 +167,7 @@ Three important source rules apply:
 ## Find your way around
 
 - **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
-- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), and [style guide](docs/style-guide.md)
+- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), [Silver geography and population](docs/silver_geography_population.md), and [style guide](docs/style-guide.md)
 - **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)

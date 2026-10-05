@@ -1,7 +1,7 @@
 # Data-quality checks
 
-This document covers the implemented Bronze validator and Silver configuration validator.
-Checks for the remaining Silver outputs and Gold layer remain planned.
+This document covers the implemented Bronze, Silver configuration, and Silver geography
+and population validators. Checks for the remaining Silver outputs and Gold remain planned.
 
 ## Bronze validation
 
@@ -156,6 +156,73 @@ A separate result table preserves backward compatibility during this milestone.
 
 See [Silver configuration mappings](silver_config_mappings.md) for the approval workflow
 and table contracts.
+
+## Silver geography and population validation
+
+`notebooks/04_validation/03_validation_silver_geography_population.ipynb` validates:
+
+- `02-silver.silver_psgc_place`
+- `02-silver.silver_population_place_reconciliation`
+- `02-silver.silver_region_population`
+
+Run it only after the three transformation notebooks finish in dependency order.
+The validator does not change source rows or mapping decisions.
+
+It applies the seven relevant quality attributes:
+
+- Consistency: PSGC hierarchy, match contracts, region membership, and total reconciliation
+- Accuracy: official PSGC geography, Table C authority, and approved alias targets
+- Completeness: source-row accounting, match coverage, and official-region coverage
+- Auditability: run IDs, snapshot IDs, ingest IDs, source-row identity, and rule versions
+- Validity: population parsing, reference date, place types, statuses, and dispositions
+- Uniqueness: each documented table grain
+- Timeliness: compatible Table C, PSGC, alias, and transformation versions
+
+Blocking checks fail when row accounting, keys, lineage, accepted population grain,
+official region coverage, or population totals are unsafe. Findings such as ambiguous
+matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
+
+The exact Table C accounting rule is:
+
+```text
+current Table C rows
+= accepted primary
++ matched non-primary level
++ ambiguous
++ unmatched
++ invalid population
++ source exception
+```
+
+The region total must equal the sum of positive `ACCEPTED_PRIMARY` matched barangay rows.
+It must not include province, city, municipality, or region subtotals.
+
+Results are merged into `04-validation.silver_dq_results` before the stop gate runs.
+The deterministic key prevents duplicate evidence on an exact rerun.
+The existing Bronze and Silver configuration result tables remain unchanged.
+
+See [Silver geography and population](silver_geography_population.md) for table contracts
+and known limitations. Runtime validation outcomes require Databricks execution.
+
+### Reconciliation lineage rule
+
+Table C source lineage is required for every row in
+`silver_population_place_reconciliation`.
+
+PSGC target lineage is required only when `match_status` is
+`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+
+Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
+have null `psgc_source_snapshot_id` and `psgc_source_ingest_run_id` because no
+single PSGC target was accepted.
+
+These unresolved rows remain visible for review and must not receive fabricated
+PSGC lineage.
+
+The lineage STOP check therefore validates:
+
+- Table C source lineage for every reconciliation row
+- PSGC target lineage only for successfully matched rows
 
 ## Future validation documents
 

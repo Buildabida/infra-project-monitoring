@@ -19,7 +19,8 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Five configuration tables | Implemented by the Silver config notebook |
 | Configuration validation | Implemented by the Silver config validator |
 | Category, status, and place decisions | Pending human review |
-| Remaining Silver output tables | Planned |
+| PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
+| Remaining project and flood Silver outputs | Planned |
 | Gold facts and dimensions | Planned |
 
 ## Run order
@@ -237,8 +238,9 @@ No Python UDF, Pandas conversion, streaming job, or spatial operation is used.
 
 ## Current limitations
 
-This milestone does not implement place matching, category standardization, or status standardization.
-It only provides their governed configuration boundary.
+This configuration milestone does not itself transform source rows.
+The separate [Silver geography and population](silver_geography_population.md) milestone
+now consumes approved place aliases. Category and status transformations remain planned.
 
 The local source folder was profiled during design.
 Its project row counts differ from the accepted Bronze evidence.
