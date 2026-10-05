@@ -97,10 +97,21 @@ The official MGB layer defines `VHF`, `HF`, `MF`, and `LF` as Very High, High,
 Moderate, and Low susceptibility. Validation maps those codes only while evaluating
 checks. Bronze continues preserving the original source values.
 
-The October 4 evidence was produced by the earlier text-only comparison. Keep that
-evidence unchanged. Run the updated validator against the selected snapshot, review the
-actual distinct values and blank count, and append a new dated evidence set before closing
-the category-validation item.
+The October 4 evidence was produced by the earlier text-only comparison.
+That historical evidence remains unchanged.
+
+The updated validator ran on October 5, 2026. Run
+`f530d193-5566-4bc4-abdb-3a88b65fa763` exported 126 checks.
+The results were 105 `PASS` and 21 non-blocking `FLAG` rows.
+No check produced `FAIL` or `ERROR`, and all 96 `stop` checks passed.
+
+Only 16 of 63,684 MGB rows remained outside the accepted rating labels.
+The earlier text-only comparison flagged 61,862 rows.
+This decrease confirms that validation now recognizes the official codes.
+
+Category-count differences and the blank-rating difference remain review flags.
+Profile the 16 remaining values and confirm the blank count before closing the
+broader category-distribution item. Do not change the raw Bronze values.
 
 ## Summary
 
