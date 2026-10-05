@@ -156,9 +156,11 @@ Three important source rules apply:
 - **One workspace owns the final pipeline.**
   This follows [D-01](docs/decisions.md).
   The team limits unnecessary compute and shares code through this repository.
-- **MGB category validation needs a fresh evidence run.**
-  The official layer maps `VHF`, `HF`, `MF`, and `LF` to the four documented levels.
-  The October 4 evidence predates that mapping and remains unchanged as historical proof.
+- **MGB category distribution still needs review.**
+  The October 5 validation rerun recognizes the official `VHF`, `HF`, `MF`,
+  and `LF` codes. Sixteen values remain outside the accepted labels, and the
+  category counts differ from historical references. These findings remain
+  non-blocking flags for profiling and Silver handling.
 
 ## Find your way around
 
