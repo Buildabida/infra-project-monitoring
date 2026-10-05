@@ -260,8 +260,8 @@ Bronze continues preserving the original source values.
 - Blocking checks: all 96 checks with action `stop` passed
 
 The rerun therefore passed the Bronze safety gate with non-blocking findings.
-Store the complete machine-readable follow-up as
-`validation-results-2026-10-05.csv` beside this report.
+The complete machine-readable follow-up is in
+[`validation-results-2026-10-05.csv`](validation-results-2026-10-05.csv).
 
 ### MGB follow-up results
 
