@@ -5,13 +5,21 @@ Bronze preserves one selected source snapshot.
 Silver owns cleaning, reconciliation, matching, and mapping.
 Gold contains the facts and dimensions used to answer the project questions.
 
+## Implementation status
+
+| Layer | Status | Meaning |
+| --- | --- | --- |
+| Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
+| Silver | Planned | The tables below define the intended contracts. They are not implemented yet. |
+| Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
+
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
-                              ↓                                  ↓
-                       Bronze validation                  analytical validation
+                      ↓                    ↓                         ↓
+                 04-validation shared results for Bronze, Silver, and Gold
 ```
 
-## Bronze source contracts
+## Bronze source contracts (implemented)
 
 | Table | One row is | Source-grain identity |
 | --- | --- | --- |
@@ -49,10 +57,11 @@ Business columns remain source strings.
 Only the minimum column-name substitutions required by Delta are permitted.
 `load_log.column_mapping_json` records those changes.
 
-## Silver matching and reconciliation tables
+## Silver matching and reconciliation tables (planned)
 
 These tables preserve explainable matching decisions.
 The Gold model must not hide those decisions.
+They describe the target design and do not claim that the tables already exist.
 
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
@@ -72,7 +81,9 @@ Required Silver uniqueness:
 - Population reconciliation: `source_name`, `source_sheet`, `source_row_number`, `run_id`.
 - Category mapping: `source_system`, `raw_category`, `source_infra_type`, `taxonomy_version`.
 
-## Gold fact tables
+## Gold fact tables (planned)
+
+These fact tables are design targets and do not exist yet.
 
 ### `03-gold.fact_project_snapshot`
 
@@ -147,7 +158,9 @@ Uniqueness includes these fields:
 - `mgb_source_version`
 - `boundary_version`
 
-## Gold dimensions
+## Gold dimensions (planned)
+
+These dimensions are design targets and do not exist yet.
 
 | Dimension | Grain and key | Main columns |
 | --- | --- | --- |
@@ -188,7 +201,9 @@ Dimension uniqueness:
 - Key `0` is reserved for unknown, unmapped, or non-geographic records.
   Central Office uses key `0` with `region_match_status = 'Non-geographic reporting unit'`.
 
-## Required analytical validation
+## Required analytical validation (planned)
+
+Apply these checks when the corresponding Silver and Gold tables are implemented.
 
 1. At most one `is_current_snapshot = true` row exists per `project_key`.
 2. Physical progress is between 0 and 100 or null.
@@ -201,7 +216,7 @@ Dimension uniqueness:
 9. `source_snapshot_id` is not null. All fact foreign keys resolve.
 10. Spatial areas use an appropriate projected CRS instead of square degrees.
 
-## Business-question coverage
+## Business-question coverage (planned)
 
 | Analysis | Main tables | Interpretation boundary |
 | --- | --- | --- |

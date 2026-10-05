@@ -51,7 +51,8 @@ flowchart LR
     B --> SV["silver"]:::silver
     SV --> G["gold"]:::gold
     G --> D["Dashboard and Genie"]:::dash
-    SV -.-> V["validation"]:::val
+    B -.-> V["validation"]:::val
+    SV -.-> V
     G -.-> V
     classDef src fill:#D7E8FF,stroke:#2B2A4C,color:#2B2A4C
     classDef bronze fill:#FFDCC8,stroke:#2B2A4C,color:#2B2A4C
@@ -95,30 +96,32 @@ Next, use `01_check_sources.py` to verify access to every configured source.
 See [set up VS Code](docs/vscode-setup.md) for the full instructions.
 
 Before loading Bronze, confirm that the six configured CSVs exist in `00-source.cloudflare-r2`.
-Then use `notebooks/run_all.py`.
+Then use `notebooks/run_all.py`, the current Source-to-Bronze coordinator.
 See [load Bronze](notebooks/README.md#load-bronze) for the complete workflow.
 
 ## Data sources
 
+### Loaded Bronze sources
+
+Bronze loads these six approved snapshots from Cloudflare R2:
+
 | Source | What we use it for |
 | --- | --- |
 | [DPWH projects API](https://api.dpwh.bettergov.ph/projects) by BetterGov.ph | DPWH projects with reported budget, progress, dates, contractor, and map points. The selected snapshot contains 265,661 rows. |
-| [DPWH Transparency Portal](https://transparency.dpwh.gov.ph) | Official DPWH reference used for source spot-checks |
-| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | DPWH flood-control project reference |
 | [BetterGov flood-control projects](https://bettergov.ph/flood-control-projects/table) | Flood-control list named in the project brief. The selected snapshot contains 9,861 rows. |
 | [PSGC 2Q 2026](https://psa.gov.ph/classification/psgc) by PSA | Official geographic codes and place names. Population remains a cross-check for Table C. |
 | [2024 Census of Population](https://psa.gov.ph/content/2024-census-population-popcen-population-counts-declared-official-president) by PSA | Table C provides the authoritative project population source. |
 | [Boundary maps](https://github.com/bendlikeabamboo/barangay-boundaries-repository) with PSGC codes | Geographic reference data for matching project coordinates to places |
 | DENR MGB flood susceptibility | Flood-hazard context from the approved trimmed extract. Spatial matching remains downstream. |
 
-Six source snapshots come from Cloudflare R2:
+### Reference and spot-check sources
 
-- DPWH projects
-- flood-control projects
-- PSGC
-- census Table C
-- boundaries
-- MGB flood susceptibility
+These sites support manual verification. They are not additional Bronze datasets.
+
+| Source | What we use it for |
+| --- | --- |
+| [DPWH Transparency Portal](https://transparency.dpwh.gov.ph) | Official DPWH reference used for source spot-checks |
+| [Sumbong sa Pangulo](https://sumbongsapangulo.ph) | DPWH flood-control project reference |
 
 Table C is the authoritative population source.
 PSGC population remains a cross-check.
@@ -166,7 +169,7 @@ Three important source rules apply:
 ├── CONTRIBUTING.md    team workflow, reviews, and AI rules
 ├── LICENSE            MIT License for project code
 ├── notebooks/         Databricks notebooks organized by pipeline step
-├── src/               shared Python configuration and ingestion code
+├── src/               shared Python modules and their current or legacy status
 ├── docs/              model, validation, evidence, decisions, and guides
 ├── dashboard/         dashboard artifacts
 ├── tests/             automated tests for shared code

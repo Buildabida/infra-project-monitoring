@@ -42,4 +42,9 @@ Additional context for D-22:
 | --- | --- | --- |
 | D-03 | How do we match a project to a place? | Map point, office name, or both |
 | D-04 | How do we handle projects found in both project lists? | Match by Contract ID |
-| D-21 | Do we add the DENR MGB flood-susceptibility map as a sixth source? | Resolved by D-23 with the approved trimmed extract |
+
+## Resolved questions
+
+| ID | Question | Resolution |
+| --- | --- | --- |
+| D-21 | Do we add the DENR MGB flood-susceptibility map as a sixth source? | Yes. D-23 approves the trimmed extract as the sixth R2 snapshot. |

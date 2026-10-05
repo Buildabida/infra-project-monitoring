@@ -1,4 +1,7 @@
-# Data quality checks
+# Bronze data-quality checks
+
+This document covers the implemented Bronze validator only. Silver and Gold checks
+remain planned and will receive separate documents when those layers are implemented.
 
 `notebooks/04_validation/01_validation_bronze.py` validates all six authoritative Bronze tables.
 Validation begins after every loader returns `SUCCESS` or `SKIPPED_IDEMPOTENT`.
@@ -102,3 +105,18 @@ Validation protects the Bronze preservation boundary.
 It measures and reports findings, while Silver owns business changes.
 Grouped expressions keep the checks efficient.
 Audit and table reconciliation prevent a stale table from representing a failed batch.
+
+## Future validation documents
+
+Keep layer-specific checks separate as the pipeline grows:
+
+```text
+docs/validation/
+├── README.md
+├── bronze.md
+├── silver.md
+└── gold.md
+```
+
+Move this document to `docs/validation/bronze.md` only when the Silver or Gold
+validation documents are added. Update existing links in the same pull request.

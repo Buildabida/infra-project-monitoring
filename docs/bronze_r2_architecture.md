@@ -68,7 +68,7 @@ The classification describes each current R2 CSV, not the original publisher art
 | `flood_susceptibility.csv` | `flood_susceptibility`: one flood-area row | C: approved trimmed extract | The project approved only required fields because full geometry is large. This is not the complete MGB response. |
 
 No file is called an original publisher artifact or lossless export without evidence.
-Update the source card, configuration, and this table when stronger evidence becomes available.
+Update the configuration and this table when stronger evidence becomes available.
 
 Table C is the authoritative population source.
 PSGC population is only a cross-check.
