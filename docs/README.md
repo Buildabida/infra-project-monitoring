@@ -6,8 +6,9 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | --- | --- |
 | Set up Databricks and run the first notebooks | [Quickstart](../README.md#quickstart) |
 | Know what each table holds and its key | [Data model](data-model.md) |
-| Know what Bronze and Silver configuration checks do | [Data-quality checks](validation.md) |
+| Know what Bronze and implemented Silver checks do | [Data-quality checks](validation.md) |
 | Review Silver mapping tables and approval rules | [Silver configuration mappings](silver_config_mappings.md) |
+| Review PSGC, Table C reconciliation, and region population | [Silver geography and population](silver_geography_population.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
