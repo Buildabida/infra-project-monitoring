@@ -158,6 +158,15 @@ It may remain empty.
 Every approved row needs a stable source record identifier.
 It also needs a PSGC target, reason, approver, version, and reference.
 
+Example structure only. This is not an approved production mapping:
+
+| source_system | record_type | source_record_id | original_location | target_psgc_code | target_place_name | match_reason | mapping_version |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `<source>` | `<record_type>` | `<stable_source_id>` | `<raw_location>` | `<approved_psgc_code>` | `<approved_place>` | `<reviewed_reason>` | `<mapping_version>` |
+
+Actual overrides must be supported by reviewed evidence before
+`approval_status = 'APPROVED'` and `is_active = true`.
+
 ## Approval workflow
 
 1. Review distinct source values in the coverage output.
