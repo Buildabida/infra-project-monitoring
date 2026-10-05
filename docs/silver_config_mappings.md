@@ -85,8 +85,17 @@ Natural key:
 - `status_mapping_version`
 
 The initial table is empty pending approval.
-`Delayed` is not a supported standardized status.
-The current sources lack a reliable target completion date.
+
+No canonical standardized-status vocabulary has been approved yet.
+Downstream Silver transformations must consume only active, approved rows from
+`config_project_status_mapping` and must not recreate temporary status mappings
+independently.
+
+Observed source statuses remain review candidates until the team approves their
+standardized values and status groups.
+
+`Delayed` is not a supported standardized status because the current sources
+lack a reliable target completion date.
 
 Long-running and stalled are future derived measures.
 They do not belong in this mapping table.
