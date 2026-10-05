@@ -95,7 +95,7 @@ The final cell lists the five project schemas.
 Next, use `01_check_sources.py` to verify access to every configured source.
 See [set up VS Code](docs/vscode-setup.md) for the full instructions.
 
-Before loading Bronze, confirm that the six configured CSVs exist in `00-source.cloudflare-r2`.
+Before loading Bronze, confirm that the six configured CSVs exist in `/Volumes/buildabida-capstone/00-source/cloudflare-r2/buildabida/`.
 Then use `notebooks/run_all.py`, the current Source-to-Bronze coordinator.
 See [load Bronze](notebooks/README.md#load-bronze) for the complete workflow.
 
