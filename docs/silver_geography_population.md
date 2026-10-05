@@ -171,8 +171,19 @@ The tables distinguish these concepts:
 - `alias_version`: selected place-alias rules, or `NO_APPROVED_ALIAS`
 - `transformation_rule_version`: version of the Silver transformation contract
 
-The reconciliation table retains both Table C and PSGC snapshots and ingest runs. The
-regional table retains those same inputs plus the reconciliation run identity.
+The reconciliation table retains Table C source lineage for every source row.
+
+Successfully matched rows also retain the matched PSGC snapshot and ingest run.
+PSGC target lineage is required only when `match_status` is
+`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+
+Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
+have null matched-target PSGC lineage because no single PSGC target was accepted.
+These rows remain traceable through their Table C source lineage and Silver run
+identity.
+
+The regional table retains the lineage of the accepted matched inputs plus the
+reconciliation run identity.
 
 ## Idempotency and cost
 
