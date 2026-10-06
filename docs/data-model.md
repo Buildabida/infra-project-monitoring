@@ -10,7 +10,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Five governed configuration tables and three geography and population outputs exist. Other transformations remain planned. |
+| Silver | Partially implemented | Configuration, geography and population, project foundation, and source reconciliation outputs are implemented. Other transformations remain planned. |
 | Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
 
 ```text
@@ -117,7 +117,7 @@ lineage, validation, and cost contracts.
 
 ## Silver project foundation tables (implemented)
 
-These tables implement the Silver project foundation layer.
+These tables implement the Silver project foundation and source-reconciliation layers.
 
 The project foundation preserves DPWH project source evidence.
 
@@ -129,11 +129,26 @@ The component and project tables are implemented and require Databricks executio
 
 Project-region and project-flood mapping tables remain planned.
 
+The source-reconciliation path is:
+
+```text
+01-bronze.flood_control_projects
+        ↓
+silver_flood_control_component
+        ↓
+silver_project_source_match
+        ↑
+silver_project
+        ↓
+future Gold dim_project flood-list indicators
+```
+
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
 | `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | Contract ID plus Bronze source lineage | `project_description_raw`, `category_raw`, `status_raw`, `reported_budget_raw`, `reported_budget_pesos`, `physical_progress_pct`, parsed dates, parsed coordinates, `coordinate_status`, Bronze lineage fields |
 | `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes, budget resolution status, attribute-resolution status, source lineage, deterministic project identity |
-| `02-silver.silver_flood_control_component` | One published flood-control source row | `flood_component_key` | `source_contract_id`, matched project system and contract, `type_of_work`, `component_description`, `source_contract_cost`, `match_status`, `source_row_number`, `source_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
+| `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
 | `02-silver.silver_project_region_map` | One project-to-region mapping result per pipeline run | `project_region_map_key` | `source_system`, `contract_id`, `psgc_region_code`, `reported_region_raw`, `mapping_method`, `match_status`, `match_quality`, `boundary_version`, `run_id`, `source_load_ts` |
 | `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
 
@@ -142,7 +157,8 @@ Required Silver uniqueness:
 - Project-region and project-flood maps: `source_system`, `contract_id`, `run_id`.
 - DPWH components: `source_system`, `contract_id`, `source_component_id`, `run_id`.
 - Use `source_row_number` when no stable component ID exists.
-- Flood-control components: `source_contract_id`, `source_row_number`, `source_version`, `run_id`.
+- Flood-control components: `source_system`, `source_snapshot_id`, real source `object_id`, and rule version.
+- Project source matches: normalized source Contract ID, source snapshot, source version, and match run.
 - Implemented population reconciliation: `source_file`, `sheet_name`, `source_row_number`, `run_id`.
 - Implemented region population: region code, reference year, source name, and both selected snapshots.
 
@@ -250,7 +266,7 @@ Dimension uniqueness:
 | Source | Downstream destination |
 | --- | --- |
 | DPWH projects | DPWH component mapping, category mapping, project and status dimensions, and project snapshot fact |
-| Flood-control list | Flood-control components and official flood-list flags on projects |
+| Flood-control list | Row-preserved flood-control components and exact Contract-ID reconciliation evidence for future official flood-list flags |
 | PSGC | Region dimension and population reconciliation |
 | PSA Table C | Population reconciliation and region population fact |
 | BetterGov boundaries | Region boundary dimension, project-region mapping, and regional flood intersection |

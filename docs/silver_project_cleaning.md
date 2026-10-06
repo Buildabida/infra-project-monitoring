@@ -53,7 +53,7 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_dpwh_project_component` | Implemented. Databricks execution required. |
 | `silver_project` | Implemented. Databricks execution required. |
 | Silver project validation | Implemented. Databricks execution required. |
-| Flood-control Silver outputs | Planned |
+| Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | Gold dimensions and facts | Planned |
 
 ## Dependency order
@@ -267,18 +267,18 @@ Flag findings remain visible for review.
 - Approved category mappings are not yet published into the component output.
 - Approved status mappings are not yet published into the component output.
 - Project-region assignment remains outside this milestone.
-- Flood-control reconciliation remains outside this milestone.
+- Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved.
 - Stalled classification remains unresolved.
 - Databricks execution is required before validation outcomes can be claimed.
 
 ## Gold handoff
 
-`silver_dpwh_project_component` supports future project reconciliation.
+`silver_dpwh_project_component` supports project reconciliation.
 
 `silver_project` supports:
 
-- future `silver_project_source_match`
+- implemented `silver_project_source_match`
 - future `silver_project_region_map`
 - future `silver_project_flood_map`
 - future `dim_project`
