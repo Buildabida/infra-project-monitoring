@@ -39,6 +39,12 @@ Governed mappings remain separate from geography and population transformations.
 | 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through contextual PSGC matching and approved aliases. |
 | 15 | `02_silver/03_silver_region_population` | Aggregate only accepted matched barangay population to official PSGC regions. |
 | 16 | `04_validation/03_validation_silver_geography_population` | Validate row accounting, matches, lineage, region coverage, and population totals. |
+| 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH project source row and safely parse supported fields. |
+| 18 | `02_silver/05_silver_project` | Consolidate project evidence without unsupported budget summation. |
+| 19 | `04_validation/04_validation_silver_projects` | Validate project row accounting, grain, budget protection, and lineage. |
+| 20 | `02_silver/06_silver_flood_control_component` | Preserve every selected flood-control source feature using its real Object ID. |
+| 21 | `02_silver/07_silver_project_source_match` | Record exact Contract-ID reconciliation evidence without changing projects. |
+| 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -117,8 +123,11 @@ Silver currently implements:
 - silver_dpwh_project_component
 - silver_project
 - silver project validation
+- silver_flood_control_component
+- silver_project_source_match
+- Silver source-reconciliation validation
 
-Flood-control reconciliation and project-mapping outputs remain planned.
+Project-region and project-flood mapping outputs remain planned.
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -194,6 +203,28 @@ Local tests verify notebook structure and contracts but do not create Unity Cata
 
 See [Silver project foundation](../docs/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
 
+### Flood-control source reconciliation
+
+After the project foundation validator passes, run:
+
+1. `02_silver/06_silver_flood_control_component.ipynb`
+2. `02_silver/07_silver_project_source_match.ipynb`
+3. `04_validation/05_validation_silver_source_reconciliation.ipynb`
+
+The component notebook preserves one row for each selected Bronze flood-control
+`object_id`. The match notebook groups only usable source Contract IDs and compares
+them with `silver_project` using exact `UPPER(TRIM(contract_id))` equality.
+
+The validator persists results to `04-validation.silver_dq_results` before enforcing
+its blocking gate. It reports invalid IDs, repeats, cost conflicts, unmatched groups,
+and ambiguous targets without changing either source table.
+
+Run all three notebooks in Databricks. Local tests verify structure and contracts but
+do not create Unity Catalog tables.
+
+See [Silver source reconciliation](../docs/silver_source_reconciliation.md) for table
+grains, source roles, matching rules, cost protection, lineage, and limitations.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -227,8 +258,9 @@ Keep validation notebooks separate too:
 ├── 02_validation_silver_config.ipynb
 ├── 03_validation_silver_geography_population.ipynb
 ├── 04_validation_silver_projects.ipynb
-├── 05_validation_gold.ipynb
-└── 06_publish_acceptance_evidence.sql
+├── 05_validation_silver_source_reconciliation.ipynb
+├── 06_validation_gold.ipynb
+└── 07_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based

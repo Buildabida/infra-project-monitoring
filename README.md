@@ -13,7 +13,7 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 
 > [!NOTE]
 > Bronze ingestion is implemented.
-> Silver configuration plus geography and population, and DPWH project-foundation outputs are implemented.
+> Silver configuration, geography and population, DPWH project foundation, and flood-list source reconciliation outputs are implemented.
 > Other Silver outputs and Gold remain planned.
 
 ## Why we built it
@@ -85,10 +85,13 @@ Implemented Silver outputs currently include:
 - region-level population
 - row-preserving DPWH project components
 - canonical project-level consolidation
+- row-preserving flood-control components
+- exact Contract-ID source reconciliation
 
-Silver project validation checks row preservation, project accounting, budget protection, lineage, and retained source-quality findings.
+Silver validation checks row preservation, project accounting, source reconciliation,
+budget protection, lineage, and retained source-quality findings.
 
-Flood-control reconciliation, project-region mapping, project-flood mapping, and Gold analytical models remain planned.
+Project-region mapping, project-flood mapping, and Gold analytical models remain planned.
 Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
@@ -178,7 +181,7 @@ Three important source rules apply:
 ## Find your way around
 
 - **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
-- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), [Silver geography and population](docs/silver_geography_population.md), and [style guide](docs/style-guide.md)
+- **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), [Silver geography and population](docs/silver_geography_population.md), [Silver project foundation](docs/silver_project_cleaning.md), [Silver source reconciliation](docs/silver_source_reconciliation.md), and [style guide](docs/style-guide.md)
 - **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)

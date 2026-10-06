@@ -335,6 +335,85 @@ The current notebook reports the checks and enforces blocking gates during Datab
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
+## Silver source-reconciliation validation
+
+`notebooks/04_validation/05_validation_silver_source_reconciliation.ipynb`
+validates:
+
+- `02-silver.silver_flood_control_component`
+- `02-silver.silver_project_source_match`
+
+Run it only after the project foundation validator passes and both source-
+reconciliation transformations finish:
+
+1. `notebooks/02_silver/06_silver_flood_control_component.ipynb`
+2. `notebooks/02_silver/07_silver_project_source_match.ipynb`
+3. `notebooks/04_validation/05_validation_silver_source_reconciliation.ipynb`
+
+The validator persists results to `04-validation.silver_dq_results` before its
+blocking gate. Runtime outcomes require Databricks execution.
+
+### Source-reconciliation quality attributes
+
+- Consistency: component accounting and source-cost states follow documented rules.
+- Accuracy: matched Contract IDs agree after `TRIM` and `UPPER` only.
+- Completeness: invalid IDs, repeats, unmatched groups, and ambiguous targets remain visible.
+- Auditability: source component, source snapshot, target project, and match-run lineage remain available.
+- Validity: source feature IDs, costs, statuses, and assignments follow their contracts.
+- Uniqueness: component and match keys are unique at their documented grains.
+- Timeliness: each output contains one selected snapshot and deterministic Silver run.
+
+### Source-reconciliation stop checks
+
+Blocking checks protect:
+
+- accepted and nonempty upstream tables
+- exact Bronze-to-component row preservation
+- unique component and match keys
+- one selected snapshot and run
+- complete component-to-match accounting, including invalid Contract IDs
+- one result per usable normalized source Contract ID
+- exact-match assignment correctness
+- unresolved conflicting costs
+- mandatory source and target lineage
+
+### Source-reconciliation review flags
+
+Nonblocking findings report:
+
+- invalid source Contract IDs
+- repeated source Contract IDs
+- unparseable or negative Contract Cost
+- coordinate exceptions
+- unmatched Contract IDs
+- ambiguous target candidates
+- multiple distinct Contract Cost values
+
+The validator does not modify source evidence, assign arbitrary targets, add flood
+Contract Cost to DPWH budget, or resolve D-04.
+
+### Source-reconciliation accounting
+
+The component rule is:
+
+```text
+selected Bronze flood-control rows
+= Silver flood-control component rows
+```
+
+The match rule is:
+
+```text
+Silver flood-control component rows
+= source components represented by match rows
++ component rows with invalid source Contract IDs
+```
+
+Both expected differences are zero.
+
+See [Silver source reconciliation](silver_source_reconciliation.md) for the complete
+table, matching, lineage, and cost contracts.
+
 ## Future validation documents
 
 Keep layer-specific checks separate as the pipeline grows:
