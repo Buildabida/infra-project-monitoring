@@ -227,9 +227,8 @@ Every blocking safety check passed.
 Describe the result as **completed with non-blocking findings**.
 Do not describe it as "all data-quality checks passed."
 
-The MGB category-validation acceptance item remains open.
-Reconcile coded susceptibility values with the documented text labels.
-Then capture the updated validation output before closing that item.
+At the time of this baseline run, the MGB category-validation acceptance item
+remained open. The October 6 reconciliation below records its resolution.
 
 ## October 5, 2026 MGB validation follow-up
 
@@ -295,3 +294,61 @@ Keep the broader MGB category-distribution item open until the team:
 2. confirms the actual blank-rating count
 3. decides whether the documented reference counts describe another source version
 4. records the conclusion for Silver handling
+
+## October 6, 2026 MGB rating and geometry reconciliation
+
+### Reconciliation scope
+
+This follow-up records the final Databricks rerun and an executed
+rating-to-geometry cross-tabulation for the selected MGB Bronze snapshot.
+It preserves the October 4 and October 5 evidence as historical records.
+
+- MGB snapshot ID: `metadata-17bf5e65e1838a2f7be9`
+- Validation run ID: `f0c48af3-b629-482f-a192-99d9cd00ab15`
+- UTC timestamp: `2026-10-06T07:47:38.281Z`
+- Asia/Manila timestamp: `2026-10-06 15:47:38.281`
+- Checks exported: 126
+- Results: 106 `PASS`, 20 `FLAG`, zero `FAIL`, and zero `ERROR`
+- Blocking checks: all 96 checks with action `stop` passed
+
+The final machine-readable validation results are in
+[`validation-results-2026-10-06.csv`](validation-results-2026-10-06.csv).
+The executed cross-tabulation is in
+[`mgb-rating-geometry-profile-2026-10-06.csv`](mgb-rating-geometry-profile-2026-10-06.csv).
+
+### Executed cross-tabulation
+
+| Raw rating | Geometry status | Rows |
+| --- | --- | ---: |
+| Blank | Blank geometry | 1,815 |
+| Blank | Has geometry | 7 |
+| `No rating` | Has geometry | 16 |
+| `HF` | Has geometry | 14,242 |
+| `LF` | Has geometry | 16,908 |
+| `MF` | Has geometry | 24,847 |
+| `VHF` | Has geometry | 5,849 |
+| **Total** | | **63,684** |
+
+The result confirms 1,822 blank ratings and 16 `No rating` rows. Together,
+they produce 1,838 missing or unrated records in the selected snapshot.
+
+All 1,815 blank-geometry records also have blank ratings. The other seven
+blank ratings have geometry, and all 16 `No rating` rows have geometry.
+
+### Reconciliation conclusion
+
+The historical missing-rating reference of 23 represents the 16 `No rating`
+rows plus seven blank rows with geometry. The selected R2 snapshot contains
+another 1,815 records with both rating and geometry blank.
+
+Those additional records also explain the four category-reference differences:
+869 High, 184 Low, 455 Moderate, and 307 Very High. The differences total
+1,815 rows.
+
+The final validator reports zero unknown ratings. It treats `No rating`, null,
+and blank values as missing or unrated during validation only. It does not
+assign them a susceptibility severity or modify the original Bronze values.
+
+The MGB representation and reconciliation work for issue #65 is complete.
+The missing-rating and geometry findings remain visible as non-blocking flags
+for Silver handling.
