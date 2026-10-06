@@ -250,16 +250,13 @@ def test_deterministic_rule_and_run_versions_exist():
 
 def test_validation_run_id_includes_match_run_id():
     sql = notebook_code(VALIDATION)
-
     context_start = sql.index(
         "CREATE OR REPLACE TEMPORARY VIEW silver_source_reconciliation_context"
     )
     checks_start = sql.index(
         "CREATE OR REPLACE TEMPORARY VIEW silver_source_reconciliation_checks"
     )
-
     context_sql = sql[context_start:checks_start]
-
     assert "COALESCE(match.match_run_id, '')" in context_sql
     assert "silver_source_reconciliation_validation_v2" in context_sql
 
