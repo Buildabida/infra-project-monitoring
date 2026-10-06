@@ -2,8 +2,8 @@
 
 ## Outcome
 
-The current `main` baseline now contains the complete static implementation for
-Silver Tables 11 and 12 plus their validation gate.
+The current `main` baseline now contains the complete implementation for Silver
+Tables 11 and 12 plus their validation gate.
 
 Implemented outputs:
 
@@ -11,7 +11,8 @@ Implemented outputs:
 - `02-silver.silver_project_source_match`
 - source-reconciliation checks in `04-validation.silver_dq_results`
 
-Requires Databricks execution.
+The milestone was executed successfully in Databricks for the current selected
+source snapshots.
 
 ## Baseline reviewed
 
@@ -91,17 +92,44 @@ FLAGS retain expected source limitations for review.
 
 ## Measured and unresolved findings
 
-Existing accepted Bronze evidence records 157 repeated Contract-ID rows in its selected
-9,861-row flood snapshot. That evidence is diagnostic and is not hardcoded as a future
-invariant.
+The Silver source-reconciliation milestone was executed successfully in Databricks.
 
-This package did not execute Databricks. Current Silver repeated-ID groups, cost
-conflicts, exact-match coverage, unmatched groups, ambiguous targets, and PASS, FLAG,
-or FAIL totals are not claimed.
+The current selected snapshot produced:
 
-The validator will report those findings with component-level and Contract-ID-level
-denominators. D-04 remains open after the run because match evidence alone does not
-authorize a final source-combination rule.
+- 9,861 Bronze flood-control rows
+- 9,861 Silver flood-control component rows
+- 9,704 usable normalized Contract-ID groups
+- 9,689 exact Contract-ID matches
+- 15 unmatched Contract-ID groups
+- 0 ambiguous target matches
+- 109 repeated Contract-ID groups
+- 76 source Contract Cost conflict groups
+- 2 Contract Cost parse failures
+- 10 coordinate exceptions
+- 0 invalid source Contract IDs
+
+The validator executed 22 checks:
+
+- 16 PASS
+- 6 non-blocking FLAG
+- 0 FAIL
+- all 12 blocking STOP checks passed
+
+Exact Contract-ID match coverage for the current selected snapshot is approximately
+99.85% of usable source Contract-ID groups.
+
+All 9,861 Bronze flood-control rows reconcile to 9,861 Silver component rows.
+Component-to-match accounting also reconciles with zero difference.
+
+Publisher `source_version` is unavailable for the current flood-control snapshot.
+All rows still retain snapshot and ingest-run lineage, so the missing optional
+publisher version remains a non-blocking FLAG rather than being fabricated.
+
+The remaining FLAG findings remain visible for review and are not silently corrected,
+removed, or force-matched.
+
+D-04 remains open because exact Contract-ID reconciliation records match evidence but
+does not authorize a final source-combination business rule.
 
 ## Lineage
 
