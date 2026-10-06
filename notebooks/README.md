@@ -110,8 +110,15 @@ Review the stored results here:
 
 ## Load Silver
 
-Silver currently implements five configuration tables and three geography and population
-outputs. Project and flood transformation tables remain planned.
+Silver currently implements:
+
+- five configuration tables
+- three geography and population outputs
+- silver_dpwh_project_component
+- silver_project
+- silver project validation
+
+Flood-control reconciliation and project-mapping outputs remain planned.
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -160,6 +167,33 @@ aliases, and compact audit evidence. They do not scan project, boundary, or MGB 
 See [Silver geography and population](../docs/silver_geography_population.md) for grains,
 matching rules, population authority, lineage, and known limitations.
 
+### Project foundation
+
+After Silver configuration validation passes, run:
+
+1. `02_silver/04_silver_dpwh_project_component.ipynb`
+2. `02_silver/05_silver_project.ipynb`
+3. `04_validation/04_validation_silver_projects.ipynb`
+
+The component notebook preserves every selected Bronze DPWH source row while safely parsing supported project fields.
+
+The project notebook consolidates component-level evidence into one canonical project-level record.
+
+The validator confirms:
+
+- Bronze-to-component row preservation
+- component-to-project accounting
+- project uniqueness
+- budget double-count protection
+- source lineage completeness
+- retained source-quality findings
+
+Run all notebooks in Databricks.
+
+Local tests verify notebook structure and contracts but do not create Unity Catalog tables.
+
+See [Silver project foundation](../docs/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -192,8 +226,8 @@ Keep validation notebooks separate too:
 ├── 01_validation_bronze.py
 ├── 02_validation_silver_config.ipynb
 ├── 03_validation_silver_geography_population.ipynb
-├── 04_validation_silver_projects.sql
-├── 05_validation_gold.sql
+├── 04_validation_silver_projects.ipynb
+├── 05_validation_gold.ipynb
 └── 06_publish_acceptance_evidence.sql
 ```
 

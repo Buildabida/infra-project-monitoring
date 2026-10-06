@@ -13,7 +13,7 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 
 > [!NOTE]
 > Bronze ingestion is implemented.
-> Silver configuration plus geography and population outputs are implemented.
+> Silver configuration plus geography and population, and DPWH project-foundation outputs are implemented.
 > Other Silver outputs and Gold remain planned.
 
 ## Why we built it
@@ -77,7 +77,18 @@ The numbers show the pipeline order.
 Python preserves six selected source snapshots in `01-bronze`.
 Grouped Spark checks write Bronze results to `04-validation`.
 Silver configuration tables govern mapping decisions.
-Silver PSGC, population reconciliation, and region population tables are implemented.
+
+Implemented Silver outputs currently include:
+
+- official PSGC place hierarchy
+- Table C place-level reconciliation
+- region-level population
+- row-preserving DPWH project components
+- canonical project-level consolidation
+
+Silver project validation checks row preservation, project accounting, budget protection, lineage, and retained source-quality findings.
+
+Flood-control reconciliation, project-region mapping, project-flood mapping, and Gold analytical models remain planned.
 Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
