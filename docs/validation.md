@@ -224,6 +224,117 @@ The lineage STOP check therefore validates:
 - Table C source lineage for every reconciliation row
 - PSGC target lineage only for successfully matched rows
 
+## Silver project validation
+
+`notebooks/04_validation/04_validation_silver_projects.ipynb` validates:
+
+- `02-silver.silver_dpwh_project_component`
+- `02-silver.silver_project`
+
+Run the validator only after both project transformation notebooks finish successfully:
+
+1. `notebooks/02_silver/04_silver_dpwh_project_component.ipynb`
+2. `notebooks/02_silver/05_silver_project.ipynb`
+3. `notebooks/04_validation/04_validation_silver_projects.ipynb`
+
+The validator reports findings without modifying Bronze rows, Silver project rows, or governed mapping decisions.
+
+### Data-quality attributes
+
+The project validator applies the relevant FTW data-quality attributes:
+
+- Consistency: project attributes follow deterministic resolution rules, and budget-resolution states agree with the underlying distinct-value counts.
+- Accuracy: parsed and canonical values remain source-supported, while unresolved values are not presented as accepted results.
+- Completeness: Bronze rows, component rows, project rows, missing values, invalid parses, and unresolved attributes remain visible.
+- Auditability: component and project outputs retain source-snapshot and Bronze-ingest lineage.
+- Validity: reported budgets, physical progress, dates, coordinates, controlled statuses, and resolution states are checked.
+- Uniqueness: component and project records are validated at their documented grains.
+- Timeliness: outputs remain tied to the selected Bronze snapshot and transformation-rule version.
+
+### Blocking checks
+
+Blocking `stop` checks protect:
+
+- non-empty Bronze DPWH input
+- non-empty Silver component output
+- exact Bronze-to-component row reconciliation
+- exact component-to-project accounting
+- unique project grain
+- budget double-count protection
+- mandatory source-snapshot lineage
+- mandatory Bronze-ingest lineage
+
+A blocking failure means the project foundation is unsafe for downstream use.
+
+### Review flags
+
+Non-blocking `flag` checks report:
+
+- missing coordinate pairs
+- partial coordinate pairs
+- unparseable coordinates
+- budget parse failures
+- negative budgets
+- progress parse failures
+- progress outside the supported range
+- start-date parse failures
+- completion-date parse failures
+- conflicting project descriptions
+- conflicting project categories
+- conflicting project statuses
+- conflicting progress values
+- conflicting dates
+- conflicting project budgets
+- unresolved stalled classification
+- unresolved long-running classification
+
+These findings remain visible for review. The validator does not automatically correct, replace, or delete the affected source evidence.
+
+### Row reconciliation
+
+The component-table accounting rule is:
+
+```text
+Bronze DPWH rows
+=
+Silver DPWH component rows
+```
+
+The expected difference is zero.
+
+The project-table accounting rule is:
+
+```text
+Silver DPWH component rows
+=
+SUM(silver_project.component_count)
+```
+
+The expected difference is zero.
+
+The project table must also contain no duplicate project identity at its documented Contract ID grain.
+
+### Budget protection
+
+The validator confirms that project budgets are not created by blindly summing repeated component values.
+
+The supported outcomes are:
+
+- one valid source-supported budget
+- one repeated identical budget retained once
+- missing or invalid budget
+- multiple conflicting budgets retained as unresolved
+
+Projects with multiple distinct component budget values must not publish an unsupported canonical project total.
+
+### Validation evidence
+
+Project validation executes after both project Silver tables are published.
+
+The current notebook reports the checks and enforces blocking gates during Databricks execution.
+
+Source-quality findings remain visible as review evidence rather than being silently cleaned.
+
 ## Future validation documents
 
 Keep layer-specific checks separate as the pipeline grows:

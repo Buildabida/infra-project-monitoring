@@ -115,15 +115,24 @@ PSGC population remains a cross-check.
 See [Silver geography and population](silver_geography_population.md) for the matching,
 lineage, validation, and cost contracts.
 
-## Remaining Silver matching tables (planned)
+## Silver project foundation tables (implemented)
 
-These tables preserve explainable matching decisions.
-The Gold model must not hide those decisions.
-They describe the target design and do not claim that the tables already exist.
+These tables implement the Silver project foundation layer.
+
+The project foundation preserves DPWH project source evidence.
+
+It creates a canonical project-level output for future project matching and geographic assignment.
+
+The same output also supports flood-control reconciliation, portfolio analysis, delivery analysis, and Gold project facts.
+
+The component and project tables are implemented and require Databricks execution.
+
+Project-region and project-flood mapping tables remain planned.
 
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
-| `02-silver.silver_dpwh_project_component` | One DPWH component or type-of-work record per contract and ingestion run | `component_key` | `source_system`, `contract_id`, `source_component_id`, `source_infra_type`, `source_type_of_work`, `component_description`, `source_row_number`, `run_id`, `source_load_ts` |
+| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | Contract ID plus Bronze source lineage | `project_description_raw`, `category_raw`, `status_raw`, `reported_budget_raw`, `reported_budget_pesos`, `physical_progress_pct`, parsed dates, parsed coordinates, `coordinate_status`, Bronze lineage fields |
+| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes, budget resolution status, attribute-resolution status, source lineage, deterministic project identity |
 | `02-silver.silver_flood_control_component` | One published flood-control source row | `flood_component_key` | `source_contract_id`, matched project system and contract, `type_of_work`, `component_description`, `source_contract_cost`, `match_status`, `source_row_number`, `source_version`, `run_id`, `source_load_ts` |
 | `02-silver.silver_project_region_map` | One project-to-region mapping result per pipeline run | `project_region_map_key` | `source_system`, `contract_id`, `psgc_region_code`, `reported_region_raw`, `mapping_method`, `match_status`, `match_quality`, `boundary_version`, `run_id`, `source_load_ts` |
 | `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
