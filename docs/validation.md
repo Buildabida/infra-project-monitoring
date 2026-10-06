@@ -107,13 +107,17 @@ The updated validator ran on October 5, 2026. Run
 The results were 105 `PASS` and 21 non-blocking `FLAG` rows.
 No check produced `FAIL` or `ERROR`, and all 96 `stop` checks passed.
 
-Only 16 of 63,684 MGB rows remained outside the accepted rating labels.
-The earlier text-only comparison flagged 61,862 rows.
-This decrease confirms that validation now recognizes the official codes.
+Only 16 of 63,684 MGB rows remained outside the four accepted severity
+codes. Local source profiling found one distinct raw value, `No rating`,
+across those 16 rows.
 
-Category-count differences and the blank-rating difference remain review flags.
-Profile the 16 remaining values and confirm the blank count before closing the
-broader category-distribution item. Do not change the raw Bronze values.
+Validation treats `No rating`, null, and blank values as missing or unrated.
+This interpretation applies only while evaluating checks. It does not assign
+a susceptibility severity and does not change the raw Bronze value.
+
+The selected R2 snapshot still requires a Databricks cross-tabulation of
+rating and geometry completeness. Keep the category-distribution item open
+until the 1,815 geometry findings are reconciled with the rating findings.
 
 ## Summary
 
