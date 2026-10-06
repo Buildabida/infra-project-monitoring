@@ -791,3 +791,23 @@ print(
 # MAGIC The validation layer separates pipeline safety from known source imperfections. It
 # MAGIC protects raw preservation, snapshot lineage, source grain, and source-to-Bronze row
 # MAGIC reconciliation while leaving all business transformations to Silver.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC SELECT
+# MAGIC   COALESCE(
+# MAGIC     NULLIF(TRIM(flood_susceptibility_code), ''),
+# MAGIC     '<BLANK>'
+# MAGIC   ) AS raw_rating,
+# MAGIC   CASE
+# MAGIC     WHEN geometry_json IS NULL OR TRIM(geometry_json) = ''
+# MAGIC       THEN 'BLANK_GEOMETRY'
+# MAGIC     ELSE 'HAS_GEOMETRY'
+# MAGIC   END AS geometry_status,
+# MAGIC   COUNT(*) AS row_count
+# MAGIC FROM `buildabida-capstone`.`01-bronze`.flood_susceptibility
+# MAGIC WHERE _source_snapshot_id = 'metadata-17bf5e65e1838a2f7be9'
+# MAGIC GROUP BY 1, 2
+# MAGIC ORDER BY 1, 2;
