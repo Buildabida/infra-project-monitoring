@@ -86,8 +86,8 @@ They are not filtering, deduplication, or transformation rules.
 | `column` | Column or table-level subject of the check |
 | `data_quality_check` | Human-readable rule |
 | `failed_rows` | Rows or units outside the rule |
-| `total_rows` | Denominator or documented expected total |
-| `percentage` | Relative size of the finding when meaningful |
+| `total_rows` | Denominator used to calculate the finding percentage |
+| `percentage` | Finding size as a percentage of `total_rows` |
 | `status` | `PASS`, `FLAG`, `FAIL`, or `ERROR` |
 | `action` | `stop` or `flag` |
 | `details` | Concise context for reviewers |
@@ -102,18 +102,27 @@ checks. Bronze continues preserving the original source values.
 The October 4 evidence was produced by the earlier text-only comparison.
 That historical evidence remains unchanged.
 
-The updated validator ran on October 5, 2026. Run
-`f530d193-5566-4bc4-abdb-3a88b65fa763` exported 126 checks.
-The results were 105 `PASS` and 21 non-blocking `FLAG` rows.
+The final validator rerun completed on October 6, 2026. Run
+`f0c48af3-b629-482f-a192-99d9cd00ab15` exported 126 checks.
+The results were 106 `PASS` and 20 non-blocking `FLAG` rows.
 No check produced `FAIL` or `ERROR`, and all 96 `stop` checks passed.
 
-Only 16 of 63,684 MGB rows remained outside the accepted rating labels.
-The earlier text-only comparison flagged 61,862 rows.
-This decrease confirms that validation now recognizes the official codes.
+The MGB check found no value outside the accepted severity codes or documented
+missing representations. The executed cross-tabulation found 16 `No rating`
+rows and 1,822 blank ratings in the selected 63,684-row snapshot.
 
-Category-count differences and the blank-rating difference remain review flags.
-Profile the 16 remaining values and confirm the blank count before closing the
-broader category-distribution item. Do not change the raw Bronze values.
+Validation treats `No rating`, null, and blank values as missing or unrated.
+This interpretation applies only while evaluating checks. It does not assign
+a susceptibility severity and does not change the raw Bronze value.
+
+Of the 1,822 blank ratings, 1,815 also have blank geometry. The other seven
+blank ratings have geometry. All 16 `No rating` rows have geometry. This
+reconciles the 1,815 geometry findings with the rating-distribution difference.
+
+The historical missing-rating reference contains the 16 `No rating` rows and
+seven blank rows with geometry. The selected R2 snapshot contains another
+1,815 records with both fields blank. The difference remains a non-blocking
+source-quality flag for Silver handling. Bronze rows remain unchanged.
 
 ## Summary
 

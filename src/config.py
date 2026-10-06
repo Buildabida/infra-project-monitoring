@@ -201,6 +201,8 @@ SOURCES = {
             "MF": "moderate",
             "LF": "low",
         },
+        # Source sentinel interpreted as missing/unrated during validation only.
+        "missing_rating_values": ["No rating"],
         "rating_reference": {
             "very high": 6_156,
             "high": 15_111,

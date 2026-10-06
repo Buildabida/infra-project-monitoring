@@ -93,6 +93,14 @@ def test_mgb_rating_codes_have_documented_canonical_levels():
     }
 
 
+def test_mgb_missing_rating_values_are_explicit():
+    source = config.source_config("flood_susceptibility")
+
+    assert source["missing_rating_values"] == ["No rating"]
+    assert "No rating" not in source["rating_code_map"]
+    assert source["rating_reference"]["missing"] == 23
+
+
 def test_current_table_must_match_requested_snapshot_and_artifact():
     metadata = {
         "path": "/Volumes/catalog/source/volume/example.csv",

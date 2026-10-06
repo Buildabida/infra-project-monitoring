@@ -561,6 +561,9 @@ for source_name in config.SOURCE_ORDER:
         if rating:
             allowed = ["very high", "high", "moderate", "low"]
             code_map = source["rating_code_map"]
+            missing_values = [
+                value.casefold() for value in source.get("missing_rating_values", [])
+            ]
             code_map_expression = F.create_map(
                 *[
                     item
@@ -573,17 +576,18 @@ for source_name in config.SOURCE_ORDER:
                 code_map_expression[F.upper(raw_rating)],
                 F.lower(raw_rating),
             )
+            is_missing_rating = (
+                F.col(rating).isNull()
+                | (raw_rating == "")
+                | F.lower(raw_rating).isin(*missing_values)
+            )
             add_metric(
                 metrics,
                 "unknown_rating",
                 rating,
-                "rating maps to very high, high, moderate, low, or missing",
+                "rating is a recognized severity or documented missing value",
                 "flag",
-                count_if(
-                    F.col(rating).isNotNull()
-                    & (F.trim(F.col(rating)) != "")
-                    & ~normalized.isin(*allowed)
-                ),
+                count_if(~is_missing_rating & ~normalized.isin(*allowed)),
             )
             for index, category in enumerate(allowed):
                 expected = source["rating_reference"][category]
@@ -596,20 +600,25 @@ for source_name in config.SOURCE_ORDER:
                     F.abs(count_if(normalized == category) - F.lit(expected)).cast(
                         "long"
                     ),
-                    expected,
+                    details=(
+                        f"Documented reference count: {expected}. "
+                        "Percentage uses the full snapshot row count."
+                    ),
                 )
             expected_missing = source["rating_reference"]["missing"]
             add_metric(
                 metrics,
                 "rating_missing",
                 rating,
-                "missing-rating row count matches documented reference",
+                "missing or unrated row count matches documented reference",
                 "flag",
-                F.abs(
-                    count_if(F.col(rating).isNull() | (F.trim(F.col(rating)) == ""))
-                    - F.lit(expected_missing)
-                ).cast("long"),
-                expected_missing,
+                F.abs(count_if(is_missing_rating) - F.lit(expected_missing)).cast(
+                    "long"
+                ),
+                details=(
+                    f"Documented missing or unrated reference count: "
+                    f"{expected_missing}. Percentage uses the full snapshot row count."
+                ),
             )
         else:
             missing_column(table, "susceptibility rating", rating_candidates, "stop")
@@ -782,3 +791,22 @@ print(
 # MAGIC The validation layer separates pipeline safety from known source imperfections. It
 # MAGIC protects raw preservation, snapshot lineage, source grain, and source-to-Bronze row
 # MAGIC reconciliation while leaving all business transformations to Silver.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC -- this profiles the current bronze snapshot; validation above requires exactly one selected snapshot
+# MAGIC SELECT
+# MAGIC   COALESCE(
+# MAGIC     NULLIF(TRIM(flood_susceptibility_code), ''),
+# MAGIC     '<BLANK>'
+# MAGIC   ) AS raw_rating,
+# MAGIC   CASE
+# MAGIC     WHEN geometry_json IS NULL OR TRIM(geometry_json) = ''
+# MAGIC       THEN 'BLANK_GEOMETRY'
+# MAGIC     ELSE 'HAS_GEOMETRY'
+# MAGIC   END AS geometry_status,
+# MAGIC   COUNT(*) AS row_count
+# MAGIC FROM `buildabida-capstone`.`01-bronze`.flood_susceptibility
+# MAGIC GROUP BY 1, 2
+# MAGIC ORDER BY 1, 2;

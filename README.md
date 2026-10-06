@@ -169,11 +169,14 @@ Three important source rules apply:
 - **One workspace owns the final pipeline.**
   This follows [D-01](docs/decisions.md).
   The team limits unnecessary compute and shares code through this repository.
-- **MGB category distribution still needs review.**
-  The October 5 validation rerun recognizes the official `VHF`, `HF`, `MF`,
-  and `LF` codes. Sixteen values remain outside the accepted labels, and the
-  category counts differ from historical references. These findings remain
-  non-blocking flags for profiling and Silver handling.
+- **MGB missing ratings and geometry remain source-quality findings.**
+  The October 6 reconciliation recognizes the official `VHF`, `HF`, `MF`,
+  and `LF` severity codes and treats `No rating`, null, and blank ratings as
+  missing or unrated during validation only. The final unknown-rating check
+  reports zero unexpected values. The selected snapshot contains 1,838
+  missing or unrated records, including 1,815 rows where both the rating and
+  geometry are blank. These remain non-blocking findings for Silver handling,
+  while Bronze preserves the original source values.
 
 ## Find your way around
 
