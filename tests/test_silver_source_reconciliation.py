@@ -246,7 +246,7 @@ def test_deterministic_rule_and_run_versions_exist():
     assert "silver_flood_control_component_v1" in sql
     assert "silver_project_source_match_v1" in sql
     assert "SHA2(" in sql
- 
+
 
 def test_validation_run_id_includes_match_run_id():
     sql = notebook_code(VALIDATION)
