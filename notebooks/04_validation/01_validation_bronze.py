@@ -795,7 +795,7 @@ print(
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC
+# MAGIC -- this profiles the current bronze snapshot; validation above requires exactly one selected snapshot
 # MAGIC SELECT
 # MAGIC   COALESCE(
 # MAGIC     NULLIF(TRIM(flood_susceptibility_code), ''),
@@ -808,6 +808,5 @@ print(
 # MAGIC   END AS geometry_status,
 # MAGIC   COUNT(*) AS row_count
 # MAGIC FROM `buildabida-capstone`.`01-bronze`.flood_susceptibility
-# MAGIC WHERE _source_snapshot_id = 'metadata-17bf5e65e1838a2f7be9'
 # MAGIC GROUP BY 1, 2
 # MAGIC ORDER BY 1, 2;
