@@ -10,7 +10,10 @@ It implements:
 - `02-silver.silver_project_source_match`
 - persisted validation in `04-validation.silver_dq_results`
 
-Requires Databricks execution.
+Implemented and runtime-validated in Databricks for the current selected snapshots.
+
+The notebooks must be rerun and revalidated when their upstream snapshots or
+transformation rules change.
 
 ## Business purpose
 
@@ -223,12 +226,46 @@ passing result.
 D-04 remains open. This milestone records exact Contract ID match evidence but does
 not authorize a final business rule for combining overlapping source records.
 
+## Current runtime validation
+
+The current selected snapshots were executed successfully in Databricks.
+
+Runtime results:
+
+- 9,861 Bronze flood-control rows
+- 9,861 Silver flood-control component rows
+- 9,704 usable normalized Contract-ID groups
+- 9,689 exact Contract-ID matches
+- 15 unmatched Contract-ID groups
+- 0 ambiguous target matches
+- 109 repeated Contract-ID groups
+- 76 source Contract Cost conflict groups
+- 2 Contract Cost parse failures
+- 10 coordinate exceptions
+- 0 invalid source Contract IDs
+
+The validator executed 22 checks:
+
+- 16 PASS
+- 6 non-blocking FLAG
+- 0 FAIL
+- all 12 blocking STOP checks passed
+
+Exact Contract-ID match coverage is approximately 99.85% of usable source
+Contract-ID groups for the current selected snapshots.
+
+These figures describe the current runtime state and are not hardcoded future
+expectations.
+
 ## Known limitations
 
 - Only exact normalized Contract ID matching is implemented.
 - Missing and inconsistent Contract IDs remain unresolved.
-- Match coverage and runtime counts require Databricks execution.
-- Source-version availability depends on the selected Bronze load audit.
+- The current selected snapshot has 15 unmatched Contract-ID groups.
+- Publisher `source_version` is unavailable for the current flood-control snapshot,
+  although snapshot and ingest-run lineage remain available.
+- Match coverage must be recalculated whenever the flood-control or DPWH project
+  snapshots change.
 - No geography, spatial exposure, population, MGB, or Gold logic is included.
 
 ## Downstream dependencies
