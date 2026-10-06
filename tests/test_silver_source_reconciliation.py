@@ -189,6 +189,20 @@ def test_component_to_match_accounting_exists():
     assert "Component accounting includes matched groups and invalid IDs" in sql
 
 
+def test_source_match_status_coverage_is_enforced():
+    sql = notebook_code(VALIDATION)
+
+    assert "Match statuses reconcile to all usable source Contract IDs" in sql
+
+    assert re.search(
+        r"matched_groups\s*\+\s*unmatched_groups\s*\+\s*ambiguous_groups"
+        r"\s*=\s*usable_source_contract_groups",
+        sql,
+    )
+
+    assert "'stop'" in sql
+
+
 def test_target_candidate_uniqueness_is_validated():
     sql = notebook_code(MATCH)
     assert "target_candidate_count" in sql
@@ -232,6 +246,22 @@ def test_deterministic_rule_and_run_versions_exist():
     assert "silver_flood_control_component_v1" in sql
     assert "silver_project_source_match_v1" in sql
     assert "SHA2(" in sql
+ 
+
+def test_validation_run_id_includes_match_run_id():
+    sql = notebook_code(VALIDATION)
+
+    context_start = sql.index(
+        "CREATE OR REPLACE TEMPORARY VIEW silver_source_reconciliation_context"
+    )
+    checks_start = sql.index(
+        "CREATE OR REPLACE TEMPORARY VIEW silver_source_reconciliation_checks"
+    )
+
+    context_sql = sql[context_start:checks_start]
+
+    assert "COALESCE(match.match_run_id, '')" in context_sql
+    assert "silver_source_reconciliation_validation_v2" in context_sql
 
 
 def test_source_and_target_lineage_are_retained():

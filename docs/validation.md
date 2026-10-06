@@ -331,7 +331,16 @@ Projects with multiple distinct component budget values must not publish an unsu
 
 Project validation executes after both project Silver tables are published.
 
-The current notebook reports the checks and enforces blocking gates during Databricks execution.
+The validator persists project validation results to
+`04-validation.silver_dq_results` before enforcing the blocking gate.
+
+This preserves validation evidence even when a blocking check fails and keeps
+the project validator consistent with the geography/population and source-reconciliation
+validation contracts.
+
+The validation run identity is deterministic for the selected source snapshot,
+Silver project run, and validation-rule version, so exact reruns update the same
+logical evidence instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
