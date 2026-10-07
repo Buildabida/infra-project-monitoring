@@ -2,8 +2,7 @@
 
 ## Outcome
 
-The current pull-request branch contains the complete implementation for Silver
-Table 14 and its validation gate.
+This milestone implements Silver Table 14 and its validation gate.
 
 Implemented output:
 
@@ -23,7 +22,7 @@ Implementation started from `main` at commit
 `bca73cb6547669b6159a063e2e0323d2f7082ddb`. The supplied repository archive had
 no file differences from that commit.
 
-Current main already contained Silver Tables 1 through 13:
+The reviewed baseline already contained Silver Tables 1 through 13:
 
 - CONFIG 1 to 5: the five configuration tables
 - geography and population 6 to 8: `silver_psgc_place`,
