@@ -10,7 +10,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, and project-region mapping outputs are implemented. Project-flood mapping remains planned. |
+| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, and regional flood-exposure outputs are implemented. Project-flood mapping remains planned. |
 | Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
 
 ```text
@@ -170,6 +170,45 @@ PSGC region. Unmatched, ambiguous, and conflicting projects remain in the table.
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete precedence, boundary, lineage, and validation contracts.
 
+## Silver regional flood-exposure table (implemented)
+
+Table 14 performs the MGB-to-region spatial work once in Silver.
+It reads only MGB, region boundaries, official PSGC regions, approved MGB mappings,
+and compact audit and validation evidence. It does not read projects, population,
+Table 13, or Gold.
+
+```text
+01-bronze.flood_susceptibility
+        ↓
+config_mgb_susceptibility_mapping
+        ↓
+standardized MGB flood polygons
+        ↓
+regional spatial intersection ← 01-bronze.boundaries ← silver_psgc_place
+        ↓
+silver_region_flood_exposure
+        ↓
+03-gold.fact_region_flood_exposure (planned)
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_region_flood_exposure` | One official PSGC region × one active approved MGB susceptibility level × selected MGB snapshot × selected boundary snapshot × deterministic exposure run | `region_flood_exposure_key` | Region code and name, raw code, level, severity rank, region area, susceptible area, share, source polygon and fragment counts, overlap measures and additivity status.<br>Mapping, boundary, spatial, version, and geometry statuses, exception reason, MGB/mapping/boundary/PSGC lineage, area CRS, rule versions, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness: `psgc_region_code`, `flood_susceptibility_level`, `run_id`.
+
+`region_flood_exposure_key` is a deterministic Silver SHA-256 key. It is not the
+future Gold BIGINT surrogate key. Areas use `DECIMAL(18,4)` and the share uses
+`DECIMAL(7,4)`. Area is calculated in EPSG:6933, an equal-area CRS, never in
+square degrees.
+
+A safe region with no exposure has real zero values. A region without one safe
+boundary keeps `NULL` measures with `NO_SAFE_REGION_BOUNDARY`. Blank and
+`No rating` MGB values stay unmapped and never enter an approved level.
+
+See [Silver regional flood exposure](silver_region_flood_exposure.md) for the
+complete CRS, boundary, overlap, lineage, validation, and Gold handoff contracts.
+
 ## Gold fact tables (planned)
 
 These fact tables are design targets and do not exist yet.
@@ -223,6 +262,10 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 ### `03-gold.fact_region_flood_exposure`
 
 Grain: one region per susceptibility level, MGB version, and boundary version.
+
+Source: `02-silver.silver_region_flood_exposure`. Gold assigns `region_key` and
+`flood_susceptibility_key` only. It must not repeat MGB mapping, geometry
+parsing, clipping, area calculation, or overlap handling.
 
 Primary key: `region_flood_exposure_key`.
 Foreign keys: `region_key` and `flood_susceptibility_key`.

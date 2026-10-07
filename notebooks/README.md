@@ -47,6 +47,8 @@ Governed mappings remain separate from geography and population transformations.
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
 | 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
+| 25 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
+| 26 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -130,6 +132,8 @@ Silver currently implements:
 - Silver source-reconciliation validation
 - silver_project_region_map
 - Silver project-region mapping validation
+- silver_region_flood_exposure
+- Silver regional flood-exposure validation
 
 Project-flood mapping remains planned.
 
@@ -268,6 +272,42 @@ See [Silver project-to-region mapping](../docs/silver_project_region_mapping.md)
 for the Table 13 grain, D-03 resolution, methods, statuses, lineage, spatial cost
 controls, and Gold handoff.
 
+### Regional flood exposure
+
+Table 14 depends only on MGB and boundary Bronze, Silver configuration, Silver
+PSGC, and their validators. It does not depend on project foundation,
+flood-control reconciliation, or Table 13.
+
+If Bronze, configuration, and PSGC are accepted and unchanged:
+
+1. Review the existing accepted upstream evidence.
+2. Run `02_silver/09_silver_region_flood_exposure.ipynb`.
+3. Run `04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+
+When upstream inputs changed, use this dependency-aware order:
+
+1. Bronze pipeline and Bronze validation, when MGB or boundaries changed
+2. `02_silver/00_config_mappings.ipynb`, when the MGB mapping changed
+3. `04_validation/02_validation_silver_config.ipynb`, after step 2
+4. `02_silver/01_silver_psgc_place.ipynb`, when PSGC changed
+5. `04_validation/03_validation_silver_geography_population.ipynb`, after step 4
+6. `02_silver/09_silver_region_flood_exposure.ipynb`
+7. `04_validation/07_validation_silver_region_flood_exposure.ipynb`
+
+The exposure notebook uses only the selected region boundaries, active approved
+MGB mappings, and native Databricks SQL spatial functions. Area is calculated in
+the documented equal-area CRS. Execution requires Databricks Runtime 17.1 or
+later for `ST_TRANSFORM`.
+
+The validator writes all seven quality attributes to
+`04-validation.silver_dq_results` before enforcing its STOP gate. Review unmapped
+and unrated MGB rows, unusable geometry, no-data regions, boundary version and
+territory differences, and overlap findings.
+
+See [Silver regional flood exposure](../docs/silver_region_flood_exposure.md)
+for the Table 14 grain, CRS, boundary strategy, overlap rules, lineage, and Gold
+handoff.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -303,8 +343,9 @@ Keep validation notebooks separate too:
 ├── 04_validation_silver_projects.ipynb
 ├── 05_validation_silver_source_reconciliation.ipynb
 ├── 06_validation_silver_project_region_map.ipynb
-├── 07_validation_gold.ipynb
-└── 08_publish_acceptance_evidence.sql
+├── 07_validation_silver_region_flood_exposure.ipynb
+├── 08_validation_gold.ipynb
+└── 09_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based
