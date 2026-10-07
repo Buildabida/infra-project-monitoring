@@ -31,18 +31,21 @@ Our brief asks one main question:
 In simple terms, we want to know where funding goes and what it supports.
 We also compare investment with population and infrastructure-need indicators.
 
-These supporting questions guide the analysis:
+Five supporting questions guide the analysis.
+We answer them at the regional level first ([D-25](docs/decisions.md)).
 
-1. How much reported project budget goes to each region and province?
-2. Which projects are ongoing, inactive, long-running, or showing no progress?
-3. How do reported budget and physical progress compare?
-4. How does flood-control investment compare with other project categories?
-5. Which places have high population or flood exposure but relatively low reported investment?
+1. Which regions receive the highest and lowest reported infrastructure investment and project counts?
+2. Which infrastructure categories receive the largest share of reported project budget, and how does flood control compare with other categories?
+3. Which regions and infrastructure categories have the highest percentage of ongoing, inactive, or long-running projects?
+4. Which regions receive a larger or smaller share of infrastructure investment relative to their population share?
+5. How does flood-control investment and project coverage compare with flood-risk exposure across Philippine regions?
 
 ## Who it is for
 
-- **People** checking public works investment in their province or city
-- **Planners** identifying places with high needs and relatively low investment
+- **The TWG-IDI**, the Technical Working Group on Infrastructure Data Integration.
+  The Senate Committee on Public Works asked for it.
+  It helps the committee compare project investment by area and type when it reviews the budget ([D-27](docs/decisions.md)).
+- **The public**, following where public works money goes in their region
 - **Reviewers** verifying the pipeline, evidence, and analytical assumptions
 
 ## How it works
