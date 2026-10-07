@@ -165,8 +165,26 @@ preservation, documented grain, deterministic identities, precedence, official
 targets, Central Office, conflict state, geometry, and mandatory lineage. FLAG
 checks retain source and configuration limits with denominators.
 
-Runtime PASS, FLAG, and FAIL totals are not available.
-Requires Databricks execution.
+### Databricks runtime verification
+
+The Table 13 transformation and validator were executed successfully in
+Databricks against the selected Unity Catalog tables.
+
+Runtime results:
+
+- canonical `silver_project` rows: 265,656
+- `silver_project_region_map` rows: 265,656
+- row-preservation difference: 0
+- blocking STOP checks: 18 PASS, 0 FAIL
+- `MATCHED`: 212,353
+- `MATCHED_WITH_CONFLICT`: 14
+- `NON_GEOGRAPHIC`: 306
+- `AMBIGUOUS`: 32
+- `UNMATCHED`: 52,951
+- `INVALID_SOURCE`: 0
+
+Validation evidence was persisted to
+`04-validation.silver_dq_results` before the blocking gate.
 
 ## Local verification
 
@@ -180,13 +198,12 @@ Requires Databricks execution.
 
 ## Unresolved limitations
 
-- Current project rows do not contain a legitimate PSGC code for the direct-code
-  stage.
-- Approved DPWH region aliases and manual exceptions may be empty.
-- The current boundary and PSGC versions differ, including an older 17-region
-  boundary set and a current 18-region PSGC set.
-- Runtime mapped, unmatched, ambiguous, non-geographic, and conflict counts are
-  not known until Databricks execution.
+- The current project contract has no legitimate project-level PSGC code.
+- No approved DPWH region aliases were available for this run.
+- No approved manual project-region overrides were available for this run.
+- The selected boundary set contains 17 regions while current PSGC contains 18.
+- The boundary and PSGC versions differ, so the mismatch remains visible.
+- 52,951 projects remain unmatched and 32 remain ambiguous.
 - Tables 14 and 15, Gold, dashboards, and Genie remain outside this milestone.
 
 ## Runtime handoff
