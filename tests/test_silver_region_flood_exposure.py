@@ -154,10 +154,9 @@ def test_16_no_gold_read_or_write():
         assert "dim_flood_susceptibility" not in code
 
 
-def test_17_table_15_is_not_implemented():
+def test_17_table_14_does_not_depend_on_table_15():
     for path in (EXPOSURE_NOTEBOOK, VALIDATION_NOTEBOOK):
         assert "silver_project_flood_map" not in code_without_comments(path).lower()
-    assert not (ROOT / "notebooks/02_silver/10_silver_project_flood_map.ipynb").exists()
 
 
 def test_18_complete_region_by_level_grid_is_built_from_dynamic_sets():
