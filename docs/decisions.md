@@ -12,6 +12,7 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | --- | --- | --- | --- |
 | D-01 | Sep 28 | The team workspace runs the final pipeline and dashboard. | Nadine created a shared workspace where everyone is a user. It is not tied to one person. |
 | D-02 | Sep 26 | The main question is the one in the project brief. | The brief defines the project direction. |
+| D-04 | Oct 8 | Use DPWH as the canonical project and reported-budget authority. Preserve flood-control rows as source evidence and reconcile them by exact normalized Contract ID. Do not add flood-control Contract Cost to the DPWH reported budget. Keep unmatched and ambiguous records visible. | This prevents double counting while preserving source evidence and lineage. |
 | D-05 | Sep 26 | The team name is Buildabida. | It fits infrastructure and sounds fun. |
 | D-06 | Sep 26 | Tasks live in GitHub issues and one project board. | This keeps tasks and code in one place. |
 | D-07 | Sep 28 | Tables live in the `buildabida` catalog. | This separates the capstone from earlier class work. |
@@ -50,12 +51,6 @@ Snapshot context for D-19 and D-23:
 
 - D-19 records the September 29 flood-control snapshot with 9,855 rows.
 - The accepted October 4 snapshot contains 9,861 rows.
-
-## Still open
-
-| ID | Question | Options under review |
-| --- | --- | --- |
-| D-04 | How do we handle projects found in both project lists? | Match by Contract ID |
 
 ## Resolved questions
 
