@@ -316,6 +316,29 @@ The final machine-readable validation results are in
 The executed cross-tabulation is in
 [`mgb-rating-geometry-profile-2026-10-06.csv`](mgb-rating-geometry-profile-2026-10-06.csv).
 
+## October 8, 2026 MGB source sample review
+
+To complete the source acceptance evidence for issue #45, we reviewed
+representative rows directly from the selected Bronze MGB snapshot.
+
+The review included one sample for each observed source category:
+
+- `LF`
+- `MF`
+- `HF`
+- `VHF`
+- `No rating`
+- blank susceptibility code
+
+All six sampled rows retained geometry evidence and ingestion lineage.
+The geometry preview showed the expected Esri `rings` structure.
+
+The machine-readable sample is in
+[`mgb-source-sample-review-2026-10-08.csv`](mgb-source-sample-review-2026-10-08.csv).
+
+This review is evidence only. It does not modify Bronze values, MGB mappings,
+geometry parsing, or downstream flood classifications.
+
 ### Executed cross-tabulation
 
 | Raw rating | Geometry status | Rows |
