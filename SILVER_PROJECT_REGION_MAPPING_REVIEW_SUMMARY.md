@@ -62,9 +62,6 @@ substitute.
 
 ## Local dataset verification
 
-`/Users/franziellenadinecanquin/datasets` was accessible. Six files were
-identified:
-
 | Local file | Bronze source |
 | --- | --- |
 | `dpwh_projects.csv` | `01-bronze.dpwh_projects` |
