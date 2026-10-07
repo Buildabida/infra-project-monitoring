@@ -261,9 +261,13 @@ The notebook never uses `MAX(severity_rank)`, a severity sort, polygon order, or
 any other tie-breaker. `candidate_levels` is sorted as text for display only.
 The order never implies precedence.
 
-If the team later approves a precedence rule, it must be recorded as a decision
-and released as a new rule version. Version `silver-project-flood-map-v1` must
-not change silently.
+Decision governance: the Buildabida team owns any future severity-precedence
+decision. D-29 and D-30 establish the project's traceability and versioned
+mapping pattern. No severity-precedence rule is approved for v1.
+
+Any future precedence must receive a new decision ID in `docs/decisions.md`
+and a new `silver-project-flood-map` rule version before implementation.
+Version `silver-project-flood-map-v1` must not change silently.
 
 ## Output columns
 
