@@ -134,8 +134,10 @@ Silver currently implements:
 - Silver project-region mapping validation
 - silver_region_flood_exposure
 - Silver regional flood-exposure validation
+- silver_project_flood_map
+- Silver project flood-mapping validation
 
-Project-flood mapping remains planned.
+Gold remains planned.
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -308,6 +310,45 @@ See [Silver regional flood exposure](../docs/silver_region_flood_exposure.md)
 for the Table 14 grain, CRS, boundary strategy, overlap rules, lineage, and Gold
 handoff.
 
+### Project flood mapping
+
+Table 15 depends on the project foundation, MGB Bronze, Silver configuration,
+and their validators. It does not depend on flood-control reconciliation,
+Table 13, or Table 14.
+
+If Bronze, configuration, and the project foundation are accepted and unchanged:
+
+1. Review the existing accepted upstream evidence.
+2. Run `02_silver/10_silver_project_flood_map.ipynb`.
+3. Run `04_validation/08_validation_silver_project_flood_map.ipynb`.
+
+When upstream inputs changed, use this dependency-aware order:
+
+1. Bronze pipeline and Bronze validation, when DPWH or MGB changed
+2. `02_silver/00_config_mappings.ipynb`, when the MGB mapping changed
+3. `04_validation/02_validation_silver_config.ipynb`, after step 2
+4. `02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
+5. `02_silver/05_silver_project.ipynb`, after step 4
+6. `04_validation/04_validation_silver_projects.ipynb`, after step 5
+7. `02_silver/10_silver_project_flood_map.ipynb`
+8. `04_validation/08_validation_silver_project_flood_map.ipynb`
+
+The notebook keeps every canonical project. A project receives a flood level
+only when its usable map point falls inside polygons of exactly one approved MGB
+level. Points inside several approved levels stay `AMBIGUOUS` because no
+severity precedence is approved. Execution requires Databricks Runtime 17.1 or
+later, because the governed MGB parser uses `ST_TRANSFORM`.
+
+The validator writes all seven quality attributes to
+`04-validation.silver_dq_results` before enforcing its STOP gate. Review
+coverage against both denominators, projects without usable coordinates, usable
+points without an approved polygon, ambiguous projects, and unmapped or unusable
+MGB rows.
+
+See [Silver project flood mapping](../docs/silver_project_flood_mapping.md) for
+the Table 15 grain, classification rule, lineage, cost controls, and Gold
+handoff.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -344,8 +385,9 @@ Keep validation notebooks separate too:
 ├── 05_validation_silver_source_reconciliation.ipynb
 ├── 06_validation_silver_project_region_map.ipynb
 ├── 07_validation_silver_region_flood_exposure.ipynb
-├── 08_validation_gold.ipynb
-└── 09_publish_acceptance_evidence.sql
+├── 08_validation_silver_project_flood_map.ipynb
+├── 09_validation_gold.ipynb
+└── 10_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based

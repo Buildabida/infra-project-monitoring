@@ -25,7 +25,7 @@ but the notebooks do not depend on a developer file path.
 | `silver_population_place_reconciliation` | Implemented. Databricks execution is required. |
 | `silver_region_population` | Implemented. Databricks execution is required. |
 | Silver geography and population validation | Implemented. Databricks execution is required. |
-| Project and flood Silver outputs | Planned |
+| Project and flood Silver outputs | Implemented in later milestones. Databricks execution is required. |
 | Gold facts and dimensions | Planned |
 
 ## Dependency order
