@@ -10,7 +10,7 @@ Implemented output:
 - `02-silver.silver_project_region_map`
 - Table 13 checks in `04-validation.silver_dq_results`
 
-Requires Databricks execution.
+Executed successfully in Databricks against the selected Unity Catalog tables.
 
 ## Baseline reviewed
 
