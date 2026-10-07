@@ -11,6 +11,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review PSGC, Table C reconciliation, and region population | [Silver geography and population](silver_geography_population.md) |
 | Review DPWH component preservation, project consolidation, budget protection, and project validation | [Silver project foundation](silver_project_cleaning.md) |
 | Review flood-list component preservation, exact Contract-ID matching, cost protection, and reconciliation validation | [Silver source reconciliation](silver_source_reconciliation.md) |
+| Review project-to-region precedence, Central Office handling, spatial fallback, conflicts, lineage, and validation | [Silver project-to-region mapping](silver_project_region_mapping.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
