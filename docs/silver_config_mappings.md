@@ -20,7 +20,8 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Configuration validation | Implemented by the Silver config validator |
 | Category, status, and place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
-| Remaining project and flood Silver outputs | Planned |
+| Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
+| Project-flood Silver mapping | Planned |
 | Gold facts and dimensions | Planned |
 
 ## Run order
