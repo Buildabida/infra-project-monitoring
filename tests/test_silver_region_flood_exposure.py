@@ -647,25 +647,18 @@ def test_60_regression_divisions_are_safe_under_ansi_mode():
 
 def test_61_boundary_territory_mismatch_is_not_safe_for_exposure():
     exposure = sql(EXPOSURE_NOTEBOOK)
-
     assessment = view_body(exposure, "region_boundary_assessment")
     safe_boundaries = view_body(exposure, "safe_region_boundaries")
-
     assert "BOUNDARY_TERRITORY_MISMATCH" in assessment
     assert "territory_difference_count" in assessment
-
     assert "region_boundary_status = 'VALID_REGION_BOUNDARY'" in safe_boundaries
     assert "BOUNDARY_TERRITORY_MISMATCH" not in safe_boundaries
 
 
 def test_62_validation_blocks_unsafe_territory_status():
     validation = sql(VALIDATION_NOTEBOOK)
-
     check_name = "Territory-mismatched boundaries are never treated as safe geography"
-
     assert check_name in validation
-
     check = validation.split(check_name, 1)[1].split("NAMED_STRUCT", 1)[0]
-
     assert "territory_status_mismatches" in check
     assert "'action', 'stop'" in check
