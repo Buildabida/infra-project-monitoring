@@ -7,8 +7,15 @@ It performs the expensive MGB-to-region spatial work once in Silver. Future
 Gold `fact_region_flood_exposure` reuses the result and assigns serving keys
 only.
 
-Requires Databricks execution. No runtime exposure area, coverage count, or
-validation total is claimed in this document.
+Databricks execution has been completed for the selected snapshots.
+
+Runtime validation confirmed the expected 72-row grain from 18 official regions
+and 4 approved susceptibility levels, with no duplicate exposure keys or
+duplicate region-level-run grain rows. All 63,684 selected MGB rows reconcile
+to the audited Bronze load.
+
+Runtime findings below describe the selected snapshots only. They are evidence
+for this execution, not hardcoded expectations for future runs.
 
 ## Business purpose
 
@@ -120,17 +127,27 @@ are reference findings only. Runtime counts decide the actual values.
 
 ## Geometry parsing
 
-Databricks parses GeoJSON as SRID 4326 longitude and latitude. The parser first
-tries `TRY_TO_GEOMETRY` on the text as published. When that fails, it applies
-the targeted normalization already used for boundaries. That normalization
-removes quotes only around numeric tokens and bracketed coordinate strings. It
-never strips JSON quotes globally.
+The parser tries the geometry through three controlled paths:
 
-The MGB encoding was not verified from the 2 GB source during development
-because the file is not in the repository. The notebook therefore verifies it
-at runtime. Step 3 counts declared GeoJSON types, quoted numbers, and Esri
-`rings` keys. Each row records the parse path that succeeded. The run stops if
-mapped rows have geometry text but none parse.
+1. parse the geometry as published
+2. apply the targeted quoted-number normalization
+3. convert supported Esri `rings` JSON through the governed Esri parsing path
+
+The targeted normalization removes quotes only around numeric tokens and
+bracketed coordinate strings. It never strips JSON quotes globally.
+
+Runtime execution confirmed that Esri `rings` is the dominant encoding in the
+selected MGB snapshot. A total of 61,855 rows were converted through the Esri
+path. The final validation reports 59,501 usable geometries, with zero usable
+rows carrying an unexpected SRID and zero usable rows outside the configured
+longitude-latitude screen.
+
+Each row records the parse path that succeeded. The run stops if mapped rows
+have geometry text but none parse.
+
+The source publisher's original CRS metadata is not independently established
+by this milestone. The implemented Esri conversion rule remains explicit and
+versioned rather than being treated as an undocumented source fact.
 
 Each row receives one geometry status:
 
@@ -156,10 +173,17 @@ Each official region receives one boundary status:
 
 | Status | Meaning |
 | --- | --- |
-| `VALID_REGION_BOUNDARY` | Exactly one parseable, nonempty, valid Polygon or MultiPolygon |
+| `VALID_REGION_BOUNDARY` | Exactly one usable region feature exists and its territory evidence agrees with the current PSGC hierarchy |
 | `NO_SAFE_REGION_BOUNDARY` | No region feature exists for the current PSGC code |
 | `AMBIGUOUS_REGION_BOUNDARY` | More than one region feature has the code. Nothing is deduplicated. |
 | `INVALID_REGION_GEOMETRY` | The single feature is unparseable, empty, invalid, or not polygonal |
+| `BOUNDARY_TERRITORY_MISMATCH` | A usable region polygon exists, but province-level evidence does not agree with current PSGC membership, so the boundary is not safe for exposure calculation |
+
+Only `VALID_REGION_BOUNDARY` rows enter the safe spatial set.
+
+A `BOUNDARY_TERRITORY_MISMATCH` is not treated as valid geography even when its
+geometry itself is parseable. This prevents stale territorial boundaries from
+producing misleading exposure measures.
 
 The safe set is small enough to broadcast. The run stops when no official
 region has a safe boundary.
@@ -175,36 +199,45 @@ Table 14 keeps the boundary snapshot, boundary version, and boundary PSGC
 version separate from PSGC lineage. `boundary_version_status` publishes
 `VERSION_MISMATCH_VISIBLE` when the versions differ.
 
-## Negros Island Region limitation
+## Boundary territory limitations
 
-The current PSGC includes Negros Island Region. The selected boundary snapshot
-predates it, so no boundary feature is expected for that code. Its rows keep
-`NULL` measures with `NO_SAFE_REGION_BOUNDARY`. This is no data, not zero
+The selected boundary snapshot predates the current PSGC release. Runtime
+comparison against the current PSGC hierarchy identified four regions that
+cannot safely use the selected region-boundary snapshot:
+
+| Region | Boundary status |
+| --- | --- |
+| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
+| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
+| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` |
+| BARMM | `BOUNDARY_TERRITORY_MISMATCH` |
+
+Negros Island Region has no region-level boundary feature in the selected
+boundary snapshot.
+
+Regions VI, VII, and BARMM have region polygons, but province-level evidence
+does not agree with current PSGC membership. Their geometries are therefore not
+treated as safe geography.
+
+These are source-version and boundary-coverage limitations, not pipeline
+failures.
+
+Table 14 protects downstream analysis by excluding these four regions from safe
+exposure calculation and publishing `NULL` measures instead of false zero
 exposure.
 
-The older Region VI and Region VII polygons are expected to include territory
-that the current PSGC assigns to Negros Island Region. This is inferred from
-the boundary and PSGC version dates. It is not yet measured. The validator
-reports it at runtime as a territory-difference FLAG. That check compares
-province-level boundary codes with the current PSGC hierarchy.
+The pipeline does not hardcode a Negros polygon, split Regions VI or VII,
+rewrite BARMM territory, use nearest geography, or perform any hidden spatial
+repair.
 
-Table 14 does not hardcode a Negros polygon. It does not split Regions VI or
-VII or apply a name-based repair. No approved mapping from old boundary codes
-to current PSGC geography exists. A lower-level boundary rebuild is therefore
-out of scope. The table recovers naturally when a newer boundary snapshot adds
-the missing region.
+The table can recover naturally when a newer approved boundary snapshot aligns
+with the current PSGC hierarchy.
 
-How Gold presents Region VI and VII exposure under this limitation is a team
-decision. It is not resolved by this milestone.
-
-## BARMM and NCR
-
-BARMM is not excluded. The DPWH BARMM coverage gap belongs to later investment
-comparison, not to the hazard layer. If BARMM has a safe boundary, its exposure
-is calculated like any other region.
+## NCR
 
 NCR remains its own official region. Table 14 is region-level, so no province
-hierarchy is needed or invented for NCR.
+hierarchy is invented for NCR. When its selected region boundary passes the
+same safety rules, exposure is calculated like any other safe region.
 
 ## Spatial intersection rule
 
@@ -310,9 +343,10 @@ or `GREATEST` clamping hides an invalid value.
 | --- | --- | --- | --- |
 | Safe | Yes | `CALCULATED` | Calculated values |
 | Safe | No | `NO_MAPPED_EXPOSURE` | Real zero area, share, and counts |
-| Missing, ambiguous, or invalid | Not evaluated | `NO_SAFE_REGION_BOUNDARY` | `NULL` area, share, counts, and overlap |
+| Missing, ambiguous, invalid, or territory-mismatched | Not evaluated | `NO_SAFE_REGION_BOUNDARY` | `NULL` area, share, counts, and overlap |
 
-Missing geography is never published as zero exposure.
+Missing, invalid, ambiguous, or territory-mismatched geography is never
+published as zero exposure.
 
 ## Full region × level grid
 
