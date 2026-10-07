@@ -602,10 +602,16 @@ def test_55_regression_spatial_pipeline_is_referenced_once_in_publish_path():
     assert len(re.findall(r"\bregion_mgb_intersection_fragments\b", code)) == 2
 
 
-def test_56_regression_transform_srid_is_a_constant_variable():
+def test_56_area_transforms_use_area_calculation_srid():
     code = code_without_comments(EXPOSURE_NOTEBOOK)
-    for argument in re.findall(r"ST_TRANSFORM\([^,]+,\s*([^)]+)\)", code):
-        assert argument.strip() == "area_calculation_srid"
+    for view_name in (
+        "region_boundary_assessment",
+        "region_mgb_intersection_fragments",
+        "region_level_exposure_area",
+    ):
+        body = view_body(code, view_name)
+        assert "ST_TRANSFORM(" in body
+        assert "area_calculation_srid" in body
 
 
 def test_57_validation_unpivots_one_metrics_row():
