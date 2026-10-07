@@ -2,17 +2,20 @@
 
 ## Outcome
 
-The current `main` baseline now contains the complete static implementation for
-Silver Table 14 and its validation gate.
+The current pull-request branch contains the complete implementation for Silver
+Table 14 and its validation gate.
 
 Implemented output:
 
 - `02-silver.silver_region_flood_exposure`
 - Table 14 checks in `04-validation.silver_dq_results`
 
-Requires Databricks execution. Databricks was not available in this
-environment. No exposure area, coverage count, overlap finding, or validation
-total is claimed.
+The transformation and validation notebooks were executed successfully in
+Databricks against the selected snapshots.
+
+Runtime evidence confirmed the expected 72-row grain, complete MGB source-row
+reconciliation, deterministic keys, zero duplicate grain rows, governed
+territory-mismatch handling, and no blocking validation failures.
 
 ## Baseline reviewed
 
@@ -78,15 +81,25 @@ never contribute to an approved level and are never mapped to `Unknown`.
 
 ## Geometry strategy
 
-The 2 GB MGB source is not in the repository, so its geometry encoding could
-not be inspected locally. The transformation tries GeoJSON as published first.
-It then tries the targeted quoted-number normalization proven on boundaries,
-and records which path succeeded. Step 3 profiles declared types, quoted
-numbers, and Esri `rings` keys from the real data.
+The 2 GB MGB source is not stored in the repository, so geometry encoding is
+verified during Databricks execution.
 
-Only nonempty, OGC-valid Polygon and MultiPolygon geometry is usable. Invalid
-geometry is excluded and flagged without repair. A STOP fires if mapped rows
-have geometry text but none parse, so a broken encoding cannot publish zeros.
+The transformation and validator use the same controlled parsing sequence:
+
+1. geometry as published
+2. targeted quoted-number normalization
+3. supported Esri `rings` conversion
+
+Runtime execution confirmed that Esri `rings` is the dominant path for the
+selected snapshot. A total of 61,855 rows were converted through the Esri path.
+
+The final validation classified 59,501 geometries as usable. It reported zero
+usable rows with an unexpected SRID and zero usable rows outside the configured
+longitude-latitude screen.
+
+Only nonempty, OGC-valid Polygon and MultiPolygon geometry is usable. Invalid,
+empty, unsupported, blank, and unparseable geometry remains visible through
+validation and source accounting rather than being silently repaired.
 
 ## Region boundary strategy
 
@@ -95,10 +108,20 @@ codes match current official regions exactly. Each official region is assessed
 once as valid, missing, ambiguous, or invalid. The safe set is broadcast. MGB is
 never compared with province, municipality, or barangay shapes.
 
-The boundary snapshot predates the current PSGC release. Negros Island Region is
-expected to be `NO_SAFE_REGION_BOUNDARY` with `NULL` measures. No polygon is
-fabricated and Regions VI and VII are not split. The validator flags
-province-level territory differences between the boundary and current PSGC.
+The boundary snapshot predates the current PSGC release.
+
+Runtime comparison with current PSGC territory evidence identified:
+
+- Region VI as `BOUNDARY_TERRITORY_MISMATCH`
+- Region VII as `BOUNDARY_TERRITORY_MISMATCH`
+- Negros Island Region as `NO_SAFE_REGION_BOUNDARY`
+- BARMM as `BOUNDARY_TERRITORY_MISMATCH`
+
+Only `VALID_REGION_BOUNDARY` rows enter the safe spatial set.
+
+The four affected regions publish `NULL` exposure measures rather than false
+zeros. No polygon is fabricated, no region is manually split, and no hidden
+territorial correction is applied.
 
 ## CRS and area rule
 
@@ -144,59 +167,113 @@ reference evidence only.
 
 ## Runtime coverage
 
-Not executed. Requires Databricks execution on Databricks Runtime 17.1 or later
-for `ST_TRANSFORM`.
+Databricks execution completed successfully for the selected snapshots.
 
-These values must come from the first Databricks run:
+Output grain:
 
-- selected MGB, boundary, and PSGC snapshots and versions
-- MGB source accounting buckets and geometry findings
-- safe and no-data regions
-- expected and actual output rows
-- contributing and non-intersecting MGB rows
-- within-level and cross-level overlap
-- total susceptible area by level
-- PASS, FLAG, and FAIL totals
+- official regions: 18
+- approved susceptibility levels: 4
+- expected rows: 72
+- actual rows: 72
+- duplicate exposure keys: 0
+- duplicate region, level, and run rows: 0
+
+MGB source accounting:
+
+- selected rows: 63,684
+- audited Bronze rows: 63,684
+- mapped usable: 59,478
+- mapped unusable: 2,368
+- unmapped usable: 23
+- unmapped unusable: 1,815
+
+Geometry evidence:
+
+- Esri `rings` conversions: 61,855
+- usable geometry rows: 59,501
+- blank geometry rows: 1,815
+- unparseable geometry rows: 14
+- invalid geometry rows: 2,340
+- empty or unsupported geometry rows: 14
+
+Spatial coverage:
+
+- safe regions: 14
+- no-data regions: 4
+- contributing mapped MGB rows: 51,317
+- mapped usable rows without a safe-region intersection: 8,161
+
+Overlap findings:
+
+- region-level rows with within-level overlap removed: 14
+- total within-level overlap removed: 75.7871 sqkm
+- regions with cross-level overlap: 4
+- total cross-level overlap: 4.0820 sqkm
+
+The runtime findings are evidence for this selected execution and are not
+hardcoded as future input expectations.
 
 ## Validation results
 
-The validator defines 57 checks covering all seven attributes: 36 STOP and 21 FLAG. Blocking checks
-use action `stop`. Review findings use action `flag`. Evidence is persisted
-before the gate, and the gate reads the persisted rows.
+The validator defines 58 checks covering all seven data-quality attributes:
 
-Runtime PASS, FLAG, and FAIL totals require Databricks execution.
+- 37 blocking `STOP` checks
+- 21 non-blocking `FLAG` checks
 
-## Local verification
+Runtime result:
+
+- 44 `PASS`
+- 14 `FLAG`
+- 0 `FAIL`
+
+All blocking checks passed.
+
+The remaining FLAG results preserve source-quality, topology, lineage, and
+coverage limitations for review. They do not silently modify or repair source
+data.
+
+Validation evidence is persisted before the blocking gate, and the gate reads
+the persisted evidence.
+
+## Repository and CI verification
 
 - notebook JSON parsing: passed
-- SQLFluff 4.3.0 on the 20 new SQL cells with parse errors enabled: 0 unparsable
-  segments and 0 rule findings
-- CI SQLFluff command `sqlfluff lint notebooks`: passed
-- Pytest: 224 tests passed, including 60 new Table 14 tests
-- Ruff lint and format check: passed
-- markdownlint-cli2: 0 issues
-- local relative-link and anchor check: 0 broken links
-- Vale 3.22.0 on changed Markdown: 0 errors, 0 warnings, and 0 suggestions
+- Pytest: 226 tests passed, including 62 Table 14 tests
+- Ruff lint: passed
+- Ruff format check: passed
+- SQLFluff: passed
+- markdownlint-cli2: passed
+- relative-link check: passed
+- Vale writing checks: passed
+- latest GitHub Actions workflow: passed
 
-The repository CI runs SQLFluff on `.sql` files only. The SQL cell check above
-was an additional local step.
+## Runtime observations and follow-up
 
-## Runtime risks to watch on first execution
-
-- `ST_TRANSFORM` must accept SRID 6933. A STOP proves the transformed SRID.
-- `ST_UNION_AGG` on detailed MGB polygons is the most expensive step.
-- Clipping may produce mixed geometry collections at region borders. These must
-  be accepted by `ST_UNION_AGG`.
-- MGB geometry validity rates are unknown until the first run.
+- `ST_TRANSFORM` executed successfully with the governed area CRS.
+- `ST_UNION_AGG` completed successfully on the selected MGB snapshot.
+- Invalid MGB geometry remains excluded rather than silently repaired.
+- The selected MGB snapshot contains measurable within-level and cross-level
+  overlap, which remains visible through validation.
+- Performance was sufficient for this execution, but `ST_UNION_AGG` remains the
+  main spatial operation to monitor if future MGB snapshots grow materially.
+- Boundary-version differences remain the main geographic limitation for
+  Regions VI, VII, NIR, and BARMM.
 
 ## Unresolved limitations
 
-- The boundary snapshot predates the current PSGC release.
-- Negros Island Region is expected to have no safe boundary.
-- Regions VI and VII are expected to reflect older territory. The team must
-  decide how Gold presents them.
+- The selected boundary snapshot predates the current PSGC release.
+- Region VI is `BOUNDARY_TERRITORY_MISMATCH`.
+- Region VII is `BOUNDARY_TERRITORY_MISMATCH`.
+- Negros Island Region is `NO_SAFE_REGION_BOUNDARY`.
+- BARMM is `BOUNDARY_TERRITORY_MISMATCH`.
+- These geographic findings are source-version limitations, not pipeline
+  failures. Their exposure measures remain `NULL` until safe geography is
+  available.
 - Invalid MGB geometry is excluded rather than repaired.
 - Blank and `No rating` MGB rows remain unresolved by design.
+- The optional MGB publisher version is unavailable for the selected snapshot.
+- Cross-level overlap means susceptibility-level areas must not automatically
+  be summed for every region.
 - Table 15, Gold, dashboards, and Genie remain outside this milestone.
 
 ## Gold handoff
