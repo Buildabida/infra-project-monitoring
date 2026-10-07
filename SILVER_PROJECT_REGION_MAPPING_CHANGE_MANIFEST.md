@@ -32,11 +32,21 @@
 - Gold facts and dimensions
 - dashboard and Genie assets
 
-## Verification boundary
+## Verification
 
-Static repository tests and linters are executed locally. Unity Catalog table
-creation requires Databricks execution. Spatial coverage and validation
-outcomes also require Databricks, so no runtime result total is claimed.
+The transformation and validation notebooks were executed successfully in
+Databricks against the selected Unity Catalog tables.
 
-The final local suite contains 164 passing tests. Ruff, SQLFluff, Markdown
-layout, offline local links, and Vale complete without errors or warnings.
+Runtime validation confirmed:
+
+- 265,656 canonical project rows
+- 265,656 project-region mapping rows
+- row-preservation difference of 0
+- 18 blocking STOP checks passed
+- 0 blocking failures
+
+Validation evidence was persisted to
+`04-validation.silver_dq_results`.
+
+The final repository suite contains 164 passing tests. Ruff, SQLFluff,
+Markdown layout, links, and Vale also pass.
