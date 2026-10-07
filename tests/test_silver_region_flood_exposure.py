@@ -633,7 +633,12 @@ def test_59_docs_mark_table_14_implemented():
     contract = (ROOT / "docs/silver_region_flood_exposure.md").read_text(
         encoding="utf-8"
     )
-    for phrase in ["EPSG:6933", "NO_SAFE_REGION_BOUNDARY", "Requires Databricks"]:
+    for phrase in [
+        "EPSG:6933",
+        "NO_SAFE_REGION_BOUNDARY",
+        "BOUNDARY_TERRITORY_MISMATCH",
+        "Databricks execution has been completed",
+    ]:
         assert phrase in contract
 
 
