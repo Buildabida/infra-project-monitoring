@@ -186,6 +186,12 @@ Three important source rules apply:
   missing or unrated records, including 1,815 rows where both the rating and
   geometry are blank. These remain non-blocking findings for Silver handling,
   while Bronze preserves the original source values.
+- **Few project points fall inside MGB flood polygons.**
+  In the first project-flood run, 20,398 of 215,138 projects with usable
+  coordinates received a flood level. Another 15 sit inside polygons of more
+  than one level. Most of the rest fall outside every approved polygon.
+  That is not evidence of low or zero flood risk.
+  See [project flood mapping](docs/silver_project_flood_mapping.md#runtime-evidence).
 
 ## Find your way around
 

@@ -688,7 +688,8 @@ level. It does not repair geometry or treat a missing match as low or zero risk.
 
 See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
-handoff contracts. Runtime outcomes require Databricks execution.
+handoff contracts. The first Databricks run passed every STOP check. Its results
+are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
 
 ## Future validation documents
 

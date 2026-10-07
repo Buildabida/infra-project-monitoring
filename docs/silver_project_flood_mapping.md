@@ -7,8 +7,13 @@ It classifies every canonical DPWH project against the governed MGB
 flood-susceptibility polygons once in Silver. Future Gold
 `fact_project_snapshot` reuses the result and assigns serving keys only.
 
-Requires Databricks execution. This document describes the contract. It does
-not claim runtime row counts, coverage, or performance.
+Databricks execution has been completed for the selected snapshots. The
+transformation published one row for each of the 265,656 canonical projects.
+All 37 blocking validation checks passed.
+
+Runtime findings in [Runtime evidence](#runtime-evidence) describe the selected
+snapshots only. They are evidence for this execution, not hardcoded
+expectations for future runs.
 
 ## Business purpose
 
@@ -392,6 +397,69 @@ FLAG keeps limitations visible with a denominator. Examples:
 - runtime counts that differ from historical references
 
 A FLAG is a visible source limitation, not a pipeline failure.
+
+## Runtime evidence
+
+The first Databricks execution used these inputs:
+
+| Input | Value |
+| --- | --- |
+| Project run | `9fd532e99666ca6b3c3411311c58a773bae6eed2f2c7a09401216bc8f91f844e` |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| MGB snapshot | `metadata-17bf5e65e1838a2f7be9` |
+| MGB mapping version | `2026-10-v1` with source contract `unversioned-official-code-contract` |
+| Publisher versions | Not available for DPWH or MGB, so both stay `NULL` |
+| Table 15 run ID | `ee7f53bc2885afcda6adfe5423f363ee084b4cb728880a5a7497556ad64b18e6` |
+
+The validator wrote 53 checks to `04-validation.silver_dq_results`. All 37
+STOP checks passed. Of the 16 FLAG checks, 13 reported findings and 3 found
+none.
+
+### Project classification
+
+| Outcome | Projects | Share of all projects |
+| --- | ---: | ---: |
+| `MATCHED` Low | 7,486 | 2.82% |
+| `MATCHED` Moderate | 7,037 | 2.65% |
+| `MATCHED` High | 4,574 | 1.72% |
+| `MATCHED` Very High | 1,301 | 0.49% |
+| `AMBIGUOUS` across approved levels | 15 | 0.01% |
+| `UNMATCHED`, usable point without an approved polygon | 194,725 | 73.30% |
+| `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
+| Total | 265,656 | 100% |
+
+- 215,138 projects have a `VALID_PAIR` coordinate. No project had a partial
+  or out-of-range pair, and no project had an invalid identity.
+- 20,398 projects received a final level. That is 7.68% of all projects and
+  9.48% of projects with a usable coordinate.
+- 116 matched projects sit inside more than one polygon of the same level.
+- The independent recomputation matched the published candidate evidence for
+  every project.
+
+### MGB source accounting
+
+The 63,684 selected MGB rows equal the audited Bronze `rows_loaded`:
+
+| Bucket | Rows |
+| --- | ---: |
+| Mapped and usable | 59,478 |
+| Mapped and unusable | 2,368 |
+| Unmapped and usable | 23 |
+| Unmapped and unusable | 1,815 |
+
+- Unusable mapped rows are 2,340 OGC-invalid, 14 empty, and 14 unparseable
+  geometries.
+- Unmapped rows are 1,822 blank codes and 16 `No rating` codes. All 1,815 blank
+  geometries also have a blank code.
+- All 61,855 parsed geometries used the Esri `rings` path.
+
+### Interpretation note
+
+Most usable project points, 90.5%, fall outside every approved MGB polygon.
+This run does not explain why. The selected extract may not cover every area,
+or many projects may sit outside mapped susceptibility zones. Excluded invalid
+polygons also remove some coverage. These results must not be read as Low or
+zero flood risk.
 
 ## Gold handoff
 

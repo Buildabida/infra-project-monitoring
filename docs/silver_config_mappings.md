@@ -21,7 +21,7 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Category, status, and place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
-| Project-flood Silver mapping | Implemented in a separate notebook. Databricks execution is required. |
+| Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
 | Gold facts and dimensions | Planned |
 
 ## Run order

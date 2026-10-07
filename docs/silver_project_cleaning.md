@@ -55,7 +55,7 @@ Local files may support profiling and schema review, but the production notebook
 | Silver project validation | Implemented. Databricks execution required. |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
-| `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Databricks execution required. |
+| `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
 | Gold dimensions and facts | Planned |
 
 ## Dependency order
