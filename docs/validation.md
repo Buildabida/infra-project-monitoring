@@ -347,9 +347,9 @@ This preserves validation evidence even when a blocking check fails and keeps
 the project validator consistent with the geography/population and source-reconciliation
 validation contracts.
 
-The validation run identity is deterministic for the selected source snapshot,
-Silver project run, and validation-rule version, so exact reruns update the same
-logical evidence instead of creating duplicate validation records.
+The validation run identity uses the selected source snapshot, Silver project
+run, and validation-rule version. Exact reruns update the same logical evidence
+instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
@@ -431,6 +431,82 @@ Both expected differences are zero.
 
 See [Silver source reconciliation](silver_source_reconciliation.md) for the complete
 table, matching, lineage, and cost contracts.
+
+## Silver project-region mapping validation
+
+`notebooks/04_validation/06_validation_silver_project_region_map.ipynb`
+validates `02-silver.silver_project_region_map` after Table 13 is rebuilt.
+
+Use this order for the final two steps:
+
+1. `notebooks/02_silver/08_silver_project_region_map.ipynb`
+2. `notebooks/04_validation/06_validation_silver_project_region_map.ipynb`
+
+The validator persists results to `04-validation.silver_dq_results` before
+enforcing its blocking gate. Its validation run ID is deterministic for the
+mapping run and validation-rule version.
+
+### Project-region data-quality attributes
+
+- Consistency: status accounting, mapping precedence, conflict states, and
+  boundary-version differences follow their contracts.
+- Accuracy: accepted codes resolve to the selected official PSGC region set.
+  name-versus-coordinate disagreements stay visible.
+- Completeness: every canonical project has one result, and coverage uses the
+  complete project denominator.
+- Auditability: project, PSGC, boundary, configuration, rule, run, and load
+  lineage remain available.
+- Validity: methods, statuses, quality values, Central Office behavior, and
+  selected region geometry use controlled rules.
+- Uniqueness: the documented mapping grain and deterministic primary key are
+  unique.
+- Timeliness: exactly one deterministic mapping run represents the selected
+  upstream versions.
+
+### Project-region stop checks
+
+Blocking checks protect:
+
+- exact `silver_project` to map-row preservation
+- unique `source_system`, usable `contract_id`, and `run_id` grain
+- unique and reproducible mapping keys
+- reproducible mapping run identity
+- controlled methods, statuses, and quality
+- documented mapping precedence
+- official PSGC target validity
+- matched and unresolved target consistency
+- Central Office non-geographic behavior
+- name-versus-coordinate conflict state
+- parseable selected region geometry
+- selected region boundary-code uniqueness
+- applied manual-override decision evidence
+- mandatory source and transformation lineage
+
+### Project-region review flags
+
+Nonblocking checks retain:
+
+- geographic match coverage with the full project denominator
+- missing reported regions
+- exact-name, approved-alias, and unresolved text coverage
+- missing, partial, or outside-screening coordinates
+- usable-point, one-region, no-boundary, and multiple-region spatial coverage
+- empty approved alias or manual-exception configurations
+- boundary coverage and PSGC-version mismatch
+- unresolved boundary PSGC codes
+- boundary source-lineage duplicates
+- matched name-versus-coordinate conflicts
+- Central Office records with ignored manual-override evidence
+- ambiguous and unmatched projects
+- optional DPWH and boundary publisher-version gaps
+
+The validator does not create aliases, select among ambiguous candidates, assign
+Central Office to a normal region, or convert source limitations into accepted
+data.
+
+See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
+complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
+Runtime outcomes require Databricks execution.
 
 ## Future validation documents
 

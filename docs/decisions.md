@@ -37,6 +37,7 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | D-28 | Oct 2 | Report project or contract budget, not actual payment or government disbursement. Show source gaps and coverage limitations before interpreting results. | The checked extract lacks payment data. The accepted snapshot has 50,522 DPWH rows without coordinate pairs. BARMM coverage is limited by the source. |
 | D-29 | Oct 2 | Keep every pipeline layer reproducible across source updates. Preserve snapshot, run, source version, mapping version, match status, and processing timestamps. | R2 retains raw snapshot history. Downstream lineage makes comparisons and rule changes traceable. |
 | D-30 | Oct 5 | Store Silver mapping decisions in five versioned Delta configuration tables. Seed only the documented MGB codes and keep other rules empty until approval. | This updates D-20 for the first Silver milestone. It prevents hidden mappings, guessed values, and duplicate rules across notebooks. |
+| D-31 | Oct 7 | Use this project-region precedence. Start with Central Office, an approved manual exception, and then a verified project PSGC code. Continue with exact region name, approved alias, and coordinate-boundary fallback. Otherwise leave the project unresolved. The code stage applies only when a legitimate field exists. Keep ambiguity and name-coordinate conflicts visible. Do not use fuzzy, nearest, or hidden corrections. This resolves D-03. | A region-first waterfall answers the current analysis at the required grain. Reviewed and exact evidence stays ahead of spatial fallback. Conflicts, missing coordinates, boundary-version differences, and unavailable project PSGC codes remain traceable. |
 
 Additional context for D-22:
 
@@ -54,11 +55,11 @@ Snapshot context for D-19 and D-23:
 
 | ID | Question | Options under review |
 | --- | --- | --- |
-| D-03 | How do we match a project to a place? | Map point, office name, or both |
 | D-04 | How do we handle projects found in both project lists? | Match by Contract ID |
 
 ## Resolved questions
 
 | ID | Question | Resolution |
 | --- | --- | --- |
+| D-03 | How do we match a project to a place? Options reviewed: Map point, office name, or both. | D-31 uses both within a governed region-first precedence. Exact reviewed evidence selects the region before coordinate-boundary fallback. Central Office stays non-geographic, and conflicts or unresolved rows stay visible. |
 | D-21 | Do we add the DENR MGB flood-susceptibility map as a sixth source? | Yes. D-23 approves the trimmed extract as the sixth R2 snapshot. |

@@ -10,7 +10,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Configuration, geography and population, project foundation, and source reconciliation outputs are implemented. Other transformations remain planned. |
+| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, and project-region mapping outputs are implemented. Project-flood mapping remains planned. |
 | Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
 
 ```text
@@ -127,7 +127,7 @@ The same output also supports flood-control reconciliation, portfolio analysis, 
 
 The component and project tables are implemented and require Databricks execution.
 
-Project-region and project-flood mapping tables remain planned.
+Project-region mapping is implemented. Project-flood mapping remains planned.
 
 The source-reconciliation path is:
 
@@ -139,8 +139,9 @@ silver_flood_control_component
 silver_project_source_match
         ↑
 silver_project
+        ├──→ silver_project_region_map
         ↓
-future Gold dim_project flood-list indicators
+future Gold dim_project and project facts
 ```
 
 | Table | Grain | Primary key | Main columns |
@@ -149,18 +150,25 @@ future Gold dim_project flood-list indicators
 | `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes, budget resolution status, attribute-resolution status, source lineage, deterministic project identity |
 | `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
 | `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
-| `02-silver.silver_project_region_map` | One project-to-region mapping result per pipeline run | `project_region_map_key` | `source_system`, `contract_id`, `psgc_region_code`, `reported_region_raw`, `mapping_method`, `match_status`, `match_quality`, `boundary_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
 | `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
 
 Required Silver uniqueness:
 
-- Project-region and project-flood maps: `source_system`, `contract_id`, `run_id`.
+- Implemented project-region map: `source_system`, `contract_id`, `run_id`.
+- Planned project-flood map: `source_system`, `contract_id`, `run_id`.
 - DPWH components: `source_system`, `contract_id`, `source_component_id`, `run_id`.
 - Use `source_row_number` when no stable component ID exists.
 - Flood-control components: `source_system`, `source_snapshot_id`, real source `object_id`, and rule version.
 - Project source matches: normalized source Contract ID, source snapshot, source version, and match run.
 - Implemented population reconciliation: `source_file`, `sheet_name`, `source_row_number`, `run_id`.
 - Implemented region population: region code, reference year, source name, and both selected snapshots.
+
+Table 13 retains official `psgc_region_code`. It does not create the Gold
+surrogate `region_key`. Central Office is a non-geographic result with a null
+PSGC region. Unmatched, ambiguous, and conflicting projects remain in the table.
+See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
+complete precedence, boundary, lineage, and validation contracts.
 
 ## Gold fact tables (planned)
 

@@ -45,6 +45,8 @@ Governed mappings remain separate from geography and population transformations.
 | 20 | `02_silver/06_silver_flood_control_component` | Preserve every selected flood-control source feature using its real Object ID. |
 | 21 | `02_silver/07_silver_project_source_match` | Record exact Contract-ID reconciliation evidence without changing projects. |
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
+| 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
+| 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -126,8 +128,10 @@ Silver currently implements:
 - silver_flood_control_component
 - silver_project_source_match
 - Silver source-reconciliation validation
+- silver_project_region_map
+- Silver project-region mapping validation
 
-Project-region and project-flood mapping outputs remain planned.
+Project-flood mapping remains planned.
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -225,6 +229,45 @@ do not create Unity Catalog tables.
 See [Silver source reconciliation](../docs/silver_source_reconciliation.md) for table
 grains, source roles, matching rules, cost protection, lineage, and limitations.
 
+### Project-region mapping
+
+Table 13 depends on current configuration, PSGC geography, project foundation,
+and their validators. Flood-control source reconciliation is not a dependency.
+
+Use this complete dependency-aware order when every relevant input changed:
+
+1. `02_silver/00_config_mappings.ipynb`
+2. `04_validation/02_validation_silver_config.ipynb`
+3. `02_silver/01_silver_psgc_place.ipynb`
+4. `04_validation/03_validation_silver_geography_population.ipynb`
+5. `02_silver/04_silver_dpwh_project_component.ipynb`
+6. `02_silver/05_silver_project.ipynb`
+7. `04_validation/04_validation_silver_projects.ipynb`
+8. `02_silver/08_silver_project_region_map.ipynb`
+9. `04_validation/06_validation_silver_project_region_map.ipynb`
+
+Steps 3 through 7 can be skipped when their selected inputs and rules did not
+change and their accepted tables remain current.
+
+The mapping notebook keeps every canonical project and uses this precedence:
+
+1. exact Central Office non-geographic rule
+2. approved manual exception
+3. exact project PSGC code when a legitimate field exists. It is currently unavailable.
+4. exact standardized official region name
+5. approved region alias
+6. coordinate and selected region-boundary fallback
+7. unresolved result
+
+The validator writes all seven quality attributes to
+`04-validation.silver_dq_results` before enforcing its STOP gate. Review mapping
+coverage, unmatched and ambiguous projects, coordinate conflicts, boundary
+version differences, and optional publisher-version gaps.
+
+See [Silver project-to-region mapping](../docs/silver_project_region_mapping.md)
+for the Table 13 grain, D-03 resolution, methods, statuses, lineage, spatial cost
+controls, and Gold handoff.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -259,8 +302,9 @@ Keep validation notebooks separate too:
 ├── 03_validation_silver_geography_population.ipynb
 ├── 04_validation_silver_projects.ipynb
 ├── 05_validation_silver_source_reconciliation.ipynb
-├── 06_validation_gold.ipynb
-└── 07_publish_acceptance_evidence.sql
+├── 06_validation_silver_project_region_map.ipynb
+├── 07_validation_gold.ipynb
+└── 08_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based

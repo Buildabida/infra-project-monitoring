@@ -4,14 +4,14 @@ This milestone implements the DPWH project foundation layer.
 
 It creates a row-preserving project component table and a project-level consolidation table.
 
-These tables support future geographic matching, project reconciliation, delivery analysis, portfolio analytics, and Gold project facts.
+These tables support implemented geographic matching and source reconciliation,
+plus future delivery analysis, portfolio analytics, and Gold project facts.
 
 This milestone does not implement:
 
 - flood-control reconciliation
-- project-region assignment
-- PSGC matching
-- spatial joins
+- project-region assignment within this foundation milestone. It is implemented
+  by the follow-up Table 13 milestone
 - flood-risk analysis
 - Gold dimensions
 - Gold facts
@@ -54,6 +54,7 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_project` | Implemented. Databricks execution required. |
 | Silver project validation | Implemented. Databricks execution required. |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
+| `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
 | Gold dimensions and facts | Planned |
 
 ## Dependency order
@@ -65,6 +66,12 @@ Run the notebooks in this order:
 3. `02_silver/04_silver_dpwh_project_component.ipynb`
 4. `02_silver/05_silver_project.ipynb`
 5. `04_validation/04_validation_silver_projects.ipynb`
+
+When project or geography inputs changed and the foundation validator passes,
+continue with:
+
+1. `02_silver/08_silver_project_region_map.ipynb`
+2. `04_validation/06_validation_silver_project_region_map.ipynb`
 
 Do not run a dependent notebook after a blocking failure.
 
@@ -266,7 +273,8 @@ Flag findings remain visible for review.
 
 - Approved category mappings are not yet published into the component output.
 - Approved status mappings are not yet published into the component output.
-- Project-region assignment remains outside this milestone.
+- Project-region assignment is implemented separately. See
+  [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved.
 - Stalled classification remains unresolved.
@@ -279,7 +287,7 @@ Flag findings remain visible for review.
 `silver_project` supports:
 
 - implemented `silver_project_source_match`
-- future `silver_project_region_map`
+- implemented `silver_project_region_map`
 - future `silver_project_flood_map`
 - future `dim_project`
 - future `fact_project_snapshot`
