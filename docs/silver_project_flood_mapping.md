@@ -465,6 +465,36 @@ or many projects may sit outside mapped susceptibility zones. Excluded invalid
 polygons also remove some coverage. These results must not be read as Low or
 zero flood risk.
 
+### Unmatched project spot-check
+
+To investigate the low project-flood match coverage, the validator selects a
+deterministic sample of five `UNMATCHED` projects with usable coordinates.
+
+The sample is limited to projects that:
+
+- have a `VALID_PAIR` coordinate
+- have a safely matched PSGC region
+- are in a region where Table 14 calculated nonzero High or Very High flood exposure
+- have no approved usable MGB polygon intersecting the project point
+
+| Contract ID | PSGC region code | Latitude | Longitude | Region mapping | Flood result |
+| --- | --- | ---: | ---: | --- | --- |
+| `19IF0151` | `0800000000` | 11.0128837 | 124.6048616 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+| `16DE0134` | `0400000000` | 13.6217176 | 121.2442876 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+| `18PE1084` | `1400000000` | 16.1968547 | 120.6021261 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+| `22JA0027` | `0900000000` | 7.1886017 | 122.1972475 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+| `17JA0139` | `0900000000` | 6.9372006 | 122.0802689 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+
+All five sampled projects retain the controlled
+`NO_APPROVED_MGB_INTERSECTION` reason. The sample confirms that these records
+are not being lost or assigned a fallback flood level.
+
+This diagnostic does not prove that each individual project point should be
+flood-susceptible. Regional High or Very High exposure only makes these useful
+review candidates. Table 15 therefore keeps the projects `UNMATCHED` rather
+than inferring Low risk, applying a nearest-polygon rule, or forcing a flood
+classification.
+
 ## Gold handoff
 
 Future Gold `03-gold.fact_project_snapshot` needs project, region, status, and
