@@ -643,6 +643,7 @@ def test_60_regression_divisions_are_safe_under_ansi_mode():
     validation = code_without_comments(VALIDATION_NOTEBOOK)
     assert "/ NULLIF(ST_AREA(boundary_geometry), 0)" in validation
     assert "CASE WHEN checks.total_rows > 0" in validation
+ 
 
 def test_61_boundary_territory_mismatch_is_not_safe_for_exposure():
     exposure = sql(EXPOSURE_NOTEBOOK)
@@ -660,9 +661,7 @@ def test_61_boundary_territory_mismatch_is_not_safe_for_exposure():
 def test_62_validation_blocks_unsafe_territory_status():
     validation = sql(VALIDATION_NOTEBOOK)
 
-    check_name = (
-        "Territory-mismatched boundaries are never treated as safe geography"
-    )
+    check_name = "Territory-mismatched boundaries are never treated as safe geography"
 
     assert check_name in validation
 
