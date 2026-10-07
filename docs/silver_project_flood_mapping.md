@@ -468,32 +468,36 @@ zero flood risk.
 ### Unmatched project spot-check
 
 To investigate the low project-flood match coverage, the validator selects a
-deterministic sample of five `UNMATCHED` projects with usable coordinates.
+deterministic sample of `UNMATCHED` projects with usable coordinates.
 
 The sample is limited to projects that:
 
 - have a `VALID_PAIR` coordinate
 - have a safely matched PSGC region
 - are in a region where Table 14 calculated nonzero High or Very High flood exposure
-- have no approved usable MGB polygon intersecting the project point
+- have an exact Contract ID match to the official flood-control source
+- still have no approved usable MGB polygon intersecting the project point
 
-| Contract ID | PSGC region code | Latitude | Longitude | Region mapping | Flood result |
-| --- | --- | ---: | ---: | --- | --- |
-| `19IF0151` | `0800000000` | 11.0128837 | 124.6048616 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
-| `16DE0134` | `0400000000` | 13.6217176 | 121.2442876 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
-| `18PE1084` | `1400000000` | 16.1968547 | 120.6021261 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
-| `22JA0027` | `0900000000` | 7.1886017 | 122.1972475 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
-| `17JA0139` | `0900000000` | 6.9372006 | 122.0802689 | `COORDINATE_BOUNDARY` | `UNMATCHED` |
+| Contract ID | PSGC region code | Latitude | Longitude | Region mapping | Flood result | Flood-control source |
+| --- | --- | ---: | ---: | --- | --- | --- |
+| `23DN0050` | `0400000000` | 14.659331 | 121.274275 | `COORDINATE_BOUNDARY` | `UNMATCHED` | `MATCHED_EXACT_CONTRACT_ID` |
+| `22IJ0084` | `0800000000` | 12.014647 | 124.812286 | `COORDINATE_BOUNDARY` | `UNMATCHED` | `MATCHED_EXACT_CONTRACT_ID` |
+| `24MF0015` | `1200000000` | 6.675582 | 124.568240 | `COORDINATE_BOUNDARY` | `UNMATCHED` | `MATCHED_EXACT_CONTRACT_ID` |
+| `22OB0338` | `1300000000` | 14.637775 | 121.116908 | `COORDINATE_BOUNDARY` | `UNMATCHED` | `MATCHED_EXACT_CONTRACT_ID` |
+| `24CH0065` | `0300000000` | 14.980733 | 120.535408 | `COORDINATE_BOUNDARY` | `UNMATCHED` | `MATCHED_EXACT_CONTRACT_ID` |
 
-All five sampled projects retain the controlled
-`NO_APPROVED_MGB_INTERSECTION` reason. The sample confirms that these records
-are not being lost or assigned a fallback flood level.
+These samples confirm that the low project-flood match rate is not caused by
+projects being dropped from the mapping pipeline. Each project remains present,
+has a valid coordinate, has a trusted region assignment, and is independently
+confirmed in the official flood-control source.
 
-This diagnostic does not prove that each individual project point should be
-flood-susceptible. Regional High or Very High exposure only makes these useful
-review candidates. Table 15 therefore keeps the projects `UNMATCHED` rather
-than inferring Low risk, applying a nearest-polygon rule, or forcing a flood
-classification.
+The result still does not prove that the exact project point should intersect an
+MGB susceptibility polygon. Flood-control project membership and regional flood
+exposure provide useful review context, but they are not substitutes for the
+point-in-polygon rule.
+
+Table 15 therefore keeps these projects `UNMATCHED` and does not introduce a
+nearest-polygon rule, buffer, manual flood classification, or severity fallback.
 
 ## Gold handoff
 
