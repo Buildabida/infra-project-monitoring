@@ -349,6 +349,21 @@ See [Silver project flood mapping](../docs/silver_project_flood_mapping.md) for
 the Table 15 grain, classification rule, lineage, cost controls, and Gold
 handoff.
 
+## Load Gold
+
+Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/gold_model.md).
+Each notebook first checks that its Silver inputs passed Silver validation. Then it loads rows with `MERGE` on deterministic keys, so a rerun changes nothing.
+
+After every Silver validator passes, run the dimensions in this order:
+
+1. `03_gold/00_gold_dim_date.ipynb`
+2. `03_gold/01_gold_dim_region.ipynb` builds `dim_region` and `dim_region_boundary`
+3. `03_gold/02_gold_dim_flood_susceptibility.ipynb`
+4. `03_gold/03_gold_dim_project_status.ipynb`
+5. `03_gold/04_gold_dim_project.ipynb`
+
+The three facts and `04_validation/09_validation_gold.ipynb` are planned. Gold runs no spatial matching. It needs Databricks Runtime 17.1 or later because `01_gold_dim_region` parses region shapes.
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
