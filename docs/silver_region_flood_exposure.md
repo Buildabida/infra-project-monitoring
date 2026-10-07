@@ -468,14 +468,22 @@ A FLAG is a visible source limitation, not a failure.
 
 ## Known limitations
 
-- The MGB geometry encoding is verified at runtime, not from a local file.
-- The boundary snapshot predates the current PSGC release.
-- Negros Island Region is expected to be no data until a newer boundary arrives.
-- Region VI and VII areas are expected to reflect their older territory.
+- The selected boundary snapshot predates the current PSGC release.
+- Region VI is `BOUNDARY_TERRITORY_MISMATCH`.
+- Region VII is `BOUNDARY_TERRITORY_MISMATCH`.
+- Negros Island Region is `NO_SAFE_REGION_BOUNDARY`.
+- BARMM is `BOUNDARY_TERRITORY_MISMATCH`.
+- These geographic findings are source-version limitations, not pipeline
+  failures. Their exposure measures remain `NULL` until safe geography is
+  available.
 - Invalid MGB geometry is excluded rather than repaired.
-- `ST_UNION_AGG` on detailed polygons is the most expensive step. Runtime cost is
-  not yet measured.
-- No Databricks runtime result is recorded for this milestone yet.
+- Blank and `No rating` MGB rows remain unresolved by design.
+- The optional MGB publisher version is unavailable for the selected snapshot.
+- Cross-level overlap means susceptibility-level areas must not automatically
+  be summed for every region.
+- `ST_UNION_AGG` remains the most expensive spatial operation. Runtime
+  execution succeeded, but performance should be monitored if future MGB
+  snapshots grow materially.
 
 ## Gold handoff
 
