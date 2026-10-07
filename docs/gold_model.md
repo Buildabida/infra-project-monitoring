@@ -4,7 +4,7 @@ This doc defines the nine Gold tables in the `03-gold` schema.
 
 Gold holds the facts and dimensions that answer the project questions. The dashboard and Genie read these tables.
 
-Status: five notebooks in `notebooks/03_gold` build the six dimensions. They need a Databricks run before the tables exist. The three facts and the Gold validator are planned.
+Status: five notebooks in `notebooks/03_gold` build the six dimensions. They need a Databricks run before the tables exist. Three more notebooks build the facts. The Gold validator is planned.
 
 ## Build rules
 
@@ -286,6 +286,15 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 - `implementing_office`: Bronze has the District Engineering Office in `deo`, filled for almost every project. Silver does not carry it yet. Gold reads only Silver, so the column fills once `silver_project` publishes it.
 - `source_infra_type`: DPWH has no infrastructure-type column. The raw JSON field `componentCategories` may be a candidate. The team has not decided.
 
+## Project delivery rules
+
+`fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
+
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date.
+- **Progress range:** `physical_progress_pct` is published only between 0 and 100. Values outside that range are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
+
+`zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
+
 ## Load pattern
 
 Every Gold notebook follows the same steps:
@@ -309,9 +318,9 @@ Gold does not repeat cleaning, matching, or mapping. Each Gold table reads a Sil
 | `dim_flood_susceptibility` | `02_gold_dim_flood_susceptibility` | `02-silver.config_mgb_susceptibility_mapping` |
 | `dim_project_status` | `03_gold_dim_project_status` | `02-silver.silver_project` statuses and `02-silver.config_project_status_mapping` |
 | `dim_project` | `04_gold_dim_project` | `02-silver.silver_project` and `02-silver.silver_project_source_match` |
-| `fact_region_population` | Planned | `02-silver.silver_region_population` |
-| `fact_region_flood_exposure` | Planned | `02-silver.silver_region_flood_exposure` |
-| `fact_project_snapshot` | Planned | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_flood_map` |
+| `fact_region_population` | `05_gold_fact_region_population` | `02-silver.silver_region_population` |
+| `fact_region_flood_exposure` | `06_gold_fact_region_flood_exposure` | `02-silver.silver_region_flood_exposure` |
+| `fact_project_snapshot` | `07_gold_fact_project_snapshot` | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_flood_map` |
 
 Gold runs no spatial matching, clipping, or area work. Region shapes are parsed only to store them for maps. The parser is the Table 13 rule. Its two patterns are written as raw literals, `r'...'`, and a test proves the rule is the same.
 
@@ -335,9 +344,9 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 3. `notebooks/03_gold/02_gold_dim_flood_susceptibility.ipynb`
 4. `notebooks/03_gold/03_gold_dim_project_status.ipynb`
 5. `notebooks/03_gold/04_gold_dim_project.ipynb`
-6. `fact_region_population`, planned
-7. `fact_region_flood_exposure`, planned
-8. `fact_project_snapshot`, planned
+6. `notebooks/03_gold/05_gold_fact_region_population.ipynb`
+7. `notebooks/03_gold/06_gold_fact_region_flood_exposure.ipynb`
+8. `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`
 
 ## Validation
 
