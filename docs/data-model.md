@@ -147,8 +147,8 @@ future Gold dim_project and project facts
 
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
-| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | Contract ID plus Bronze source lineage | `project_description_raw`, `category_raw`, `status_raw`, `reported_budget_raw`, `reported_budget_pesos`, `physical_progress_pct`, parsed dates, parsed coordinates, `coordinate_status`, Bronze lineage fields |
-| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes, budget resolution status, attribute-resolution status, source lineage, deterministic project identity |
+| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | `component_key`. Source-row identity is the snapshot, `source_row_hash`, and `source_row_ordinal`. | Raw and parsed budget, progress, dates, coordinates, and infrastructure year, with quality statuses. Approved category and status mappings with mapping states. `run_id`, rule version, and Bronze lineage fields. |
+| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes, budget resolution and quality status, attribute-resolution statuses, mapping states, source and component-run lineage, deterministic project identity |
 | `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
 | `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
 | `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
@@ -158,8 +158,7 @@ Required Silver uniqueness:
 
 - Implemented project-region map: `source_system`, `contract_id`, `run_id`.
 - Implemented project-flood map: `source_system`, `contract_id`, `run_id`.
-- DPWH components: `source_system`, `contract_id`, `source_component_id`, `run_id`.
-- Use `source_row_number` when no stable component ID exists.
+- DPWH components: `component_key`. DPWH has no stable component ID or source row number, so the key hashes the snapshot, `source_row_hash`, and `source_row_ordinal`.
 - Flood-control components: `source_system`, `source_snapshot_id`, real source `object_id`, and rule version.
 - Project source matches: normalized source Contract ID, source snapshot, source version, and match run.
 - Implemented population reconciliation: `source_file`, `sheet_name`, `source_row_number`, `run_id`.
