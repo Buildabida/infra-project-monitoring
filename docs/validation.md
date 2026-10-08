@@ -355,6 +355,9 @@ instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
+The first Databricks run wrote 29 checks. All 19 STOP checks passed. Its
+results are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
+
 ## Silver source-reconciliation validation
 
 `notebooks/04_validation/05_validation_silver_source_reconciliation.ipynb`

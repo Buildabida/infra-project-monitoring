@@ -50,9 +50,9 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_psgc_place` | Implemented |
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
-| `silver_dpwh_project_component` | Implemented. Databricks execution required. |
-| `silver_project` | Implemented. Databricks execution required. |
-| Silver project validation | Implemented. Databricks execution required. |
+| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks for the selected DPWH snapshot. |
+| `silver_project` | Implemented. Runtime-validated in Databricks for the selected DPWH snapshot. |
+| Silver project validation | Implemented. All STOP checks passed in Databricks. See [runtime evidence](#runtime-evidence). |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
@@ -324,6 +324,68 @@ Flag conditions include:
 
 Flag findings remain visible for review.
 
+## Runtime evidence
+
+The first Databricks run of the hardened foundation used these inputs:
+
+| Input | Value |
+| --- | --- |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| Bronze load status | `SKIPPED_IDEMPOTENT`, 265,661 rows loaded |
+| Approved category and status rules | 0 and 0 |
+| Component rule version | `silver_dpwh_component_v2` |
+| Component run ID | `915af77484fcdb363d8a74146ab3e4ae8ed1d827c508241d0bd618e8ec0172cd` |
+| Project rule version | `silver_project_v2` |
+| Project run ID | `add5661e4e762ac48a270a437356933bc499a130186cc1f664561364face3449` |
+
+The validator wrote 29 checks to `04-validation.silver_dq_results`. All 19
+STOP checks passed. Of the 10 FLAG checks, 9 reported findings and 1 found
+none.
+
+### Row accounting
+
+| Measure | Rows |
+| --- | ---: |
+| Bronze DPWH rows | 265,661 |
+| Component rows | 265,661 |
+| Distinct Contract IDs | 265,656 |
+| Project rows | 265,656 |
+| Component rows accounted for by projects | 265,661 |
+
+- Two component rows are identical to an earlier row on every Silver field. They stay in the table and are counted.
+- Two projects have at least one conflicting attribute.
+- No project has conflicting budgets. 87 projects have no usable budget.
+- The resolved reported budget across projects is PHP 6,535,616,688,962.02. It is a reported budget, not a payment.
+
+### Component findings
+
+The denominator is 265,661 component rows.
+
+| Finding | Rows |
+| --- | ---: |
+| No approved category rule | 265,661 |
+| No approved status rule | 265,661 |
+| Missing, partial, or unparseable coordinate pair | 50,523 |
+| Missing budget | 79 |
+| Unparseable budget | 10 |
+| Negative budget | 0 |
+| Missing progress | 79 |
+| Unparseable progress | 5 |
+| Progress outside 0 to 100 | 17 |
+| Missing infrastructure year | 94 |
+| Unparseable infrastructure year | 11 |
+| Unparseable start or completion date | 16 |
+
+The missing counts are derived from the coverage query. They equal each
+field's non-`VALID` rows minus its unparseable, negative, or out-of-range rows.
+
+At the project level, 16 projects resolve to progress outside 0 to 100, and
+255 projects have no single reported region.
+
+The 50,523 coordinate exceptions include missing, partial, and unparseable
+pairs. D-28 records 50,522 rows without coordinate pairs. This run does not
+split the 50,523 by type, so the difference of one row is not yet explained.
+
 ## Known limitations
 
 - No category or status rule is approved yet, so every row is `UNMAPPED`. The join is ready for approved rules.
@@ -333,7 +395,7 @@ Flag findings remain visible for review.
 - Long-running classification remains unresolved in Silver.
 - Stalled classification remains unresolved. It needs an approved status mapping.
 - The implementing office is not published. No DPWH Bronze field for it has been confirmed in this repo.
-- Databricks execution is required before validation outcomes can be claimed.
+- Tables 13 and 15 must be rerun on the new project run before their results match this run.
 
 ## Open questions for the team
 
