@@ -85,16 +85,18 @@ Implemented Silver outputs currently include:
 - Table C place-level reconciliation
 - region-level population
 - row-preserving DPWH project components
-- canonical project-level consolidation
+- canonical project-level consolidation with a governed DPWH
+  `componentCategories` sector taxonomy
 - row-preserving flood-control components
 - exact Contract-ID source reconciliation
 - governed project-to-region mapping with retained unresolved and conflict evidence
 - regional MGB flood exposure calculated once in an equal-area CRS, with explicit no-data regions
 - governed project-to-flood-susceptibility classification with retained no-match and ambiguous evidence
 
-Silver validation checks row preservation, project accounting, source reconciliation,
-geographic precedence and coverage, budget protection, lineage, and retained
-source-quality findings. It also checks flood-exposure area, CRS, and overlap.
+Silver validation checks row preservation, project accounting, and taxonomy
+coverage for projects and reported budgets. It checks source reconciliation,
+geographic precedence, budget protection, lineage, and retained source-quality
+findings. It also checks flood-exposure area, CRS, and overlap.
 For project-flood mapping, it independently recomputes every project's MGB candidates.
 
 Gold analytical models remain planned.
