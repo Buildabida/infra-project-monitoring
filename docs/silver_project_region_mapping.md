@@ -7,7 +7,7 @@ It assigns canonical DPWH projects to official PSGC regions for regional
 investment analysis. It also preserves projects that cannot safely receive a
 region. Gold can consume the result without repeating geographic matching.
 
-Requires Databricks execution.
+Runtime-validated in Databricks for the selected snapshots. See [runtime evidence](#runtime-evidence).
 
 ## Business purpose
 
@@ -344,8 +344,63 @@ region polygons. The current PSGC file contained 18 official region rows.
 
 These observations guided defensive code. They are not Databricks execution
 evidence and do not prove that the selected Bronze snapshots have the same row
-counts. Runtime mapping coverage, unresolved counts, ambiguous counts, and
-conflict counts require Databricks execution.
+counts. The Databricks results are in [runtime evidence](#runtime-evidence).
+
+## Runtime evidence
+
+The first documented Databricks run used the hardened project foundation:
+
+| Input | Value |
+| --- | --- |
+| Project run | `add5661e4e762ac48a270a437356933bc499a130186cc1f664561364face3449` (`silver_project_v2`) |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| Validation run ID | `aeac08e3306e8cf33d5dd2cc1ef472ee2dc87a41fa45923998300a52f0f24934` |
+| Approved region aliases and manual overrides | 0 and 0 |
+| Publisher versions | DPWH not available, so it stays `NULL`. Boundary version is present on every row. |
+
+The validator wrote 37 checks to `04-validation.silver_dq_results`. All 18
+STOP checks passed. Of the 19 FLAG checks, 15 reported findings and 4 found
+none.
+
+### Mapping outcome
+
+| Method | Status | Projects | Share of all projects |
+| --- | --- | ---: | ---: |
+| `COORDINATE_BOUNDARY` | `MATCHED` | 201,611 | 75.89% |
+| `NONE` | `UNMATCHED` | 52,951 | 19.93% |
+| `EXACT_REGION_NAME` | `MATCHED` | 10,742 | 4.04% |
+| `NON_GEOGRAPHIC_RULE` | `NON_GEOGRAPHIC` | 306 | 0.12% |
+| `COORDINATE_BOUNDARY` | `AMBIGUOUS` | 32 | 0.01% |
+| `EXACT_REGION_NAME` | `MATCHED_WITH_CONFLICT` | 14 | 0.01% |
+| Total | | 265,656 | 100% |
+
+- 212,367 projects have a region, 79.94% of all projects. That includes the 14
+  name-versus-coordinate conflicts.
+- 306 `Central Office` projects stay non-geographic with no PSGC region.
+- 52,983 projects have no region: 52,951 unmatched and 32 ambiguous.
+
+### Coverage detail
+
+- **Reported region text.** 265,401 projects have a reported region. Only
+  10,756 of them match an official PSGC region name exactly. The other 254,645
+  have no exact or approved alias match, because no region alias is approved.
+  255 projects have no reported region.
+- **Coordinates.** 215,138 projects have a usable pair. 50,518 have no pair. No
+  project has a partial or out-of-range pair.
+- **Coordinate fallback.** 210,314 usable points fall inside exactly one region
+  boundary. 4,539 fall inside none, and 32 fall inside more than one.
+- **Name versus coordinate.** 210,300 projects agree, 14 conflict, and 55,036
+  cannot be compared.
+- **Boundaries.** 17 boundary regions cover 18 official PSGC regions. Every row
+  shows a boundary-versus-PSGC version difference. The full boundary file has
+  232 duplicate source-file and feature rows out of 43,760.
+
+### Interpretation note
+
+Most regions come from the coordinate fallback, not from names. The DPWH
+`reported_region` labels rarely equal the official PSGC names. Approved region
+aliases could move some projects to the higher-priority name stage. This run
+does not measure how many.
 
 ## Cost and scalability
 

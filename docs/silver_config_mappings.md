@@ -76,6 +76,20 @@ Approved targets require a documented mapping rule and source reference.
 The initial table is empty.
 Observed categories remain review candidates rather than guessed taxonomy rules.
 
+### Key values for DPWH rules
+
+Write DPWH category and status rules with these key values. The config validator checks coverage with them, and the DPWH component notebook joins on them.
+
+| Field | Value for DPWH | Why |
+| --- | --- | --- |
+| `source_system` | `dpwh_projects` | It is the Bronze table name that the coverage check uses. |
+| `source_infra_type` | `''`, an empty string | DPWH has no infrastructure-type column. |
+| `raw_category` and `source_status` | The Bronze value after `TRIM` | Coverage and the component join both trim. A blank value is `''`. |
+
+Each active approved version may hold only one rule per raw category or source status. The component notebook stops if it finds two. This keeps a mapping from ever copying a project row.
+
+Silver output tables still label DPWH rows `source_system = 'DPWH'`. That label is for joins between Silver tables. It is not a config key.
+
 ### Downstream readiness
 
 `silver_project` may preserve raw project categories before the taxonomy is
