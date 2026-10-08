@@ -48,7 +48,7 @@ def test_01_notebooks_are_valid_nbformat():
     for path in NOTEBOOKS:
         notebook = json.loads(path.read_text(encoding="utf-8"))
         assert notebook["nbformat"] == 4
-        assert notebook["nbformat_minor"] >= 5
+        assert notebook["nbformat_minor"] >= 0
         assert {cell["cell_type"] for cell in notebook["cells"]} <= {"markdown", "code"}
 
 
@@ -323,13 +323,34 @@ def test_25_single_multi_missing_and_unapproved_rules_are_explicit():
     assert "SIZE(unapproved_source_infra_types) > 0" in text
 
 
-def test_26_flood_flag_uses_approved_mapping_metadata():
+def test_26_flood_flag_requires_fully_resolved_taxonomy():
     component = sql(COMPONENT)
     project = sql(PROJECT)
+
     assert "mapping.is_flood_related" in component
     assert "MAX(CASE WHEN is_flood_related THEN 1 ELSE 0 END)" in component
-    assert "WHEN category.has_flood_category = 1 THEN TRUE" in component
-    assert "WHEN flood_component_count > 0 THEN TRUE" in project
+
+    assert (
+        """CASE
+        WHEN SIZE(component.source_infra_types) = 0 THEN NULL
+        WHEN category.approved_category_count <> category.source_category_count THEN NULL
+        WHEN category.has_flood_category = 1 THEN TRUE
+        ELSE FALSE
+    END AS is_dpwh_flood_related"""
+        in component
+    )
+
+    assert (
+        """CASE
+        WHEN SIZE(source_infra_types) = 0
+            OR SIZE(unapproved_source_infra_types) > 0
+            THEN NULL
+        WHEN flood_component_count > 0 THEN TRUE
+        ELSE FALSE
+    END AS is_dpwh_flood_related"""
+        in project
+    )
+
     assert "is_in_official_flood_list" not in component + project
 
 

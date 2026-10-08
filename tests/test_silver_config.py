@@ -208,6 +208,17 @@ def test_dpwh_component_category_taxonomy_is_seeded_and_versioned():
     assert "Exact normalized componentCategories token" in sql
 
 
+def test_project_category_coverage_uses_only_active_approved_rules():
+    coverage_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "raw_dpwh_component_category AS (" in cell
+    )
+
+    assert "mapping.approval_status = 'APPROVED'" in coverage_cell
+    assert "mapping.is_active = TRUE" in coverage_cell
+
+
 def test_config_validator_protects_dpwh_taxonomy_selection_and_fanout():
     sql = notebook_text(VALIDATION_NOTEBOOK)
     assert "exactly one active approved DPWH taxonomy version" in sql
