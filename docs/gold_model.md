@@ -281,20 +281,17 @@ Silver keeps the real mapping result. Gold only resolves it to a key. See [Silve
 
 ## Unmapped values stay visible
 
-The category and status configuration tables have no approved rows yet. Until the team approves them:
+The category taxonomy is approved and lives in Silver (D-39). The status configuration has no approved rows yet. So:
 
-- `dim_project.standardized_sector` is `NULL`, and `infra_type_mapping_status` says why. See D-37.
-- `dim_project.is_dpwh_flood_related` is `NULL`.
+- `dim_project` copies `source_infra_type`, `standardized_sector`, `taxonomy_version` and `is_dpwh_flood_related` from `silver_project`. A project with no usable `componentCategories` value keeps a `NULL` sector and flag.
+- `dim_project.infra_type_mapping_status` copies Silver's `category_classification_status`, so it says why a sector is `NULL`. See D-37.
 - `dim_project_status` has one row per observed DPWH status. `standardized_status` and `status_group` are `NULL`, and `status_mapping_version` is `NO_APPROVED_STATUS_MAPPING`.
 
 Gold never adds its own `CASE` rule for a category or a status. See [Silver configuration mappings](silver_config_mappings.md).
 
 About 30 projects have a status that is really another field, such as `0.00` or a place name. Those rows were shifted in the source CSV. They stay as their own status members, and the Gold validator flags them.
 
-`source_infra_type` and `implementing_office` are `NULL`:
-
-- `implementing_office`: Bronze has the District Engineering Office in `deo`, filled for almost every project. Silver does not carry it yet. Gold reads only Silver, so the column fills once `silver_project` publishes it.
-- `source_infra_type`: DPWH has no infrastructure-type column. The raw JSON field `componentCategories` may be a candidate. The team has not decided.
+`implementing_office` is `NULL`. Bronze has the District Engineering Office in `deo`, filled for almost every project. Silver does not carry it yet. Gold reads only Silver, so the column fills once `silver_project` publishes it.
 
 ## Project delivery rules
 

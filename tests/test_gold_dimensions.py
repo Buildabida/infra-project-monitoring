@@ -279,7 +279,12 @@ def test_15_project_dimension_reuses_silver_and_exact_flood_list_matches():
     # silver publishes the parsed year since #90, so gold copies it (d-38)
     assert "project.infra_year_parsed AS infra_year" in text
     assert "TRY_CAST(project.infra_year" not in text
-    assert "CAST(NULL AS BOOLEAN) AS is_dpwh_flood_related" in text
+    # silver owns the taxonomy since #94, so gold copies it (d-37, d-39)
+    assert "project.source_infra_type," in text
+    assert "project.is_dpwh_flood_related," in text
+    assert "project.category_classification_status AS infra_type_mapping_status" in text
+    assert "category_resolution_status" not in text
+    assert "CAST(NULL AS BOOLEAN) AS is_dpwh_flood_related" not in text
     # flood-list cost is evidence only and never reaches the project dimension
     assert "contract_cost" not in text.lower()
     assert "01-bronze`.dpwh_projects" not in text
