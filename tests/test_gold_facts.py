@@ -201,8 +201,7 @@ def test_10_progress_is_published_only_when_silver_marks_it_valid():
     )
     assert "project.progress_quality_status," in text
     assert (
-        "WHEN project_rows.progress_quality_status = published_progress_quality"
-        in text
+        "WHEN project_rows.progress_quality_status = published_progress_quality" in text
     )
     assert "BETWEEN 0 AND 100" not in text
     # the rule label is built from the same variable, so it cannot drift
