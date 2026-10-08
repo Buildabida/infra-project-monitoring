@@ -158,10 +158,15 @@ def test_07_facts_read_silver_measures_unchanged():
 def test_08_region_and_flood_keys_only_for_clean_matches():
     text = code_without_comments(PROJECT)
     assert (
-        "WHEN project_rows.region_match_status IN ('MATCHED', 'MATCHED_WITH_CONFLICT')"
-        in text
+        "region_key_match_statuses ARRAY<STRING> "
+        "DEFAULT ARRAY('MATCHED', 'MATCHED_WITH_CONFLICT');" in text
     )
-    assert "WHEN project_rows.flood_match_status = 'MATCHED' THEN" in text
+    assert (
+        "WHEN ARRAY_CONTAINS(region_key_match_statuses, "
+        "project_rows.region_match_status)" in text
+    )
+    assert "flood_key_match_status STRING DEFAULT 'MATCHED';" in text
+    assert "WHEN project_rows.flood_match_status = flood_key_match_status THEN" in text
     assert "COALESCE(status.status_key, 0) AS status_key" in text
     assert "FROM `02-silver`.silver_project_region_map" in text
     assert "FROM `02-silver`.silver_project_flood_map" in text
@@ -189,8 +194,14 @@ def test_09_long_running_follows_d32():
 
 def test_10_progress_is_published_only_between_0_and_100():
     text = code_without_comments(PROJECT)
-    assert "WHEN project_rows.physical_progress_pct BETWEEN 0 AND 100" in text
-    assert "progress-range=0:100" in text
+    assert "DECLARE OR REPLACE VARIABLE progress_min_pct INT DEFAULT 0;" in text
+    assert "DECLARE OR REPLACE VARIABLE progress_max_pct INT DEFAULT 100;" in text
+    assert (
+        "WHEN project_rows.physical_progress_pct "
+        "BETWEEN progress_min_pct AND progress_max_pct" in text
+    )
+    # the rule label is built from the same two variables, so it cannot drift
+    assert "'-months|progress-range=', progress_min_pct, ':', progress_max_pct" in text
 
 
 def test_11_current_snapshot_is_maintained_and_checked():
@@ -211,3 +222,22 @@ def test_12_every_fact_resolves_keys_and_gates_on_silver_validation():
     project = sql(PROJECT)
     assert "LEFT ANTI JOIN `03-gold`.dim_date AS calendar" in project
     assert "COUNT(*) = (SELECT COUNT(*) FROM `02-silver`.silver_project)" in project
+
+
+def test_13_facts_read_source_systems_from_the_dimensions():
+    for path in NOTEBOOKS:
+        text = code_without_comments(path)
+        for literal in ["'DPWH'", "'DENR MGB flood susceptibility'"]:
+            assert literal not in text, (path.stem, literal)
+    exposure = code_without_comments(GOLD / "06_gold_fact_region_flood_exposure.ipynb")
+    project = code_without_comments(PROJECT)
+    for text in (exposure, project):
+        assert "SET VAR mgb_mapping_source_system = (" in text
+    assert "SET VAR project_source_system = (" in project
+
+
+def test_14_markdown_quotes_no_run_counts():
+    # counts change on every run, so the summary queries show them instead
+    for path in NOTEBOOKS:
+        text = markdown(path)
+        assert not re.search(r"\b\d{1,3}(?:,\d{3})+\b", text), path.stem
