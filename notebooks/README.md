@@ -137,7 +137,7 @@ Silver currently implements:
 - silver_project_flood_map
 - Silver project flood-mapping validation
 
-Gold remains planned.
+Gold dimensions are in [Load Gold](#load-gold).
 
 Run these notebooks after Bronze has passed its blocking checks:
 
