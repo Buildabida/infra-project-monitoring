@@ -50,9 +50,9 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_psgc_place` | Implemented |
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
-| `silver_dpwh_project_component` | Implemented. Earlier v2 runtime evidence is retained. The v4 taxonomy and implementing-office rerun is pending. |
-| `silver_project` | Implemented. Earlier v2 runtime evidence is retained. The v4 taxonomy and implementing-office rerun is pending. |
-| Silver project validation | Implemented. Earlier v2 STOP checks passed. The v4 taxonomy, coverage, and implementing-office checks require a Databricks rerun. |
+| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v4. |
+| `silver_project` | Implemented. Runtime-validated in Databricks on rule version v4. |
+| Silver project validation | Implemented. All 24 v4 STOP checks passed in Databricks. |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
@@ -369,10 +369,57 @@ Flag findings remain visible for review.
 
 ## Runtime evidence
 
-The evidence below is the earlier v2 foundation run. It does not prove the new
-`dpwh-component-categories-2026-10-v1` taxonomy or the implementing office.
-Rerun config, component, project, and validation notebooks in Databricks before
-accepting the v4 coverage or rerunning dependent maps.
+### Run on rule version 4
+
+The current code, with the `dpwh-component-categories-2026-10-v1` taxonomy and
+the implementing office, ran on Databricks on October 9, 2026.
+
+| Input | Value |
+| --- | --- |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| Bronze load status | `SKIPPED_IDEMPOTENT`, 265,661 rows loaded |
+| Approved taxonomy versions | 1 |
+| Approved status rules | 0 |
+| Component run ID | `acc2632ac9afecbb1d4d36dd8e2ecc1a91928e91668fed37c5faf946c9a2e8bb` |
+| Project rule version | `silver_project_v4` |
+| Project run ID | `534df0f8a40784195e6932378cce725107b8b7d60b0ac4102ad05f154404468d` |
+
+The validator wrote 39 checks to `04-validation.silver_dq_results`. All 24
+STOP checks passed. Of the 15 FLAG checks, 13 reported findings and 2
+(unexpected category tokens and negative budgets) found none.
+
+Row accounting and every source-quality count are the same as in the v2 run
+below: 265,661 component rows, 265,656 projects, 2 repeated identical rows,
+2 projects with a conflicting attribute, 87 projects without a usable budget,
+and PHP 6,535,616,688,962.02 resolved reported budget.
+
+Taxonomy coverage, with 265,656 projects as the denominator:
+
+| Measure | Projects | Reported budget (PHP) |
+| --- | ---: | ---: |
+| Mapped | 245,160 (92.28%) | 6,487,566,542,904.27 (99.26%) |
+| Unmapped, missing `componentCategories` | 20,496 | 48,050,146,057.75 |
+| Unmapped, unapproved category token | 0 | 0 |
+| Single sector | 243,943 | |
+| `Multi-sector` | 1,217 | |
+| DPWH flood-related | 35,147 | 1,739,575,865,716.19 |
+
+At the component level, 20,501 of 265,661 rows have no usable
+`componentCategories` value, and every one of them is unmapped.
+
+Implementing office, with 265,656 projects as the denominator:
+
+| Measure | Projects |
+| --- | ---: |
+| One implementing office | 265,559 (99.96%) |
+| No single implementing office (`MISSING` or `CONFLICT`) | 97 |
+| Office breaks the resolution rule | 0 |
+
+The pre-merge run found 100 component rows with a blank or missing `deo`. The
+v4 component coverage query was not exported, so that count is not repeated
+here.
+
+### Earlier v2 run
 
 The first Databricks run of the hardened foundation used these inputs:
 
@@ -434,23 +481,8 @@ The 50,523 coordinate exceptions include missing, partial, and unparseable
 pairs. D-28 records 50,522 rows without coordinate pairs. This run does not
 split the 50,523 by type, so the difference of one row is not yet explained.
 
-### Implementing office, pre-merge run
-
-The `deo` change was first run on October 9, 2026, before it was merged with
-the category taxonomy. That run used the v2 foundation plus `deo`, labelled
-`silver_dpwh_component_v3` and `silver_project_v3` on its branch. It is not the
-v4 code on `main`, so it shows the office coverage but does not replace the v4
-rerun.
-
-| Measure | Count | Denominator |
-| --- | ---: | ---: |
-| Component rows with a blank or missing `deo` | 100 | 265,661 component rows |
-| Projects with no single implementing office | 97 | 265,656 projects |
-| Projects whose office breaks the resolution rule | 0 | 265,656 projects |
-
-- 265,559 projects (99.96%) resolved to one implementing office.
-- All 19 STOP checks of that validator passed. Every other count matched the v2 run above.
-- The 97 unresolved projects are `MISSING` or `CONFLICT`. That run did not split them by status.
+The v2 run had no approved category rule, so every row was unmapped. The v4
+run above replaces those category counts.
 
 ## Known limitations
 
@@ -462,7 +494,7 @@ rerun.
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved in Silver.
 - Stalled classification remains unresolved. It needs an approved status mapping.
-- 97 projects had no single implementing office in the pre-merge run. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status.
+- 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
 - Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v4` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
 ## Open questions for the team
