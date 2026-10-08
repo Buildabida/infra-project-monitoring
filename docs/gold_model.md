@@ -4,7 +4,7 @@ This doc defines the nine Gold tables in the `03-gold` schema.
 
 Gold holds the facts and dimensions that answer the project questions. The dashboard and Genie read these tables.
 
-Status: five notebooks in `notebooks/03_gold` build the six dimensions. They need a Databricks run before the tables exist. Three more notebooks build the facts. The Gold validator is planned.
+Status: five notebooks in `notebooks/03_gold` build the six dimensions. Three more notebooks build the three facts. The Gold validator is planned.
 
 ## Build rules
 

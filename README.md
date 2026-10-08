@@ -15,7 +15,8 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 > Bronze ingestion is implemented.
 > Silver configuration, geography and population, DPWH project foundation,
 > flood-list source reconciliation, project-region mapping, regional flood-exposure,
-> and project-flood mapping outputs are implemented. Gold remains planned.
+> and project-flood mapping outputs are implemented.
+> The six Gold dimensions are implemented. The three Gold facts are implemented. Gold validation remains planned.
 
 ## Why we built it
 
@@ -97,7 +98,8 @@ geographic precedence and coverage, budget protection, lineage, and retained
 source-quality findings. It also checks flood-exposure area, CRS, and overlap.
 For project-flood mapping, it independently recomputes every project's MGB candidates.
 
-Gold analytical models remain planned.
+Gold dimensions and facts are implemented. Gold validation remains planned.
+See the [Gold model](docs/gold_model.md).
 Gold owns the analytical models used by the dashboard and Genie.
 
 ## Quickstart
