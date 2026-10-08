@@ -39,9 +39,9 @@ Governed mappings remain separate from geography and population transformations.
 | 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through contextual PSGC matching and approved aliases. |
 | 15 | `02_silver/03_silver_region_population` | Aggregate only accepted matched barangay population to official PSGC regions. |
 | 16 | `04_validation/03_validation_silver_geography_population` | Validate row accounting, matches, lineage, region coverage, and population totals. |
-| 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH project source row and safely parse supported fields. |
-| 18 | `02_silver/05_silver_project` | Consolidate project evidence without unsupported budget summation. |
-| 19 | `04_validation/04_validation_silver_projects` | Validate project row accounting, grain, budget protection, and lineage. |
+| 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH row, extract `componentCategories`, and apply the governed atomic taxonomy without row multiplication. |
+| 18 | `02_silver/05_silver_project` | Consolidate one project, classify approved category sets, and protect reported budgets. |
+| 19 | `04_validation/04_validation_silver_projects` | Validate row accounting, taxonomy coverage, grain, budget protection, and lineage. |
 | 20 | `02_silver/06_silver_flood_control_component` | Preserve every selected flood-control source feature using its real Object ID. |
 | 21 | `02_silver/07_silver_project_source_match` | Record exact Contract-ID reconciliation evidence without changing projects. |
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
@@ -152,8 +152,9 @@ The configuration notebook creates these Delta tables:
 - `02-silver.config_mgb_susceptibility_mapping`
 - `02-silver.config_manual_geographic_match`
 
-Only the four documented MGB code mappings are seeded.
-The other tables stay empty until a reviewer approves their rules.
+The notebook seeds the seven approved DPWH component-category rules and the four
+documented MGB code mappings. Other rule sets stay empty until a reviewer
+approves them.
 
 Review the coverage output before running the validator.
 The validator saves evidence in `04-validation.silver_config_dq_results`.
@@ -194,9 +195,15 @@ After Silver configuration validation passes, run:
 2. `02_silver/05_silver_project.ipynb`
 3. `04_validation/04_validation_silver_projects.ipynb`
 
-The component notebook preserves every selected Bronze DPWH source row while safely parsing supported project fields.
+The component notebook preserves every selected Bronze DPWH source row. It
+extracts `componentCategories` from `source_record_json`, normalizes the
+comma-separated category set, and maps atomic values with the governed config.
+It aggregates immediately back to the source-row grain.
 
-The project notebook consolidates component-level evidence into one canonical project-level record.
+The project notebook consolidates component-level evidence into one canonical
+project-level record. One approved category keeps its sector. More than one
+approved category becomes `Multi-sector`. Missing or unapproved categories stay
+unmapped with a `NULL` sector.
 
 The validator confirms:
 
@@ -204,8 +211,23 @@ The validator confirms:
 - component-to-project accounting
 - project uniqueness
 - budget double-count protection
+- mapped and unmapped project and reported-budget coverage
+- single-sector, multi-sector, missing-category, and DPWH flood-related counts
 - source lineage completeness
 - retained source-quality findings
+
+The taxonomy changes the component and project run identities. After the
+foundation validator passes, rerun these dependent outputs in order:
+
+1. `02_silver/07_silver_project_source_match.ipynb`
+2. `04_validation/05_validation_silver_source_reconciliation.ipynb`
+3. `02_silver/08_silver_project_region_map.ipynb`
+4. `04_validation/06_validation_silver_project_region_map.ipynb`
+5. `02_silver/10_silver_project_flood_map.ipynb`
+6. `04_validation/08_validation_silver_project_flood_map.ipynb`
+
+Skip `06_silver_flood_control_component.ipynb` when its selected source and
+rule identity are unchanged.
 
 Run all notebooks in Databricks.
 
