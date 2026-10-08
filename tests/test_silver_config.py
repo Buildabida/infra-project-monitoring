@@ -26,7 +26,6 @@ CONFIG_TABLES = {
         "raw_category",
         "source_infra_type",
         "standardized_sector",
-        "is_flood_related",
         "taxonomy_version",
         "approval_status",
         "is_active",
@@ -144,7 +143,7 @@ def test_only_verified_mgb_rules_are_seeded_with_expected_ranks():
     seed_cell = next(
         cell
         for cell in code_cells(CONFIG_NOTEBOOK)
-        if "config_mgb_susceptibility_mapping AS target" in cell
+        if "MERGE INTO `02-silver`.config_mgb_susceptibility_mapping" in cell
     )
     expected = {
         "LF": ("Low", 1),
@@ -161,12 +160,40 @@ def test_only_verified_mgb_rules_are_seeded_with_expected_ranks():
     assert "PENDING_REVIEW" not in seed_cell
 
 
+def test_only_approved_dpwh_status_rules_are_seeded():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "MERGE INTO `02-silver`.config_project_status_mapping" in cell
+    )
+    expected = {
+        "Completed": ("Completed", "FINISHED"),
+        "On-Going": ("Ongoing", "ACTIVE"),
+        "For Procurement": ("Ongoing", "ACTIVE"),
+        "Not Yet Started": ("Inactive", "INACTIVE"),
+        "Terminated": ("Inactive", "INACTIVE"),
+    }
+
+    seed_rows = re.findall(r"\('dpwh_projects',[^)]*\)", seed_cell)
+    assert len(seed_rows) == len(expected)
+    for source_status, (standardized, group) in expected.items():
+        pattern = (
+            rf"\('dpwh_projects',\s*'{source_status}',\s*'{standardized}',"
+            rf"\s*'{group}',\s*'[^']+',\s*'2026-10-v1',\s*'APPROVED',\s*TRUE,"
+            rf"\s*'[^']+'\)"
+        )
+        assert re.search(pattern, seed_cell), source_status
+
+    assert "'DPWH'" not in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
+
+
 def test_status_config_does_not_seed_delayed_or_derived_rules():
     sql = notebook_text(CONFIG_NOTEBOOK)
-    assert "MERGE INTO `02-silver`.config_project_status_mapping" not in sql
     assert not re.search(
         r"VALUES\s*\([^)]*'Delayed'", sql, flags=re.DOTALL | re.IGNORECASE
     )
+    assert not re.search(r"'(Delayed|Stalled|Long-running)'", sql, flags=re.IGNORECASE)
 
 
 def test_manual_override_table_is_allowed_to_start_empty():
@@ -178,52 +205,9 @@ def test_manual_override_table_is_allowed_to_start_empty():
 
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
-    assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
-    assert sql.count("MERGE INTO `02-silver`.") == 1
+    assert sql.count("MERGE INTO `02-silver`.") == 2
     assert "CREATE TABLE IF NOT EXISTS" in sql
     assert "INSERT INTO `02-silver`.config_" not in sql
-
-
-def test_dpwh_component_category_taxonomy_is_seeded_and_versioned():
-    sql = notebook_text(CONFIG_NOTEBOOK)
-    expected_categories = {
-        "Bridges",
-        "Buildings and Facilities",
-        "Consultancy",
-        "Flood Control and Drainage",
-        "Roads",
-        "Septage and Sewerage Plants",
-        "Water Provision and Storage",
-    }
-
-    assert "dpwh-component-categories-2026-10-v1" in sql
-    for category in expected_categories:
-        assert f"'{category}'" in sql
-
-    assert re.search(
-        r"'Flood Control and Drainage',\s*'Flood Control and Drainage',\s*"
-        r"'Flood Control and Drainage',\s*TRUE",
-        sql,
-    )
-    assert "Exact normalized componentCategories token" in sql
-
-
-def test_project_category_coverage_uses_only_active_approved_rules():
-    coverage_cell = next(
-        cell
-        for cell in code_cells(CONFIG_NOTEBOOK)
-        if "raw_dpwh_component_category AS (" in cell
-    )
-
-    assert "mapping.approval_status = 'APPROVED'" in coverage_cell
-    assert "mapping.is_active = TRUE" in coverage_cell
-
-
-def test_config_validator_protects_dpwh_taxonomy_selection_and_fanout():
-    sql = notebook_text(VALIDATION_NOTEBOOK)
-    assert "exactly one active approved DPWH taxonomy version" in sql
-    assert "DPWH category rules cannot fan out one source classification" in sql
-    assert "approved DPWH category targets and flood markers are complete" in sql
 
 
 def test_notebooks_never_write_bronze_or_gold_or_run_spatial_logic():
