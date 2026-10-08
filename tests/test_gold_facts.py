@@ -192,16 +192,21 @@ def test_09_long_running_follows_d32():
     assert "completion date" in decisions.split("| D-32 |", 1)[1].split("| D-33 |")[0]
 
 
-def test_10_progress_is_published_only_between_0_and_100():
+def test_10_progress_is_published_only_when_silver_marks_it_valid():
     text = code_without_comments(PROJECT)
-    assert "DECLARE OR REPLACE VARIABLE progress_min_pct INT DEFAULT 0;" in text
-    assert "DECLARE OR REPLACE VARIABLE progress_max_pct INT DEFAULT 100;" in text
+    # silver checks the 0 to 100 range once, so gold copies its quality status
     assert (
-        "WHEN project_rows.physical_progress_pct "
-        "BETWEEN progress_min_pct AND progress_max_pct" in text
+        "DECLARE OR REPLACE VARIABLE published_progress_quality STRING "
+        "DEFAULT 'VALID';" in text
     )
-    # the rule label is built from the same two variables, so it cannot drift
-    assert "'-months|progress-range=', progress_min_pct, ':', progress_max_pct" in text
+    assert "project.progress_quality_status," in text
+    assert (
+        "WHEN project_rows.progress_quality_status = published_progress_quality"
+        in text
+    )
+    assert "BETWEEN 0 AND 100" not in text
+    # the rule label is built from the same variable, so it cannot drift
+    assert "'-months|progress=silver-quality-', published_progress_quality" in text
 
 
 def test_11_current_snapshot_is_maintained_and_checked():

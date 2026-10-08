@@ -301,7 +301,7 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
 - **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date.
-- **Progress range:** `physical_progress_pct` is published only between 0 and 100. Values outside that range are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
+- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
 
 `zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
 
