@@ -14,7 +14,6 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review project-to-region precedence, Central Office handling, spatial fallback, conflicts, lineage, and validation | [Silver project-to-region mapping](silver_project_region_mapping.md) |
 | Review regional MGB flood exposure, the equal-area CRS, zero versus no data, overlap, lineage, and validation | [Silver regional flood exposure](silver_region_flood_exposure.md) |
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver_project_flood_mapping.md) |
-| Ask Claude to review the repo and fix unresolved Silver work | [Silver review prompt](silver_review_prompt.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |
