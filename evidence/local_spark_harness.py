@@ -131,7 +131,7 @@ def statements(path):
         sql = "".join(cell["source"]).replace("%sql\n", "", 1)
         for stmt in sql.split(";"):
             stmt = stmt.strip()
-            if not stmt or stmt.startswith(("USE CATALOG", "CREATE SCHEMA")):
+            if not stmt or stmt.startswith("USE CATALOG") or stmt.startswith("CREATE SCHEMA"):
                 continue
             stmt = stmt.replace("USING DELTA", "USING PARQUET")
             stmt = re.sub(r"SELECT \* EXCEPT \(\w+\)", "SELECT *", stmt)
