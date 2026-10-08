@@ -419,6 +419,22 @@ The validator wrote 53 checks to `04-validation.silver_dq_results`. All 37
 STOP checks passed. Of the 16 FLAG checks, 13 reported findings and 3 found
 none.
 
+### Rerun on project rule version 2
+
+Table 15 was rerun after the project foundation moved to `silver_project_v2`.
+
+| Input | Value |
+| --- | --- |
+| Project run | `add5661e4e762ac48a270a437356933bc499a130186cc1f664561364face3449` |
+| Table 15 run ID | `dc10d49cb327609eaa35fd97edc39b34b357d82b7fbf3d42fc12a343aaa208b7` |
+
+The DPWH snapshot, MGB snapshot, and mapping version did not change. The
+validator again wrote 53 checks. All 37 STOP checks passed, and the selected
+project validation it checks had 29 checks with no blocking failure.
+
+Every count in the tables below is the same in the rerun. Only the project run
+and the Table 15 run ID changed.
+
 ### Project classification
 
 | Outcome | Projects | Share of all projects |

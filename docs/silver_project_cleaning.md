@@ -395,7 +395,7 @@ split the 50,523 by type, so the difference of one row is not yet explained.
 - Long-running classification remains unresolved in Silver.
 - Stalled classification remains unresolved. It needs an approved status mapping.
 - The implementing office is not published. No DPWH Bronze field for it has been confirmed in this repo.
-- Tables 13 and 15 must be rerun on the new project run before their results match this run.
+- Tables 13 and 15 were rerun on this project run. Both validators passed every STOP check. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
 ## Open questions for the team
 

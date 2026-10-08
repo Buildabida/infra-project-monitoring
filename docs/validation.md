@@ -511,7 +511,8 @@ data.
 
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
-Runtime outcomes require Databricks execution.
+The first documented Databricks run passed all 18 STOP checks. Its results are
+in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
 
 ## Silver regional flood exposure validation
 
