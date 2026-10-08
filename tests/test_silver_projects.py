@@ -48,7 +48,7 @@ def test_01_notebooks_are_valid_nbformat():
     for path in NOTEBOOKS:
         notebook = json.loads(path.read_text(encoding="utf-8"))
         assert notebook["nbformat"] == 4
-        assert notebook["nbformat_minor"] >= 0
+        assert notebook["nbformat_minor"] >= 5
         assert {cell["cell_type"] for cell in notebook["cells"]} <= {"markdown", "code"}
 
 
