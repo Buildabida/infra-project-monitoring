@@ -271,5 +271,6 @@ expectations.
 ## Downstream dependencies
 
 Future project dimensions and flood-list indicators may consume only accepted match
-results after this validator passes. Project-region mapping, project-flood mapping,
-Gold dimensions, Gold facts, dashboards, and Genie remain separate future work.
+results after this validator passes. Project-region mapping and project-flood mapping
+are separate Silver milestones that do not read these match results. Gold
+dimensions, Gold facts, dashboards, and Genie remain separate future work.

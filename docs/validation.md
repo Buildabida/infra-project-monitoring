@@ -1,7 +1,9 @@
 # Data-quality checks
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
-and population validators. Checks for the remaining Silver outputs and Gold remain planned.
+and population validators. It also covers the Silver project, source-reconciliation,
+project-region, regional flood-exposure, and project-flood mapping validators. Gold
+checks remain planned.
 
 ## Bronze validation
 
@@ -507,6 +509,187 @@ data.
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
 Runtime outcomes require Databricks execution.
+
+## Silver regional flood exposure validation
+
+`notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
+validates `02-silver.silver_region_flood_exposure` after Table 14 is rebuilt.
+
+Use this order for the final two steps:
+
+1. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
+2. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
+
+The validator persists results to `04-validation.silver_dq_results` before
+enforcing its blocking gate. The gate reads the persisted rows. The validation
+run ID is deterministic for the exposure run and validation-rule version, so an
+exact rerun updates the same evidence.
+
+The validator recomputes evidence independently. It reparses the published MGB
+snapshot once, rebuilds the expected region × level grid from current inputs,
+reparses the selected region boundaries, and recalculates region areas.
+
+### Regional flood exposure data-quality attributes
+
+- Consistency: CONFIG and PSGC validation are safe, the approved mapping is
+  one-to-one, and statuses agree. Boundary statuses reproduce from the source.
+  Each region has one denominator. Additivity matches measured overlap.
+- Accuracy: levels come only from approved mapping. Area uses the approved
+  equal-area CRS, is square kilometres rather than square degrees, matches an
+  independent recalculation, and stays inside its region.
+- Completeness: every MGB row is accounted for, and every official region and
+  approved level has one row. Unmapped rows, unusable geometry, and no-data
+  regions stay visible.
+- Auditability: mandatory lineage is present, and keys and run IDs reproduce.
+  Optional version gaps and geometry parse paths are reported.
+- Validity: statuses are controlled, missing geography is `NULL`, and real zero
+  is zero. Areas and shares stay in range.
+- Uniqueness: keys and the region, level, and run grain are unique.
+- Timeliness: the table uses the newest validated MGB and boundary snapshots,
+  the current PSGC run, and the current mapping version in one run.
+
+### Regional flood exposure stop checks
+
+Blocking checks protect:
+
+- safe newest MGB and boundary loads and Bronze validation
+- safe Silver CONFIG and selected PSGC validation
+- published snapshots, PSGC run, and mapping version that are current
+- one deterministic run
+- MGB source-row accounting against the audited row count
+- one-to-one approved mapping and approved-only published levels
+- the complete dynamic region × level grid
+- unique keys and grain, reproducible keys and run ID
+- controlled and mutually consistent statuses
+- boundary statuses that reproduce from the boundary snapshot
+- `NULL` for missing geography and real zero for safe regions without exposure
+- positive region area, non-negative susceptible area, and a share from 0 to 100
+- the approved equal-area CRS and square-kilometre units
+- independent region-area recalculation and clipping inside each region
+- dissolve that never increases area
+- additivity status that matches measured cross-level overlap
+- one denominator and identical region-level values across levels
+- source polygon and fragment count contract
+- expected source SRID for usable MGB geometry
+- mandatory lineage
+
+### Regional flood exposure review flags
+
+Nonblocking checks retain:
+
+- unmapped, blank, and `No rating` MGB rows with per-bucket counts
+- mapped rows excluded for unusable geometry
+- blank, unparseable, empty, unsupported, and invalid MGB geometry
+- usable MGB geometry outside the coarse degree-unit screen
+- mapped usable rows without a safe region intersection
+- regions without a safe, unambiguous, valid boundary
+- unresolved region boundary codes and boundary lineage duplicates
+- boundary and PSGC version mismatch
+- province-level territory differences between the boundary and current PSGC
+- within-level overlap removed by dissolve and cross-level overlap
+- any approval of blank or `No rating` codes
+- optional MGB publisher and boundary version gaps
+- differences from historical Bronze reference counts
+
+The validator does not invent an unknown level, repair geometry, deduplicate
+boundaries, fabricate a region polygon, or turn missing geography into zero.
+
+See [Silver regional flood exposure](silver_region_flood_exposure.md) for the
+complete Table 14 grain, CRS, overlap, lineage, cost, and Gold handoff contracts.
+Runtime outcomes require Databricks execution.
+
+## Silver project flood mapping validation
+
+`notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+validates `02-silver.silver_project_flood_map` after Table 15 is rebuilt.
+
+Use this order for the final two steps:
+
+1. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
+2. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+
+The validator persists results to `04-validation.silver_dq_results` before
+enforcing its blocking gate. The gate reads the persisted rows. The validation
+run ID is deterministic for the project-flood run and validation-rule version,
+so an exact rerun updates the same evidence.
+
+The validator recomputes evidence independently. It declares the Table 13
+coordinate screen itself and recomputes every project's coordinate status. It
+reparses MGB with the governed Table 14 parser and recomputes source accounting.
+It also rebuilds every project's MGB candidates with a different grid size and
+compares them with the published evidence row by row.
+
+### Project flood mapping data-quality attributes
+
+- Consistency: CONFIG validation is safe, and one project run, MGB snapshot,
+  mapping version, and rule version are published. The approved mapping is
+  one-to-one, and published levels and ranks match it. Statuses account for
+  every row, and the coordinate screen matches Table 13.
+- Accuracy: published candidates equal the independent recomputation. Matched
+  points really intersect an approved usable polygon. Multiple distinct levels
+  are never collapsed by severity, and same-level overlap stays matched. Only
+  approved levels drive a classification.
+- Completeness: every canonical project appears exactly once, and MGB rows
+  reconcile to the audited load. Coverage is reported against all projects and
+  against usable coordinates.
+- Auditability: mandatory lineage is present, and keys and run IDs reproduce.
+  Publisher versions come only from `load_log`. Version gaps and parse paths are
+  reported.
+- Validity: values are controlled, and candidate counts agree with candidate
+  levels. Matched rows have one level, and unresolved reasons follow the
+  coordinate contract. Only safe coordinates take part in matching.
+- Uniqueness: keys, the source system, Contract ID, and run grain, and project
+  keys are unique.
+- Timeliness: the table uses the newest validated MGB and DPWH snapshots, the
+  current accepted project run, and the current mapping version in one run.
+
+### Project flood mapping stop checks
+
+Blocking checks protect:
+
+- safe newest MGB and DPWH loads and Bronze validation
+- safe Silver CONFIG and selected project validation
+- published MGB snapshot, project snapshot, project run, and mapping version
+  that are current
+- one deterministic run and one published version set
+- MGB source-row accounting against the audited row count
+- one-to-one approved mapping and approved-only levels and ranks
+- every canonical project present exactly once
+- unique keys, grain, and project keys, and reproducible keys and run ID
+- controlled statuses, methods, qualities, and reasons
+- consistent `MATCHED`, `AMBIGUOUS`, `UNMATCHED`, and `INVALID_SOURCE` rows
+- candidate evidence equal to the independent spatial recomputation
+- no severity collapse across distinct levels
+- same-level overlap that stays matched with its polygon count
+- the Table 13 coordinate contract and safe coordinates only
+- expected source SRID for usable MGB geometry
+- publisher versions taken only from `load_log`
+- mandatory lineage
+
+### Project flood mapping review flags
+
+Nonblocking checks retain:
+
+- classification coverage against all projects and against usable coordinates
+- projects without usable coordinates, by coordinate status
+- usable points without an approved MGB intersection
+- projects across multiple approved levels
+- projects inside several same-level polygons
+- unmapped, blank, and `No rating` MGB rows with per-bucket counts
+- mapped rows excluded for unusable geometry
+- blank, unparseable, empty, unsupported, and invalid MGB geometry
+- any approval of blank or `No rating` codes
+- optional MGB and DPWH publisher-version gaps
+- MGB geometry parse paths
+- differences from historical Bronze reference counts
+
+The validator never picks a level for an ambiguous project or invents an unknown
+level. It does not repair geometry or treat a missing match as low or zero risk.
+
+See [Silver project flood mapping](silver_project_flood_mapping.md) for the
+complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
+handoff contracts. The first Databricks run passed every STOP check. Its results
+are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
 
 ## Future validation documents
 

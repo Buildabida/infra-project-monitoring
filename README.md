@@ -14,8 +14,8 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 > [!NOTE]
 > Bronze ingestion is implemented.
 > Silver configuration, geography and population, DPWH project foundation,
-> flood-list source reconciliation, and project-region mapping outputs are implemented.
-> Other Silver outputs and Gold remain planned.
+> flood-list source reconciliation, project-region mapping, regional flood-exposure,
+> and project-flood mapping outputs are implemented. Gold remains planned.
 
 ## Why we built it
 
@@ -106,12 +106,15 @@ Implemented Silver outputs currently include:
 - row-preserving flood-control components
 - exact Contract-ID source reconciliation
 - governed project-to-region mapping with retained unresolved and conflict evidence
+- regional MGB flood exposure calculated once in an equal-area CRS, with explicit no-data regions
+- governed project-to-flood-susceptibility classification with retained no-match and ambiguous evidence
 
 Silver validation checks row preservation, project accounting, source reconciliation,
 geographic precedence and coverage, budget protection, lineage, and retained
-source-quality findings.
+source-quality findings. It also checks flood-exposure area, CRS, and overlap.
+For project-flood mapping, it independently recomputes every project's MGB candidates.
 
-Project-flood mapping and Gold analytical models remain planned.
+Gold analytical models remain planned.
 Gold owns the analytical models used by the dashboard and Genie.
 
 ### Tools we use
@@ -326,13 +329,19 @@ See [data-quality checks](docs/validation.md) for each check.
   They don't judge fairness or prove a cause.
 - **Four sources have no recorded date yet.**
   The DPWH, flood list, boundary and MGB snapshots don't record when the publisher made them.
+- **Few project points fall inside MGB flood polygons.**
+  In the first project-flood run, 20,398 of 215,138 projects with usable
+  coordinates received a flood level. Another 15 sit inside polygons of more
+  than one level. Most of the rest fall outside every approved polygon.
+  That is not evidence of low or zero flood risk.
+  See [project flood mapping](docs/silver_project_flood_mapping.md#runtime-evidence).
 
 ## Find your way around
 
 - **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
 - **Look up a table:** the [data model](docs/data-model.md) is our data dictionary. It gives the grain, key and main columns of every table.
 - **Look something up:** [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), and [Silver geography and population](docs/silver_geography_population.md).
-  Continue with [Silver project foundation](docs/silver_project_cleaning.md), [source reconciliation](docs/silver_source_reconciliation.md), [project-to-region mapping](docs/silver_project_region_mapping.md), or the [style guide](docs/style-guide.md).
+  Continue with [Silver project foundation](docs/silver_project_cleaning.md), [source reconciliation](docs/silver_source_reconciliation.md), [project-to-region mapping](docs/silver_project_region_mapping.md), [regional flood exposure](docs/silver_region_flood_exposure.md), [project flood mapping](docs/silver_project_flood_mapping.md), or the [style guide](docs/style-guide.md).
 - **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)

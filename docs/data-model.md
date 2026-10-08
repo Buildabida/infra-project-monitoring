@@ -10,7 +10,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, and project-region mapping outputs are implemented. Project-flood mapping remains planned. |
+| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. Category, status, and place mapping decisions remain pending human review. |
 | Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
 
 ```text
@@ -127,7 +127,7 @@ The same output also supports flood-control reconciliation, portfolio analysis, 
 
 The component and project tables are implemented and require Databricks execution.
 
-Project-region mapping is implemented. Project-flood mapping remains planned.
+Project-region mapping and project-flood mapping are implemented.
 
 The source-reconciliation path is:
 
@@ -140,6 +140,7 @@ silver_project_source_match
         ↑
 silver_project
         ├──→ silver_project_region_map
+        ├──→ silver_project_flood_map ← 01-bronze.flood_susceptibility + config_mgb_susceptibility_mapping
         ↓
 future Gold dim_project and project facts
 ```
@@ -151,12 +152,12 @@ future Gold dim_project and project facts
 | `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
 | `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
 | `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
-| `02-silver.silver_project_flood_map` | One final project-to-flood classification per pipeline run | `project_flood_map_key` | `source_system`, `contract_id`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `matched_polygon_count`, `classification_rule`, `mgb_source_version`, `run_id`, `source_load_ts` |
+| `02-silver.silver_project_flood_map` | One final project-to-flood classification per canonical `silver_project` row per deterministic project-flood mapping run | `project_flood_map_key` | `source_system`, `project_key`, `contract_id`, coordinates and `coordinate_status`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `match_method`, `match_quality`, `matched_polygon_count`, `matched_level_count`, `candidate_levels`, ambiguity and exception reasons.<br>`classification_rule`, `classification_rule_version`, project and MGB snapshot, ingest, version, and load lineage, mapping versions, deterministic `run_id`, and `source_load_ts`. |
 
 Required Silver uniqueness:
 
 - Implemented project-region map: `source_system`, `contract_id`, `run_id`.
-- Planned project-flood map: `source_system`, `contract_id`, `run_id`.
+- Implemented project-flood map: `source_system`, `contract_id`, `run_id`.
 - DPWH components: `source_system`, `contract_id`, `source_component_id`, `run_id`.
 - Use `source_row_number` when no stable component ID exists.
 - Flood-control components: `source_system`, `source_snapshot_id`, real source `object_id`, and rule version.
@@ -170,6 +171,54 @@ PSGC region. Unmatched, ambiguous, and conflicting projects remain in the table.
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete precedence, boundary, lineage, and validation contracts.
 
+Table 15 retains the approved `flood_susceptibility_level` and `severity_rank`
+only when a project's map point falls inside polygons of exactly one approved
+MGB level. It does not create the Gold `flood_susceptibility_key`. Points inside
+polygons of several approved levels stay `AMBIGUOUS` with no level, because no
+severity precedence is approved. Projects without a usable point or without an
+approved polygon stay `UNMATCHED`. That is never Low, zero, or `Unknown` risk.
+See [Silver project flood mapping](silver_project_flood_mapping.md) for the
+complete coordinate, MGB, spatial, lineage, and validation contracts.
+
+## Silver regional flood-exposure table (implemented)
+
+Table 14 performs the MGB-to-region spatial work once in Silver.
+It reads only MGB, region boundaries, official PSGC regions, approved MGB mappings,
+and compact audit and validation evidence. It does not read projects, population,
+Table 13, or Gold.
+
+```text
+01-bronze.flood_susceptibility
+        ↓
+config_mgb_susceptibility_mapping
+        ↓
+standardized MGB flood polygons
+        ↓
+regional spatial intersection ← 01-bronze.boundaries ← silver_psgc_place
+        ↓
+silver_region_flood_exposure
+        ↓
+03-gold.fact_region_flood_exposure (planned)
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_region_flood_exposure` | One official PSGC region × one active approved MGB susceptibility level × selected MGB snapshot × selected boundary snapshot × deterministic exposure run | `region_flood_exposure_key` | Region code and name, raw code, level, severity rank, region area, susceptible area, share, source polygon and fragment counts, overlap measures and additivity status.<br>Mapping, boundary, spatial, version, and geometry statuses, exception reason, MGB/mapping/boundary/PSGC lineage, area CRS, rule versions, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness: `psgc_region_code`, `flood_susceptibility_level`, `run_id`.
+
+`region_flood_exposure_key` is a deterministic Silver SHA-256 key. It is not the
+future Gold BIGINT surrogate key. Areas use `DECIMAL(18,4)` and the share uses
+`DECIMAL(7,4)`. Area is calculated in EPSG:6933, an equal-area CRS, never in
+square degrees.
+
+A safe region with no exposure has real zero values. A region without one safe
+boundary keeps `NULL` measures with `NO_SAFE_REGION_BOUNDARY`. Blank and
+`No rating` MGB values stay unmapped and never enter an approved level.
+
+See [Silver regional flood exposure](silver_region_flood_exposure.md) for the
+complete CRS, boundary, overlap, lineage, validation, and Gold handoff contracts.
+
 ## Gold fact tables (planned)
 
 These fact tables are design targets and do not exist yet.
@@ -177,6 +226,11 @@ These fact tables are design targets and do not exist yet.
 ### `03-gold.fact_project_snapshot`
 
 Grain: one DPWH project per distinct source snapshot.
+
+Flood source: `02-silver.silver_project_flood_map`. Gold resolves `MATCHED`
+levels to `flood_susceptibility_key` and may route other rows to key `0`. It must
+not repeat MGB mapping, geometry parsing, point creation, spatial matching, or
+ambiguity resolution.
 
 Primary key: `project_snapshot_key`.
 
@@ -223,6 +277,10 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 ### `03-gold.fact_region_flood_exposure`
 
 Grain: one region per susceptibility level, MGB version, and boundary version.
+
+Source: `02-silver.silver_region_flood_exposure`. Gold assigns `region_key` and
+`flood_susceptibility_key` only. It must not repeat MGB mapping, geometry
+parsing, clipping, area calculation, or overlap handling.
 
 Primary key: `region_flood_exposure_key`.
 Foreign keys: `region_key` and `flood_susceptibility_key`.
