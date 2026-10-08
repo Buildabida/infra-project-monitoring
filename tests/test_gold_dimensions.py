@@ -276,7 +276,9 @@ def test_15_project_dimension_reuses_silver_and_exact_flood_list_matches():
     assert "FROM `02-silver`.silver_project AS project" in text
     assert "source_match.match_status = 'MATCHED_EXACT_CONTRACT_ID'" in text
     assert "MAX(target_project_run_id) = (SELECT MAX(project.run_id)" in text
-    assert "TRY_CAST(project.infra_year AS INT) AS infra_year" in text
+    # silver publishes the parsed year since #90, so gold copies it (d-38)
+    assert "project.infra_year_parsed AS infra_year" in text
+    assert "TRY_CAST(project.infra_year" not in text
     assert "CAST(NULL AS BOOLEAN) AS is_dpwh_flood_related" in text
     # flood-list cost is evidence only and never reaches the project dimension
     assert "contract_cost" not in text.lower()
