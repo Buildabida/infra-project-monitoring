@@ -362,7 +362,7 @@ After every Silver validator passes, run the dimensions in this order:
 4. `03_gold/03_gold_dim_project_status.ipynb`
 5. `03_gold/04_gold_dim_project.ipynb`
 
-The three facts and `04_validation/09_validation_gold.ipynb` are planned. Gold runs no spatial matching. It needs Databricks Runtime 17.1 or later because `01_gold_dim_region` parses region shapes.
+The three facts and `04_validation/09_validation_gold.ipynb` are planned. Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-34). It needs Databricks Runtime 17.1 or later to parse them.
 
 ## Validation connection
 

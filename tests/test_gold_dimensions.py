@@ -153,6 +153,14 @@ def test_07_keys_are_deterministic_hashes():
     region = sql(GOLD / "01_gold_dim_region.ipynb")
     assert ")) AS boundary_key" in region
     assert "XXHASH64(CONCAT_WS(\n        '|', 'REGION_BOUNDARY'" in region
+    labels = {
+        "01_gold_dim_region": "'|', 'PSGC_REGION',",
+        "02_gold_dim_flood_susceptibility": "'|', 'FLOOD_SUSCEPTIBILITY',",
+        "03_gold_dim_project_status": "'|', 'PROJECT_STATUS',",
+        "04_gold_dim_project": "'|', 'PROJECT',",
+    }
+    for name, label in labels.items():
+        assert label in sql(GOLD / f"{name}.ipynb"), (name, label)
 
 
 def test_08_no_random_or_current_time_in_any_notebook():
