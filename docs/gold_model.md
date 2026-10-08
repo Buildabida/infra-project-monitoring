@@ -12,7 +12,7 @@ Follow the [style guide](style-guide.md) for all Gold work. These points matter 
 
 1. Write Gold in SQL. See decision [D-08](decisions.md).
 2. Start each notebook with ``USE CATALOG `buildabida-capstone` ``. Name tables as `` `03-gold`.dim_region ``.
-3. Make every run safe to repeat. Use `CREATE OR REPLACE TABLE` or `MERGE INTO`.
+3. Make every run safe to repeat. Create each table once with `CREATE TABLE IF NOT EXISTS`, then load it with `MERGE INTO`. Never use `CREATE OR REPLACE TABLE`, `DELETE`, or `TRUNCATE` on a Gold table.
 4. Add a comment to every table and every column. Genie reads them.
 5. Use the table names, column names, types and column order in this doc exactly.
 6. Do not add tables, columns or relationships that this doc does not list.
@@ -244,16 +244,20 @@ Two rules apply:
 
 Gold keys are deterministic. The same Silver inputs always give the same key, so a rerun never changes a key. See decision [D-33](decisions.md).
 
-| Key | Type | How it is made |
-| --- | --- | --- |
-| `date_key` | INT | The date as `yyyymmdd`, such as `20261004` |
-| `region_key` | BIGINT | `XXHASH64` of the PSGC region code and PSGC version |
-| `boundary_key` | BIGINT | `XXHASH64` of the region key and boundary version |
-| `project_key` | BIGINT | `XXHASH64` of the source system and Contract ID |
-| `status_key` | INT | `HASH` of the source system, source status, and status mapping version |
-| `flood_susceptibility_key` | INT | `HASH` of the source system, level, and source version |
+| Key | Type | Label | How it is made | Code |
+| --- | --- | --- | --- | --- |
+| `date_key` | INT | None | The date as `yyyymmdd`, such as `20261004` | `00_gold_dim_date.ipynb`, cell 6, line 224 |
+| `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 448 to 451, and the gate in cell 2, line 121 |
+| `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 557 to 559 |
+| `project_key` | BIGINT | `PROJECT` | `XXHASH64(CONCAT_WS('\|', 'PROJECT', source_system, contract_id))` | `04_gold_dim_project.ipynb`, cell 8, line 380 |
+| `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 340 to 342 |
+| `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 293 to 295 |
 
-Each hash input starts with a fixed label, such as `PSGC_REGION`, so two key types never share an input. A STOP check proves every key is unique and that no real member gets key `0`.
+Cell numbers count from 0. Line numbers are lines of the `.ipynb` file, so they move when a cell above them changes.
+
+`region_key` uses the PSGC snapshot ID when Silver has no PSGC version. When no status mapping is approved, `status_mapping_version` is `NO_APPROVED_STATUS_MAPPING`.
+
+Each hash input starts with its label, so two key types never share an input. Facts must build each key with this exact recipe. A STOP check proves every key is unique and that no real member gets key `0`.
 
 Silver keys are SHA-256 strings. Gold does not reuse them as keys. `dim_project` joins back to Silver through `source_system` and `contract_id`.
 
@@ -279,7 +283,7 @@ Silver keeps the real mapping result. Gold only resolves it to a key. See [Silve
 
 The category and status configuration tables have no approved rows yet. Until the team approves them:
 
-- `dim_project.standardized_sector` is `NULL`, and `infra_type_mapping_status` says why.
+- `dim_project.standardized_sector` is `NULL`, and `infra_type_mapping_status` says why. See D-37.
 - `dim_project.is_dpwh_flood_related` is `NULL`.
 - `dim_project_status` has one row per observed DPWH status. `standardized_status` and `status_group` are `NULL`, and `status_mapping_version` is `NO_APPROVED_STATUS_MAPPING`.
 
@@ -320,8 +324,8 @@ Gold does not repeat cleaning, matching, or mapping. Each Gold table reads a Sil
 | --- | --- | --- |
 | `dim_date` | `00_gold_dim_date` | Generated from a date range. No source table. |
 | `dim_region` | `01_gold_dim_region` | `02-silver.silver_psgc_place`, plus boundary safety from `02-silver.silver_region_flood_exposure` |
-| `dim_region_boundary` | `01_gold_dim_region` | `01-bronze.boundaries` region rows, parsed with the Table 13 rule, plus boundary safety from `02-silver.silver_region_flood_exposure` |
-| `dim_flood_susceptibility` | `02_gold_dim_flood_susceptibility` | `02-silver.config_mgb_susceptibility_mapping` |
+| `dim_region_boundary` | `01_gold_dim_region` | `01-bronze.boundaries` region rows, parsed with the Table 13 rule, plus boundary safety from `02-silver.silver_region_flood_exposure`. Allowed by D-35. |
+| `dim_flood_susceptibility` | `02_gold_dim_flood_susceptibility` | `02-silver.config_mgb_susceptibility_mapping`, plus the MGB load time from `02-silver.silver_project_flood_map` |
 | `dim_project_status` | `03_gold_dim_project_status` | `02-silver.silver_project` statuses and `02-silver.config_project_status_mapping` |
 | `dim_project` | `04_gold_dim_project` | `02-silver.silver_project` and `02-silver.silver_project_source_match` |
 | `fact_region_population` | `05_gold_fact_region_population` | `02-silver.silver_region_population` |

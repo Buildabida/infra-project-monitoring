@@ -12,6 +12,7 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | --- | --- | --- | --- |
 | D-01 | Sep 28 | The team workspace runs the final pipeline and dashboard. | Nadine created a shared workspace where everyone is a user. It is not tied to one person. |
 | D-02 | Sep 26 | The main question is the one in the project brief. | The brief defines the project direction. |
+| D-04 | Oct 8 | Use DPWH as the canonical project and reported-budget authority. Preserve flood-control rows as source evidence and reconcile them by exact normalized Contract ID. Do not add flood-control Contract Cost to the DPWH reported budget. Keep unmatched and ambiguous records visible. | This prevents double counting while preserving source evidence and lineage. |
 | D-05 | Sep 26 | The team name is Buildabida. | It fits infrastructure and sounds fun. |
 | D-06 | Sep 26 | Tasks live in GitHub issues and one project board. | This keeps tasks and code in one place. |
 | D-07 | Sep 28 | Tables live in the `buildabida` catalog. | This separates the capstone from earlier class work. |
@@ -39,7 +40,12 @@ Dates record when the team agreed, so dates may not appear in ID order.
 | D-30 | Oct 5 | Store Silver mapping decisions in five versioned Delta configuration tables. Seed only the documented MGB codes and keep other rules empty until approval. | This updates D-20 for the first Silver milestone. It prevents hidden mappings, guessed values, and duplicate rules across notebooks. |
 | D-31 | Oct 7 | Use this project-region precedence. Start with Central Office, an approved manual exception, and then a verified project PSGC code. Continue with exact region name, approved alias, and coordinate-boundary fallback. Otherwise leave the project unresolved. The code stage applies only when a legitimate field exists. Keep ambiguity and name-coordinate conflicts visible. Do not use fuzzy, nearest, or hidden corrections. This resolves D-03. | A region-first waterfall answers the current analysis at the required grain. Reviewed and exact evidence stays ahead of spatial fallback. Conflicts, missing coordinates, boundary-version differences, and unavailable project PSGC codes remain traceable. |
 | D-32 | Oct 8 | A project is long-running when more than 24 months pass from its start date to its completion date. A project without a completion date is measured to its snapshot date instead. The snapshot date is the file date of the DPWH snapshot in `load_log`, never the current date. The flag is `NULL` when the start date is missing. | Silver left the rule open. Measuring finished projects to their snapshot date would flag about 204,000 completed projects. Measuring to completion flags about 15,200, mostly ongoing work. A fixed snapshot date makes the flag reproducible. The two-year rule comes from the team's constellation model draft. |
-| D-33 | Oct 8 | Gold surrogate keys are deterministic hashes. BIGINT keys use `XXHASH64` and INT keys use `HASH` of the natural key. Date keys are `yyyymmdd`. Key `0` is the reserved unknown member. | A rerun must not change keys. Hashes need no lookup tables, and a STOP check proves they are unique. |
+| D-33 | Oct 8 | Gold surrogate keys are deterministic hashes. BIGINT keys use `XXHASH64` and INT keys use `HASH` of a fixed key label plus the natural key, as listed in the Gold model. Date keys are `yyyymmdd`. Key `0` is the reserved unknown member. | A rerun must not change keys. Hashes need no lookup tables, and a STOP check proves they are unique. |
+| D-34 | Oct 5 | We stay at the region level for the capstone. Provinces stay a note, not a build. This narrows the drill-down part of D-25. | Options were to build a province drill-down now or keep regions only. The schema is fixed to regions, and 1 in 5 projects has no map point. Oct 5 team call, and Ms. Carmi on Oct 7 said regions first. |
+| D-35 | Oct | Gold may read the region rows of `01-bronze.boundaries` for one purpose: to store region shapes and centroids for maps in `dim_region` and `dim_region_boundary`. Gold parses them with the Table 13 rule, takes the snapshot Table 14 used, and copies Table 14's boundary status. Gold runs no intersection, clipping, or area work. | Silver does not store region shapes. Table 14 already decides which shapes are safe. This exception ends when Silver publishes the shapes. |
+| D-36 | Oct | `dim_project` has no key `0`. Every `fact_project_snapshot` row comes from a real `silver_project` row, so its project is always known. | The team note says unknown records use key `0`. A project fact never has an unknown project, so an empty unknown member adds nothing. |
+| D-37 | Oct | In Gold dimensions, an unmapped category or status stays `NULL`. A status column such as `infra_type_mapping_status` or `status_mapping_version` says why. Gold never writes `Unknown` into a mapped column. Key `0` is the only Unknown member. | `NULL` with a reason keeps unmapped rows separate from a real mapped value. An `Unknown` text value would look like an approved category in the dashboard. |
+| D-38 | Oct | Gold keeps five small derivations: the Table 13 region filter on `administrative_level`, `region_short_name` from the trailing parentheses of the PSGC name, `TRIM` on approved config status keys to match Silver's trimmed `status_raw`, `infra_type_mapping_status` from Silver's `category_resolution_status`, and `TRY_CAST` of `infra_year`. None of them maps a category, status, region, or flood level. Each moves to Silver when Silver publishes the field. | They are display or join helpers that Silver does not publish yet. |
 
 Additional context for D-22:
 
@@ -52,12 +58,6 @@ Snapshot context for D-19 and D-23:
 
 - D-19 records the September 29 flood-control snapshot with 9,855 rows.
 - The accepted October 4 snapshot contains 9,861 rows.
-
-## Still open
-
-| ID | Question | Options under review |
-| --- | --- | --- |
-| D-04 | How do we handle projects found in both project lists? | Match by Contract ID |
 
 ## Resolved questions
 

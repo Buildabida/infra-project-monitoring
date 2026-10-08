@@ -266,40 +266,40 @@ The project validator applies the relevant FTW data-quality attributes:
 
 Blocking `stop` checks protect:
 
-- non-empty Bronze DPWH input
-- non-empty Silver component output
+- a non-empty component table
 - exact Bronze-to-component row reconciliation
 - exact component-to-project accounting
-- unique project grain
+- unique component keys, Contract IDs, and project keys
+- present Contract IDs
+- quality and mapping states that use the controlled values
+- quality statuses that agree with their parsed values
 - budget double-count protection
-- mandatory source-snapshot lineage
-- mandatory Bronze-ingest lineage
+- zero-progress flags that agree with resolved progress
+- a mapping version on every mapped row
+- populated, reproducible keys, run IDs, and lineage
+- one component snapshot that equals the latest Bronze DPWH load
+- projects built from the current component run
 
 A blocking failure means the project foundation is unsafe for downstream use.
 
 ### Review flags
 
-Non-blocking `flag` checks report:
+Non-blocking `flag` checks report, each with its denominator:
 
-- missing coordinate pairs
-- partial coordinate pairs
-- unparseable coordinates
-- budget parse failures
+- categories and statuses with no approved rule
+- missing, partial, or unparseable coordinate pairs
+- repeated identical source rows, kept and counted
+- unparseable budgets
 - negative budgets
-- progress parse failures
-- progress outside the supported range
-- start-date parse failures
-- completion-date parse failures
-- conflicting project descriptions
-- conflicting project categories
-- conflicting project statuses
-- conflicting progress values
-- conflicting dates
-- conflicting project budgets
-- unresolved stalled classification
-- unresolved long-running classification
+- unparseable progress
+- progress outside 0 to 100
+- unparseable infrastructure years
+- unparseable start or completion dates
+- projects with at least one conflicting attribute
 
 These findings remain visible for review. The validator does not automatically correct, replace, or delete the affected source evidence.
+
+Every check uses one status rule: no failed rows is `PASS`, a failed `stop` check is `FAIL`, and a failed `flag` check is `FLAG`. Metrics come from one grouped scan per table.
 
 ### Row reconciliation
 
@@ -349,11 +349,14 @@ This preserves validation evidence even when a blocking check fails and keeps
 the project validator consistent with the geography/population and source-reconciliation
 validation contracts.
 
-The validation run identity uses the selected source snapshot, Silver project
-run, and validation-rule version. Exact reruns update the same logical evidence
+The validation run identity uses the Silver project run, the component run, and
+the validation-rule version `silver_project_validation_v2`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
+
+The first Databricks run wrote 29 checks. All 19 STOP checks passed. Its
+results are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
 
 ## Silver source-reconciliation validation
 
@@ -508,7 +511,8 @@ data.
 
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
-Runtime outcomes require Databricks execution.
+The first documented Databricks run passed all 18 STOP checks. Its results are
+in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
 
 ## Silver regional flood exposure validation
 

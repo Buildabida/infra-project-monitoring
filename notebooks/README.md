@@ -368,7 +368,7 @@ Then run the facts, which need every dimension key:
 2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
 3. `03_gold/07_gold_fact_project_snapshot.ipynb`
 
-`04_validation/09_validation_gold.ipynb` is planned. Gold runs no spatial matching. It needs Databricks Runtime 17.1 or later because `01_gold_dim_region` parses region shapes.
+`04_validation/09_validation_gold.ipynb` is planned. Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 
 ## Validation connection
 
