@@ -149,17 +149,23 @@ Structural `stop` checks cover:
 - required mapping and source versions
 - audit evidence for approved rows
 - valid category source fields
+- exactly one active approved DPWH taxonomy version
+- no duplicate active approved DPWH category rule at the complete mapping grain
+- complete approved DPWH sectors and flood markers
 - exclusion of the unsupported `Delayed` status
 - controlled MGB levels and ranks
 - valid PSGC targets for approved geographic rules
 
 Coverage `flag` checks report unmapped or pending Bronze values.
-They cover project categories, project statuses, and MGB susceptibility codes.
+They cover atomic DPWH `componentCategories`, project statuses, and MGB
+susceptibility codes.
 
 An empty manual geographic mapping table is valid.
 The validator records a flag so reviewers can confirm that no exception was approved.
 
-Results append to `04-validation.silver_config_dq_results`.
+Results merge into `04-validation.silver_config_dq_results` with a deterministic
+run ID derived from the selected source snapshots, config versions, and result
+set. An exact rerun updates the same logical evidence rows.
 This table includes `layer`, `mapping_version`, and `run_id` fields.
 
 The existing Bronze writer uses a fixed result structure.
@@ -254,7 +260,7 @@ The validator reports findings without modifying Bronze rows, Silver project row
 
 The project validator applies the relevant FTW data-quality attributes:
 
-- Consistency: project attributes follow deterministic resolution rules, and budget-resolution states agree with the underlying distinct-value counts.
+- Consistency: project attributes and sorted category sets follow deterministic resolution rules, and budget-resolution states agree with the underlying distinct-value counts.
 - Accuracy: parsed and canonical values remain source-supported, while unresolved values are not presented as accepted results.
 - Completeness: Bronze rows, component rows, project rows, missing values, invalid parses, and unresolved attributes remain visible.
 - Auditability: component and project outputs retain source-snapshot and Bronze-ingest lineage.
@@ -274,6 +280,9 @@ Blocking `stop` checks protect:
 - quality and mapping states that use the controlled values
 - quality statuses that agree with their parsed values
 - budget double-count protection
+- component and project category arrays that agree with their classification state
+- one project taxonomy version
+- project reported budgets that reconcile to the component resolution rule
 - zero-progress flags that agree with resolved progress
 - a mapping version on every mapped row
 - populated, reproducible keys, run IDs, and lineage
@@ -286,7 +295,8 @@ A blocking failure means the project foundation is unsafe for downstream use.
 
 Non-blocking `flag` checks report, each with its denominator:
 
-- categories and statuses with no approved rule
+- missing or unparseable `componentCategories`
+- unapproved category tokens and statuses with no approved rule
 - missing, partial, or unparseable coordinate pairs
 - repeated identical source rows, kept and counted
 - unparseable budgets
@@ -299,7 +309,12 @@ Non-blocking `flag` checks report, each with its denominator:
 
 These findings remain visible for review. The validator does not automatically correct, replace, or delete the affected source evidence.
 
-Every check uses one status rule: no failed rows is `PASS`, a failed `stop` check is `FAIL`, and a failed `flag` check is `FLAG`. Metrics come from one grouped scan per table.
+Every check uses one status rule: no failed rows is `PASS`, a failed `stop`
+check is `FAIL`, and a failed `flag` check is `FLAG`. The validator reports
+mapped and unmapped project and budget coverage, single-sector and multi-sector
+counts, missing categories, and DPWH flood-related projects. A second grouped
+component scan independently reconstructs the no-double-count project-budget
+control total.
 
 ### Row reconciliation
 
@@ -338,6 +353,10 @@ The supported outcomes are:
 
 Projects with multiple distinct component budget values must not publish an unsupported canonical project total.
 
+The published resolved project-budget total must equal the control total built
+independently from component evidence. Mapped and unmapped resolved budgets must
+also sum to that same total.
+
 ### Validation evidence
 
 Project validation executes after both project Silver tables are published.
@@ -350,13 +369,15 @@ the project validator consistent with the geography/population and source-reconc
 validation contracts.
 
 The validation run identity uses the Silver project run, the component run, and
-the validation-rule version `silver_project_validation_v3`. Exact reruns update the same logical evidence
+the validation-rule version `silver_project_validation_v4`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
-The first Databricks run wrote 29 checks. All 19 STOP checks passed. Its
+The first v2 Databricks run wrote 29 checks. All 19 STOP checks passed. Its
 results are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
+That historical run does not prove the v4 taxonomy and implementing-office
+checks. A new Databricks run is required.
 
 ## Silver source-reconciliation validation
 

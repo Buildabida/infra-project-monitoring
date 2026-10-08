@@ -50,9 +50,9 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_psgc_place` | Implemented |
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
-| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks for the selected DPWH snapshot. |
-| `silver_project` | Implemented. Runtime-validated in Databricks for the selected DPWH snapshot. |
-| Silver project validation | Implemented. All STOP checks passed in Databricks. See [runtime evidence](#runtime-evidence). |
+| `silver_dpwh_project_component` | Implemented. Earlier v2 runtime evidence is retained. The v4 taxonomy and implementing-office rerun is pending. |
+| `silver_project` | Implemented. Earlier v2 runtime evidence is retained. The v4 taxonomy and implementing-office rerun is pending. |
+| Silver project validation | Implemented. Earlier v2 STOP checks passed. The v4 taxonomy, coverage, and implementing-office checks require a Databricks rerun. |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
@@ -71,10 +71,16 @@ Run the notebooks in this order:
 When project or geography inputs changed and the foundation validator passes,
 continue with:
 
-1. `02_silver/08_silver_project_region_map.ipynb`
-2. `04_validation/06_validation_silver_project_region_map.ipynb`
-3. `02_silver/10_silver_project_flood_map.ipynb`
-4. `04_validation/08_validation_silver_project_flood_map.ipynb`
+1. `02_silver/07_silver_project_source_match.ipynb`
+2. `04_validation/05_validation_silver_source_reconciliation.ipynb`
+3. `02_silver/08_silver_project_region_map.ipynb`
+4. `04_validation/06_validation_silver_project_region_map.ipynb`
+5. `02_silver/10_silver_project_flood_map.ipynb`
+6. `04_validation/08_validation_silver_project_flood_map.ipynb`
+
+The flood-control component does not need a rerun when its selected source and
+rule identity are unchanged. Its project match does need a rerun because it
+stores the current `silver_project.run_id`.
 
 Do not run a dependent notebook after a blocking failure.
 
@@ -119,7 +125,8 @@ The component table preserves raw values and creates parsed values where possibl
 Fields include:
 
 - project description
-- category
+- raw DPWH category
+- `componentCategories` from `source_record_json`
 - status
 - reported budget
 - physical progress
@@ -159,11 +166,33 @@ The progress range is 0 to 100, from the required analytical validation in [Data
 
 `infra_year` keeps the raw string. `infra_year_parsed` adds the integer, so Gold does not need to cast it.
 
-`deo`, the District Engineering Office, is carried as raw text. It is part of `source_row_hash`, because the hash covers every Bronze field Silver reads. Adding it changes every `component_key` once, which is why the rule version moved to `silver_dpwh_component_v3`.
+`deo`, the District Engineering Office, is carried as raw text. It is part of `source_row_hash`, because the hash covers every Bronze field Silver reads. Adding it changes every `component_key` once, which is one reason the rule version moved to `silver_dpwh_component_v4`.
 
 ### Governed mapping join
 
-Category and status rules join on the key values in [Silver configuration mappings](silver_config_mappings.md#key-values-for-dpwh-rules). Before this change, the category join ignored `source_system` and `source_infra_type`, and the status join used `'DPWH'`, which approved rules never use. Both mapping tables were empty, so no output changed, but the first approved rule would have either copied rows or never matched.
+Category and status rules join on the complete key values in
+[Silver configuration mappings](silver_config_mappings.md#key-values-for-dpwh-rules).
+The category join keeps the safeguards from PR #90 and uses
+`source_system = 'dpwh_projects'`, `raw_category = ''`, and one normalized
+`source_infra_type` token.
+
+The component notebook extracts `componentCategories` once with
+`GET_JSON_OBJECT(source_record_json, '$.componentCategories')`. It trims and
+splits comma-separated values, removes blanks and duplicate tokens, and sorts
+the remaining set. A temporary explode joins atomic tokens to the governed
+config. The next aggregation returns immediately to one component row.
+
+Classification rules are:
+
+- one approved category becomes its approved sector,
+- more than one approved category becomes `Multi-sector`,
+- missing or unapproved categories remain `NULL` and unmapped,
+- `is_dpwh_flood_related` is true when any approved component is
+  `Flood Control and Drainage`, false when all usable categories are approved
+  and non-flood, and `NULL` when classification is missing or unresolved.
+
+The DPWH taxonomy flag is separate from official flood-list membership. Silver
+does not infer one from the other.
 
 `category_mapping_state` and `status_mapping_state` are `MAPPED` or `UNMAPPED`. An unmapped row keeps its raw value and a `NULL` standardized value.
 
@@ -174,8 +203,10 @@ The table retains:
 - `_source_snapshot_id`
 - `_ingest_run_id`
 - `_source_modified_at`
-- `run_id`, a SHA-256 of the snapshot and the rule version
-- `transformation_rule_version`, now `silver_dpwh_component_v3`
+- `run_id`, a SHA-256 of the snapshot, taxonomy version, status-config version,
+  and rule version
+- `taxonomy_version`
+- `transformation_rule_version`, now `silver_dpwh_component_v4`
 
 These fields preserve traceability back to the selected Bronze snapshot.
 
@@ -229,7 +260,11 @@ Columns added for downstream use:
 - `reported_region_resolution_status`, so Table 13 can tell a missing region from conflicting ones
 - `infra_year_parsed` and `infra_year_resolution_status`
 - `progress_quality_status` and `budget_quality_status`, carried from the component that holds the resolved value
-- `category_mapping_state`
+- sorted source and approved category arrays
+- `source_infra_type` and `standardized_sector`
+- `taxonomy_version`, `category_mapping_state`, and
+  `category_classification_status`
+- `is_dpwh_flood_related`
 - `source_system` and `component_run_id`
 - `implementing_office`, `implementing_office_resolution_status`, and `distinct_implementing_office_count`, resolved from the DPWH `deo` field with the same missing, resolved, or conflict rule. Gold `dim_project.implementing_office` can read this column.
 
@@ -258,7 +293,7 @@ The table retains:
 - source ingest identity
 - deterministic project key
 - deterministic run identity
-- transformation rule version, now `silver_project_v3`
+- transformation rule version, now `silver_project_v4`
 - the component run it was built from
 
 The rule version changed, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
@@ -292,6 +327,9 @@ to avoid duplicate logical rows.
 - component-to-project accounting
 - project uniqueness
 - budget resolution
+- deterministic component-category extraction and classification
+- taxonomy mapping coverage by project and resolved reported budget
+- single-sector, multi-sector, missing-category, and flood-related counts
 - lineage completeness
 - source-quality findings
 
@@ -308,6 +346,8 @@ Stop conditions include:
 - quality or mapping states outside the controlled values
 - quality statuses that disagree with their values
 - budgets that break the no-double-count rule
+- category arrays or classification states that disagree
+- project reported-budget totals that differ from the component resolution rule
 - zero-progress flags that disagree with progress
 - mapped rows without a mapping version
 - missing or non-reproducible keys, run IDs, and lineage
@@ -317,7 +357,7 @@ Stop conditions include:
 
 Flag conditions include:
 
-- unmapped categories and statuses
+- missing or unapproved component categories and unmapped statuses
 - coordinate exceptions
 - repeated identical source rows, kept and counted
 - unparseable or negative budgets
@@ -328,6 +368,11 @@ Flag conditions include:
 Flag findings remain visible for review.
 
 ## Runtime evidence
+
+The evidence below is the earlier v2 foundation run. It does not prove the new
+`dpwh-component-categories-2026-10-v1` taxonomy or the implementing office.
+Rerun config, component, project, and validation notebooks in Databricks before
+accepting the v4 coverage or rerunning dependent maps.
 
 The first Databricks run of the hardened foundation used these inputs:
 
@@ -389,22 +434,41 @@ The 50,523 coordinate exceptions include missing, partial, and unparseable
 pairs. D-28 records 50,522 rows without coordinate pairs. This run does not
 split the 50,523 by type, so the difference of one row is not yet explained.
 
+### Implementing office, pre-merge run
+
+The `deo` change was first run on October 9, 2026, before it was merged with
+the category taxonomy. That run used the v2 foundation plus `deo`, labelled
+`silver_dpwh_component_v3` and `silver_project_v3` on its branch. It is not the
+v4 code on `main`, so it shows the office coverage but does not replace the v4
+rerun.
+
+| Measure | Count | Denominator |
+| --- | ---: | ---: |
+| Component rows with a blank or missing `deo` | 100 | 265,661 component rows |
+| Projects with no single implementing office | 97 | 265,656 projects |
+| Projects whose office breaks the resolution rule | 0 | 265,656 projects |
+
+- 265,559 projects (99.96%) resolved to one implementing office.
+- All 19 STOP checks of that validator passed. Every other count matched the v2 run above.
+- The 97 unresolved projects are `MISSING` or `CONFLICT`. That run did not split them by status.
+
 ## Known limitations
 
-- No category or status rule is approved yet, so every row is `UNMAPPED`. The join is ready for approved rules.
+- Projects with missing `componentCategories` remain unmapped. New source tokens
+  remain unmapped until a reviewed taxonomy version approves them.
+- No status rule is approved yet, so every status remains `UNMAPPED`.
 - Project-region assignment is implemented separately. See
   [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved in Silver.
 - Stalled classification remains unresolved. It needs an approved status mapping.
-- The implementing office comes from the DPWH `deo` field. It has not yet been run on Databricks, so its coverage is not in the runtime evidence above. The runtime evidence predates rule versions `silver_dpwh_component_v3` and `silver_project_v3`.
-- Tables 13 and 15 were rerun on this project run. Both validators passed every STOP check. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
+- 97 projects had no single implementing office in the pre-merge run. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status.
+- Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v4` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
 ## Open questions for the team
 
-1. **Unmapped labels.** The team notes say unmapped values use `Unknown`. Silver publishes `NULL` with `category_mapping_state = 'UNMAPPED'`. Decide which one Silver publishes, then record it in [decisions](decisions.md).
-2. **Long-running rule location.** Draft decision D-32 is on an open Gold branch and computes the flag in Gold. The team notes list it as a Silver rule. Decide where it lives. If it lives in Silver, `silver_project` needs the snapshot date from `01-bronze.load_log`.
-3. **Implementing office.** Resolved. DPWH Bronze has `deo`. The component table carries it, and `silver_project` publishes it as `implementing_office`.
+1. **Long-running rule location.** Draft decision D-32 is on an open Gold branch and computes the flag in Gold. The team notes list it as a Silver rule. Decide where it lives. If it lives in Silver, `silver_project` needs the snapshot date from `01-bronze.load_log`.
+2. **Implementing office.** Resolved. DPWH Bronze has `deo`. The component table carries it, and `silver_project` publishes it as `implementing_office`.
 
 ## Gold handoff
 
@@ -426,3 +490,18 @@ Gold should not need to repeat:
 - budget protection
 - project conflict detection
 - project lineage
+- `componentCategories` JSON parsing or category-token normalization
+- sector taxonomy or flood-related classification
+
+After PRs #85 and #86 rebase, `dim_project` must consume these Silver-owned
+fields directly:
+
+- `source_infra_type`
+- `standardized_sector`
+- `taxonomy_version`
+- `is_dpwh_flood_related`
+
+Gold must keep `is_dpwh_flood_related` separate from
+`is_in_official_flood_list`. It must not add a temporary `CASE` taxonomy. The
+Gold `MAPPED` acceptance criterion remains pending until the rebased Gold
+notebooks run and validate against this Silver output.

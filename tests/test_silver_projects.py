@@ -97,18 +97,20 @@ def test_05_component_reads_only_bronze_dpwh_audit_and_config():
 def test_06_component_mappings_use_the_config_validator_key():
     text = sql(COMPONENT)
     assert "'dpwh_projects' AS mapping_source_system" in text
-    assert "'' AS mapping_source_infra_type" in text
+    assert "'' AS mapping_raw_category" in text
     assert "mapping.source_system = parameters.mapping_source_system" in text
-    assert "mapping.source_infra_type = parameters.mapping_source_infra_type" in text
+    assert "mapping.raw_category = parameters.mapping_raw_category" in text
+    assert "token.source_infra_type = mapping.source_infra_type" in text
     assert text.count("mapping.approval_status = 'APPROVED'") == 2
     assert text.count("mapping.is_active = TRUE") == 2
 
 
 def test_07_component_mappings_cannot_multiply_rows():
     text = sql(COMPONENT)
-    assert "COUNT(*) = COUNT(DISTINCT raw_category)" in text
+    assert "COUNT(*) = COUNT(DISTINCT NAMED_STRUCT" in text
     assert "COUNT(*) = COUNT(DISTINCT source_status)" in text
-    assert "COALESCE(TRIM(component.category_raw), '') = category.raw_category" in text
+    assert "mapping.raw_category = ''" in text
+    assert "GROUP BY component_key" in text
     assert "COALESCE(TRIM(component.status_raw), '') = status.source_status" in text
 
 
@@ -175,8 +177,10 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v3' AS transformation_rule_version" in text
+    assert "'silver_project_v4' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
+    assert "COALESCE(attribute.component_run_id, '')" in text
+    assert "COALESCE(category.taxonomy_version, '')" in text
 
 
 def test_15_project_counts_and_values_use_the_same_expression():
@@ -209,6 +213,9 @@ def test_16_project_keeps_every_downstream_column():
         "category_raw",
         "standardized_sector",
         "taxonomy_version",
+        "source_infra_type",
+        "category_classification_status",
+        "is_dpwh_flood_related",
         "implementing_office",
         "implementing_office_resolution_status",
     ]:
@@ -285,23 +292,113 @@ def test_23_validator_scans_each_table_once_for_metrics():
     metrics = statement(
         VALIDATION, "CREATE OR REPLACE TEMPORARY VIEW silver_project_validation_metrics"
     )
-    assert metrics.count("FROM `02-silver`.silver_dpwh_project_component") == 1
+    assert metrics.count("FROM `02-silver`.silver_dpwh_project_component") == 2
     assert metrics.count("FROM `02-silver`.silver_project") == 1
     assert metrics.count("FROM `01-bronze`.dpwh_projects") == 1
 
 
-def test_24_component_carries_deo_and_hashes_it():
+def test_24_component_categories_are_extracted_normalized_and_deduplicated():
     text = sql(COMPONENT)
-    assert "'deo', bronze.deo" in text
+    assert "GET_JSON_OBJECT(bronze.source_record_json, '$.componentCategories')" in text
+    assert "SPLIT(COALESCE(identified_rows.component_categories_raw, ''), ',')" in text
+    assert "token -> TRIM(token)" in text
+    assert "ARRAY_SORT(ARRAY_DISTINCT" in text
+    assert "component_categories_extraction_status" in text
+    assert "'component_categories_raw', source.component_categories_raw" in text
+    assert (
+        "'component_categories_extraction_status', "
+        "source.component_categories_extraction_status" in text
+    )
+
+
+def test_25_single_multi_missing_and_unapproved_rules_are_explicit():
+    text = sql(COMPONENT) + "\n" + sql(PROJECT)
+    for status in (
+        "MAPPED_SINGLE",
+        "MAPPED_MULTI",
+        "MISSING_SOURCE_CATEGORY",
+        "UNAPPROVED_SOURCE_CATEGORY",
+    ):
+        assert status in text
+    assert "ELSE 'Multi-sector'" in text
+    assert "SIZE(source_infra_types) = 0" in text
+    assert "SIZE(unapproved_source_infra_types) > 0" in text
+
+
+def test_26_flood_flag_requires_fully_resolved_taxonomy():
+    component = sql(COMPONENT)
+    project = sql(PROJECT)
+
+    assert "mapping.is_flood_related" in component
+    assert "MAX(CASE WHEN is_flood_related THEN 1 ELSE 0 END)" in component
+
+    assert (
+        """CASE
+        WHEN SIZE(component.source_infra_types) = 0 THEN NULL
+        WHEN category.approved_category_count <> category.source_category_count THEN NULL
+        WHEN category.has_flood_category = 1 THEN TRUE
+        ELSE FALSE
+    END AS is_dpwh_flood_related"""
+        in component
+    )
+
+    assert (
+        """CASE
+        WHEN SIZE(source_infra_types) = 0
+            OR SIZE(unapproved_source_infra_types) > 0
+            THEN NULL
+        WHEN flood_component_count > 0 THEN TRUE
+        ELSE FALSE
+    END AS is_dpwh_flood_related"""
+        in project
+    )
+
+    assert "is_in_official_flood_list" not in component + project
+
+
+def test_27_project_category_set_is_order_independent_and_one_row_per_project():
+    text = sql(PROJECT)
+    assert (
+        "ARRAY_SORT(ARRAY_DISTINCT(FLATTEN(COLLECT_LIST(source_infra_types))))" in text
+    )
+    assert "GROUP BY contract_id" in text
+    table = statement(PROJECT, "CREATE OR REPLACE TABLE `02-silver`.silver_project")
+    assert "EXPLODE" not in table.upper()
+    assert "SUM(" not in table.upper()
+
+
+def test_28_validator_reports_taxonomy_and_budget_coverage():
+    text = sql(VALIDATION)
+    for metric in (
+        "mapped_projects",
+        "unmapped_projects",
+        "mapped_reported_budget",
+        "unmapped_reported_budget",
+        "single_sector_projects",
+        "multi_sector_projects",
+        "missing_category_projects",
+        "dpwh_flood_related_projects",
+        "dpwh_flood_related_reported_budget",
+    ):
+        assert metric in text
+    assert "Project reported budget reconciles to the component resolution rule" in text
+    assert (
+        "Project category arrays and classifications are internally consistent" in text
+    )
+
+
+def test_29_component_carries_deo_and_hashes_it():
+    text = sql(COMPONENT)
+    assert "'deo', source.deo" in text
     assert "identified_rows.deo," in text
-    assert "'silver_dpwh_component_v3' AS transformation_rule_version" in text
+    assert "'silver_dpwh_component_v4' AS transformation_rule_version" in text
     build = statement(
         COMPONENT, "CREATE OR REPLACE TABLE `02-silver`.silver_dpwh_project_component"
     )
     assert "component.deo," in build
 
 
-def test_25_project_resolves_implementing_office_like_other_attributes():
+def test_30_project_resolves_implementing_office_like_other_attributes():
     resolution = statement(
         PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
     )
@@ -312,9 +409,9 @@ def test_25_project_resolves_implementing_office_like_other_attributes():
     assert "END AS implementing_office_resolution_status" in resolution
 
 
-def test_26_validator_checks_implementing_office_resolution():
+def test_31_validator_checks_implementing_office_resolution():
     text = sql(VALIDATION)
     assert "implementing_office_resolution_status = 'CONFLICT'" in text
     assert "'Implementing office follows the resolution rule'" in text
     assert "'Missing or conflicting implementing offices remain visible'" in text
-    assert "silver_project_validation_v2" not in text
+    assert "'silver_project_validation_v4'" in text

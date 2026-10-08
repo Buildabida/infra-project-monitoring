@@ -76,8 +76,12 @@ Only active `APPROVED` rows may drive downstream standardization or matching.
 | `02-silver.config_manual_geographic_match` | One source-record override per mapping version | Source system, record type, source record ID, mapping version |
 
 Every table records an approval status, version, active flag, and review evidence.
-The approved MGB seed maps `LF`, `MF`, `HF`, and `VHF` to the documented levels.
-Other tables begin empty until reviewers approve source-specific rules.
+The category table also records `is_flood_related` for each approved atomic
+classification. The approved DPWH taxonomy maps the seven observed
+`componentCategories` values under version
+`dpwh-component-categories-2026-10-v1`. The approved MGB seed maps `LF`, `MF`,
+`HF`, and `VHF` to the documented levels. Other rules remain empty until
+reviewers approve them.
 
 See [Silver configuration mappings](silver_config_mappings.md) for the field contracts,
 approval workflow, validation rules, and current limits.
@@ -147,8 +151,8 @@ future Gold dim_project and project facts
 
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
-| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | `component_key`. Source-row identity is the snapshot, `source_row_hash`, and `source_row_ordinal`. | Raw and parsed budget, progress, dates, coordinates, and infrastructure year, with quality statuses. Raw District Engineering Office (`deo`). Approved category and status mappings with mapping states. `run_id`, rule version, and Bronze lineage fields. |
-| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Component count, project-level attributes including `implementing_office`, budget resolution and quality status, attribute-resolution statuses, mapping states, source and component-run lineage, deterministic project identity |
+| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | `component_key`. Source-row identity is the snapshot, `source_row_hash`, and `source_row_ordinal`. | Raw evidence: DPWH category and normalized `componentCategories`.<br>Taxonomy: approved category sets, sector, mapping state, version, and flood flag.<br>Controls: parsed values, quality states, raw District Engineering Office (`deo`), run identity, and Bronze lineage. |
+| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Taxonomy: unioned sorted evidence, sector or `Multi-sector`, mapping state, version, and flood flag.<br>Project controls: component count, resolved attributes including `implementing_office`, budget, conflicts, source lineage, and deterministic identity. |
 | `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
 | `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
 | `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
@@ -311,7 +315,7 @@ These dimensions are design targets and do not exist yet.
 | Dimension | Grain and key | Main columns |
 | --- | --- | --- |
 | `03-gold.dim_date` | One row per calendar date. Key: `date_key`. | `calendar_date`, year, quarter, month, and day fields |
-| `03-gold.dim_project` | One unique contract per source system. Key: `project_key`. | `contract_id`, descriptions, categories, standardized sector, mapping details, flood-list details, funding source, office, contractor, infrastructure year, lineage |
+| `03-gold.dim_project` | One unique contract per source system. Key: `project_key`. | `contract_id`, descriptions, raw category evidence, Silver-owned `source_infra_type`, `standardized_sector`, `taxonomy_version`, `is_dpwh_flood_related`, separate official flood-list membership, funding source, office, contractor, infrastructure year, and lineage |
 | `03-gold.dim_region` | One official PSGC region per PSGC version plus key `0`. Key: `region_key`. | PSGC code, names, version, BARMM and geographic flags, centroid, lineage |
 | `03-gold.dim_project_status` | One source-status mapping per version. Key: `status_key`. | Source and standardized status, group, mapping version, source system, active flag, lineage |
 | `03-gold.dim_flood_susceptibility` | One susceptibility classification per source version. Key: `flood_susceptibility_key`. | Level, severity rank, source system, source version, lineage |
