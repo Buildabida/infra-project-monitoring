@@ -136,6 +136,7 @@ Gold owns the analytical models used by the dashboard and Genie.
 Every choice has a row in our [decisions log](docs/decisions.md), with its date and reason.
 
 - **One team workspace** runs the final pipeline and dashboard (D-01).
+- **DPWH is the one source for projects and budgets.** The flood list matches by exact Contract ID, and its cost is never added (D-04).
 - **Python loads Bronze, and SQL owns the later layers** (D-08).
 - **Cloudflare R2 keeps six approved snapshots.** Bronze holds the selected one and records its identity (D-23).
 - **We start at the region level.** Province views come only where map coverage supports them (D-25).
@@ -179,7 +180,7 @@ If a blocking check fails, stop there. Fix the cause, then rerun that step.
 1. **Set up.** Run `00_setup/00_setup_workspace.sql`, then `00_setup/01_check_sources.py`.
 2. **Load and check Bronze.** Run `notebooks/run_all.py`.
    It loads the six sources, then runs `04_validation/01_validation_bronze.py`.
-3. **Build and check Silver.** Run steps 11 to 24 in the [notebooks guide](notebooks/README.md#documented-sequence).
+3. **Build and check Silver.** Run steps 11 to 26 in the [notebooks guide](notebooks/README.md#documented-sequence), then `02_silver/10_silver_project_flood_map` and `04_validation/08_validation_silver_project_flood_map`.
    Each Silver notebook is followed by its own check notebook.
 4. **Build and check Gold.** Planned for Oct 10.
 5. **Build and check analytics.** Planned, in `notebooks/05_analytics`.
@@ -273,7 +274,7 @@ Three important source rules apply:
   These can represent components or funding years.
   Bronze preserves them, and Silver handles their analytical interpretation.
 - A project can appear in both project lists.
-  Silver matches records using approved rules to prevent double-counting.
+  Silver matches them by exact Contract ID to prevent double-counting ([D-04](docs/decisions.md)).
 
 ## Data problems and how we handle them
 
@@ -292,6 +293,8 @@ See [data-quality checks](docs/validation.md) for each check.
 | 17 DPWH rows show progress outside 0 to 100. | We keep them and flag them. | Bronze progress check and `04_validation_silver_projects` |
 | Census Table C has no PSGC codes. | Silver matches each row to a PSGC place by its sheet and section, then by approved aliases. Unsure and unmatched rows stay visible. | `03_validation_silver_geography_population` |
 | 1,838 MGB flood areas have no rating, and 1,815 have no shape. | We keep them. The checks count them as unrated without changing the source. | Bronze MGB checks, Oct 6 run |
+| Four regions have no safe boundary shape. The 2023 shapes of Western Visayas, Central Visayas and BARMM no longer match today's regions, and Negros Island Region has no shape. | Flood exposure by region shows them as no data, not zero. | `07_validation_silver_region_flood_exposure` |
+| Only 20,398 of 215,138 projects with a map point fall inside a mapped flood area, about 1 in 11. | We keep every project. A project outside every approved flood area gets no level, which never means low risk. We spot check places known to flood before question 5 uses it. | `08_validation_silver_project_flood_map` |
 | Central Office projects have no place. | They stay in the data with no region. The planned Gold layer leaves them out of per person numbers. | `06_validation_silver_project_region_map` |
 | Amount paid is 0 for every project. | We report the listed budget, not payments (D-28). | [Known limits](#known-limits) |
 | BARMM data is limited in the source. | We show it as a gap before any result (D-28). | [Known limits](#known-limits) |
