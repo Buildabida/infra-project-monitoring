@@ -175,13 +175,13 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v2' AS transformation_rule_version" in text
+    assert "'silver_project_v3' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
 
 
 def test_15_project_counts_and_values_use_the_same_expression():
     text = sql(PROJECT)
-    for column in ["reported_region", "contractor", "source_of_funds"]:
+    for column in ["reported_region", "contractor", "source_of_funds", "deo"]:
         expression = f"NULLIF(TRIM({column}), '')"
         assert f"COUNT(DISTINCT {expression})" in text, column
         assert f"MAX({expression})" in text, column
@@ -209,6 +209,8 @@ def test_16_project_keeps_every_downstream_column():
         "category_raw",
         "standardized_sector",
         "taxonomy_version",
+        "implementing_office",
+        "implementing_office_resolution_status",
     ]:
         assert re.search(rf"\b{column}\b", table), column
 
@@ -286,3 +288,33 @@ def test_23_validator_scans_each_table_once_for_metrics():
     assert metrics.count("FROM `02-silver`.silver_dpwh_project_component") == 1
     assert metrics.count("FROM `02-silver`.silver_project") == 1
     assert metrics.count("FROM `01-bronze`.dpwh_projects") == 1
+
+
+def test_24_component_carries_deo_and_hashes_it():
+    text = sql(COMPONENT)
+    assert "'deo', bronze.deo" in text
+    assert "identified_rows.deo," in text
+    assert "'silver_dpwh_component_v3' AS transformation_rule_version" in text
+    build = statement(
+        COMPONENT, "CREATE OR REPLACE TABLE `02-silver`.silver_dpwh_project_component"
+    )
+    assert "component.deo," in build
+
+
+def test_25_project_resolves_implementing_office_like_other_attributes():
+    resolution = statement(
+        PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
+    )
+    expression = "COUNT(DISTINCT NULLIF(TRIM(deo), ''))"
+    assert f"{expression} AS distinct_implementing_office_count" in resolution
+    assert f"WHEN {expression} = 0 THEN 'MISSING'" in resolution
+    assert f"WHEN {expression} = 1 THEN 'RESOLVED'" in resolution
+    assert "END AS implementing_office_resolution_status" in resolution
+
+
+def test_26_validator_checks_implementing_office_resolution():
+    text = sql(VALIDATION)
+    assert "implementing_office_resolution_status = 'CONFLICT'" in text
+    assert "'Implementing office follows the resolution rule'" in text
+    assert "'Missing or conflicting implementing offices remain visible'" in text
+    assert "silver_project_validation_v2" not in text

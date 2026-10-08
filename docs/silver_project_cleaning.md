@@ -159,6 +159,8 @@ The progress range is 0 to 100, from the required analytical validation in [Data
 
 `infra_year` keeps the raw string. `infra_year_parsed` adds the integer, so Gold does not need to cast it.
 
+`deo`, the District Engineering Office, is carried as raw text. It is part of `source_row_hash`, because the hash covers every Bronze field Silver reads. Adding it changes every `component_key` once, which is why the rule version moved to `silver_dpwh_component_v3`.
+
 ### Governed mapping join
 
 Category and status rules join on the key values in [Silver configuration mappings](silver_config_mappings.md#key-values-for-dpwh-rules). Before this change, the category join ignored `source_system` and `source_infra_type`, and the status join used `'DPWH'`, which approved rules never use. Both mapping tables were empty, so no output changed, but the first approved rule would have either copied rows or never matched.
@@ -173,7 +175,7 @@ The table retains:
 - `_ingest_run_id`
 - `_source_modified_at`
 - `run_id`, a SHA-256 of the snapshot and the rule version
-- `transformation_rule_version`, now `silver_dpwh_component_v2`
+- `transformation_rule_version`, now `silver_dpwh_component_v3`
 
 These fields preserve traceability back to the selected Bronze snapshot.
 
@@ -229,6 +231,7 @@ Columns added for downstream use:
 - `progress_quality_status` and `budget_quality_status`, carried from the component that holds the resolved value
 - `category_mapping_state`
 - `source_system` and `component_run_id`
+- `implementing_office`, `implementing_office_resolution_status`, and `distinct_implementing_office_count`, resolved from the DPWH `deo` field with the same missing, resolved, or conflict rule. Gold `dim_project.implementing_office` can read this column.
 
 No column was removed or renamed. `project_key` uses the same recipe, so keys do not change.
 
@@ -255,7 +258,7 @@ The table retains:
 - source ingest identity
 - deterministic project key
 - deterministic run identity
-- transformation rule version, now `silver_project_v2`
+- transformation rule version, now `silver_project_v3`
 - the component run it was built from
 
 The rule version changed, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
@@ -394,14 +397,14 @@ split the 50,523 by type, so the difference of one row is not yet explained.
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved in Silver.
 - Stalled classification remains unresolved. It needs an approved status mapping.
-- The implementing office is not published. No DPWH Bronze field for it has been confirmed in this repo.
+- The implementing office comes from the DPWH `deo` field. It has not yet been run on Databricks, so its coverage is not in the runtime evidence above. The runtime evidence predates rule versions `silver_dpwh_component_v3` and `silver_project_v3`.
 - Tables 13 and 15 were rerun on this project run. Both validators passed every STOP check. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
 ## Open questions for the team
 
 1. **Unmapped labels.** The team notes say unmapped values use `Unknown`. Silver publishes `NULL` with `category_mapping_state = 'UNMAPPED'`. Decide which one Silver publishes, then record it in [decisions](decisions.md).
 2. **Long-running rule location.** Draft decision D-32 is on an open Gold branch and computes the flag in Gold. The team notes list it as a Silver rule. Decide where it lives. If it lives in Silver, `silver_project` needs the snapshot date from `01-bronze.load_log`.
-3. **Implementing office.** Confirm whether DPWH Bronze has a district office field such as `deo`. If it does, add it to the component and project tables.
+3. **Implementing office.** Resolved. DPWH Bronze has `deo`. The component table carries it, and `silver_project` publishes it as `implementing_office`.
 
 ## Gold handoff
 
