@@ -18,8 +18,9 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | --- | --- |
 | Five configuration tables | Implemented by the Silver config notebook |
 | Configuration validation | Implemented by the Silver config validator |
-| DPWH status decision | Approved as mapping `2026-10-v1` (D-33) |
-| Category and place decisions | Pending human review |
+| DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
+| DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
+| Place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
@@ -74,8 +75,29 @@ Natural key:
 At least one raw classification field must contain a value.
 Approved targets require a documented mapping rule and source reference.
 
-The initial table is empty.
-Observed categories remain review candidates rather than guessed taxonomy rules.
+The `is_flood_related` field records whether an approved atomic source
+classification is flood-related.
+
+The approved DPWH taxonomy uses `componentCategories` extracted from the
+preserved Bronze `source_record_json`. It does not require a Bronze reload or a
+new top-level source column. The raw DPWH `category` remains source evidence
+because it mixes infrastructure types with funding and program classifications.
+
+Taxonomy `dpwh-component-categories-2026-10-v1` contains these approved atomic
+values:
+
+| Source infrastructure type | Standardized sector | Flood-related |
+| --- | --- | --- |
+| `Bridges` | Bridges | No |
+| `Buildings and Facilities` | Buildings and Facilities | No |
+| `Consultancy` | Consultancy | No |
+| `Flood Control and Drainage` | Flood Control and Drainage | Yes |
+| `Roads` | Roads | No |
+| `Septage and Sewerage Plants` | Septage and Sewerage Plants | No |
+| `Water Provision and Storage` | Water Provision and Storage | No |
+
+Future values are not approved automatically. They remain unmapped until the
+team reviews and versions the taxonomy.
 
 ### Key values for DPWH rules
 
@@ -84,18 +106,21 @@ Write DPWH category and status rules with these key values. The config validator
 | Field | Value for DPWH | Why |
 | --- | --- | --- |
 | `source_system` | `dpwh_projects` | It is the Bronze table name that the coverage check uses. |
-| `source_infra_type` | `''`, an empty string | DPWH has no infrastructure-type column. |
-| `raw_category` and `source_status` | The Bronze value after `TRIM` | Coverage and the component join both trim. A blank value is `''`. |
+| `raw_category` | `''`, an empty string | The mixed DPWH `category` value is not the taxonomy input. |
+| `source_infra_type` | One trimmed atomic `componentCategories` token | Coverage and the component join use the same normalized token. |
+| `source_status` | The Bronze status after `TRIM` | A blank status is `''`. |
 
-Each active approved version may hold only one rule per raw category or source status. The component notebook stops if it finds two. This keeps a mapping from ever copying a project row.
+Each active approved version may hold only one rule per complete category key or
+source status. The component notebook stops if it finds two. This prevents a
+mapping from copying a project row.
 
 Silver output tables still label DPWH rows `source_system = 'DPWH'`. That label is for joins between Silver tables. It is not a config key.
 
 ### Downstream readiness
 
-`silver_project` may preserve raw project categories before the taxonomy is
-complete, but category-standardized analytical outputs must not be published
-until:
+`silver_project` preserves the raw DPWH category and the normalized
+`componentCategories` evidence. Category-standardized analytical outputs may be
+published only when:
 
 1. an approved taxonomy version exists,
 2. applicable mappings are active,
@@ -104,8 +129,9 @@ until:
 Downstream notebooks must not introduce temporary `CASE WHEN` category rules to
 bypass this configuration.
 
-Unmapped categories must remain visible as `Unknown` or unmapped according to
-the downstream mapping contract and must remain included in coverage reporting.
+Unmapped categories remain `NULL` with an explicit unmapped state. Gold may use
+its reserved unknown key without replacing the Silver evidence. Coverage must
+include mapped and unmapped projects and reported budgets.
 
 ### `config_project_status_mapping`
 
@@ -117,8 +143,8 @@ Natural key:
 - `source_status`
 - `status_mapping_version`
 
-Decision D-33 approves mapping version `2026-10-v1`. The config notebook seeds
-it with a deterministic `MERGE`:
+Decision D-40 approves mapping version `dpwh-status-2026-10-v1`. The config notebook seeds it
+with a deterministic `MERGE`:
 
 | Source status | Standardized status | Status group |
 | --- | --- | --- |
@@ -127,9 +153,6 @@ it with a deterministic `MERGE`:
 | `For Procurement` | `Ongoing` | `ACTIVE` |
 | `Not Yet Started` | `Inactive` | `INACTIVE` |
 | `Terminated` | `Inactive` | `INACTIVE` |
-
-Each rule uses `source_system = 'dpwh_projects'` and cites issue #84 as its
-source reference.
 
 Blank, shifted, or malformed source statuses, such as numbers or place names,
 get no rule. They stay `UNMAPPED` with `NULL` standardized values and remain in
@@ -233,6 +256,10 @@ It must also require `approval_status = 'APPROVED'` and `is_active = true`.
 The Silver config validator writes to
 `04-validation.silver_config_dq_results`.
 
+Its deterministic run ID includes the selected source snapshots, config
+versions, and complete check result set. Exact reruns merge the same logical
+evidence instead of appending duplicates.
+
 It uses a separate table because the existing Bronze writer has a fixed result schema.
 Changing that shared table now could break Bronze validation.
 
@@ -244,6 +271,9 @@ Changing that shared table now could break Bronze validation.
 - required mapping versions
 - decision evidence for approved rows
 - category source-field validity
+- exactly one active approved DPWH taxonomy version
+- no active approved category-rule fan-out at the complete mapping grain
+- complete approved sector targets and flood markers
 - the unsupported `Delayed` target
 - MGB levels, ranks, and approved-row count
 - PSGC target existence for approved geographic rules
@@ -269,9 +299,9 @@ No Python UDF, Pandas conversion, streaming job, or spatial operation is used.
 
 ## Current limitations
 
-This configuration milestone does not itself transform source rows.
-The separate [Silver geography and population](silver_geography_population.md) milestone
-now consumes approved place aliases. The DPWH component notebook consumes approved status rules. Category rules remain pending.
+This configuration notebook does not itself transform source rows.
+The [Silver project foundation](silver_project_cleaning.md) consumes the approved
+DPWH component-category taxonomy and status mapping `dpwh-status-2026-10-v1`.
 
 The local source folder was profiled during design.
 Its project row counts differ from the accepted Bronze evidence.
