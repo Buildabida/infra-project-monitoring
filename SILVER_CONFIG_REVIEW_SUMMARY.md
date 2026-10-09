@@ -12,7 +12,7 @@ It does not transform Bronze or build Gold outputs.
 
 | Table | Initial state |
 | --- | --- |
-| `config_place_name_alias` | 17 DPWH region aliases seeded as `PENDING_REVIEW`, version `dpwh-region-aliases-2026-10-v1` (#87). None approved yet. |
+| `config_place_name_alias` | 17 approved DPWH region aliases, version `dpwh-region-aliases-2026-10-v1` (D-41) |
 | `config_project_category_mapping` | Empty pending approved taxonomy decisions |
 | `config_project_status_mapping` | Five approved DPWH status rules, version `dpwh-status-2026-10-v1` (D-40) |
 | `config_mgb_susceptibility_mapping` | Four approved documented code mappings |
@@ -126,8 +126,7 @@ Human approval is still required for:
 
 - project category targets
 - standardized project status targets
-- context-specific place aliases
-- `Region IV-B` and `MIMAROPA` handling
+- context-specific place aliases other than the D-41 DPWH region aliases
 - ambiguous names such as `Poblacion`
 - manual geographic overrides
 - blank or `No rating` MGB values

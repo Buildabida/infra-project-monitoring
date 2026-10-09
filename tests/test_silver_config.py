@@ -190,7 +190,7 @@ def test_only_approved_dpwh_status_rules_are_seeded():
     assert "PENDING_REVIEW" not in seed_cell
 
 
-def test_dpwh_region_aliases_are_pending_and_use_the_config_key():
+def test_dpwh_region_aliases_are_approved_and_use_the_config_key():
     seed_cell = next(
         cell
         for cell in code_cells(CONFIG_NOTEBOOK)
@@ -200,7 +200,10 @@ def test_dpwh_region_aliases_are_pending_and_use_the_config_key():
     assert "'dpwh_projects' AS source_system" in seed_cell
     assert "'REGION' AS place_type" in seed_cell
     assert "'dpwh-region-aliases-2026-10-v1' AS alias_version" in seed_cell
-    assert "'PENDING_REVIEW' AS approval_status" in seed_cell
+    assert "'APPROVED' AS approval_status" in seed_cell
+    assert "'Buildabida' AS approved_by" in seed_cell
+    assert "TIMESTAMP '2026-10-09 00:00:00' AS approved_at" in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
     assert len(re.findall(r"\('[^']+', '\d{10}', '[^']+'\)", seed_cell)) == 17
     assert "('Region IV-B', '1700000000', 'MIMAROPA Region')" in seed_cell
     assert "'MIMAROPA Region', '1700000000'" not in seed_cell

@@ -20,7 +20,7 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Configuration validation | Implemented by the Silver config validator |
 | DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
 | DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
-| DPWH region aliases | Seeded as `PENDING_REVIEW` version `dpwh-region-aliases-2026-10-v1` (#87). Team approval required. |
+| DPWH region aliases | Implemented as approved alias version `dpwh-region-aliases-2026-10-v1` (D-41). Databricks rerun required. |
 | Other place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
@@ -63,7 +63,7 @@ No global `Poblacion` alias is seeded.
 
 #### DPWH region aliases
 
-Issue #87 seeds version `dpwh-region-aliases-2026-10-v1`. Each row maps one
+Decision D-41 approves version `dpwh-region-aliases-2026-10-v1` (issue #87). Each row maps one
 DPWH `reported_region` spelling to exactly one official PSGC region from the
 `2Q 2026 as of 2026-06-30` PSGC release. The rows use these key values:
 
@@ -102,9 +102,8 @@ their contract IDs appears under another region, so they are not duplicates of
 `MIMAROPA Region` rows. Like other `For Procurement` projects (D-40), they add
 project counts but no budget.
 
-The rows are `PENDING_REVIEW`, so the project-region map does not use them
-yet. To approve them, set `approval_status = 'APPROVED'`, `approved_by`, and
-`approved_at` in the configuration notebook, then rerun it.
+The rows are active and `APPROVED`, so the project-region map uses them in its
+approved-alias stage. A change to any row needs a new `alias_version`.
 
 These values are not seeded:
 
