@@ -137,7 +137,7 @@ Silver currently implements:
 - silver_project_flood_map
 - Silver project flood-mapping validation
 
-Gold dimensions are in [Load Gold](#load-gold).
+Gold dimensions and facts are in [Load Gold](#load-gold).
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -384,7 +384,13 @@ After every Silver validator passes, run the dimensions in this order:
 4. `03_gold/03_gold_dim_project_status.ipynb`
 5. `03_gold/04_gold_dim_project.ipynb`
 
-The three facts and `04_validation/09_validation_gold.ipynb` are planned. Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
+Then run the facts, which need every dimension key:
+
+1. `03_gold/05_gold_fact_region_population.ipynb`
+2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
+3. `03_gold/07_gold_fact_project_snapshot.ipynb`
+
+`04_validation/09_validation_gold.ipynb` is planned. Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 
 ## Validation connection
 

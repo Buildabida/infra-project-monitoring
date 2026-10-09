@@ -285,6 +285,9 @@ def test_15_project_dimension_reuses_silver_and_exact_flood_list_matches():
     assert "project.category_classification_status AS infra_type_mapping_status" in text
     assert "category_resolution_status" not in text
     assert "CAST(NULL AS BOOLEAN) AS is_dpwh_flood_related" not in text
+    # silver resolves the deo field since #95, so gold copies the office
+    assert "project.implementing_office," in text
+    assert "CAST(NULL AS STRING) AS implementing_office" not in text
     # flood-list cost is evidence only and never reaches the project dimension
     assert "contract_cost" not in text.lower()
     assert "01-bronze`.dpwh_projects" not in text

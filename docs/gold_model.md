@@ -4,7 +4,7 @@ This doc defines the nine Gold tables in the `03-gold` schema.
 
 Gold holds the facts and dimensions that answer the project questions. The dashboard and Genie read these tables.
 
-Status: five notebooks in `notebooks/03_gold` build the six dimensions. The six dimension tables exist in `03-gold`. The three facts and the Gold validator are planned.
+Status: five notebooks in `notebooks/03_gold` build the six dimensions. Three more notebooks build the three facts. The Gold validator is planned.
 
 ## Build rules
 
@@ -213,6 +213,12 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
 
+As of the Oct 8 run, the 18 regions total 108,943,821 people for 2024. The national census total is 112,727,776. The gap of 3,783,955 people (3.4 percent) is 1,130 Table C barangay rows that Silver left `UNMATCHED`. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](silver_geography_population.md#population-handling).
+
+At the same run, the City of Manila is half of the gap. All 897 of its barangays, 1,902,590 people, are unmatched, so NCR has no Manila population. The other 233 barangays are mostly in Lapu-Lapu City, Taguig, Caloocan, Cavite, and the BARMM Special Geographic Area.
+
+Gold copies the Silver totals and does not fill the gap. Per-person measures run high in the regions that hold these barangays, most of all NCR. The Gold population checks flag the gap.
+
 ## Relationships
 
 Every relationship is one-to-many, from a dimension to a fact or to another dimension.
@@ -285,7 +291,16 @@ Gold never adds its own `CASE` rule for a category or a status. See [Silver conf
 
 About 30 projects have a status that is really another field, such as `0.00` or a place name. Those rows were shifted in the source CSV. They stay as their own status members, and the Gold validator flags them.
 
-`implementing_office` is `NULL`. Bronze has the District Engineering Office in `deo`, filled for almost every project. Silver does not carry it yet. Gold reads only Silver, so the column fills once `silver_project` publishes it.
+`implementing_office` copies `silver_project.implementing_office`, which Silver resolves from the DPWH `deo` field since #95. It is `NULL` when a project has no single office, and Silver's `implementing_office_resolution_status` says why.
+
+## Project delivery rules
+
+`fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
+
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date.
+- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
+
+`zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
 
 ## Load pattern
 
@@ -310,9 +325,9 @@ Gold does not repeat cleaning, matching, or mapping. Each Gold table reads a Sil
 | `dim_flood_susceptibility` | `02_gold_dim_flood_susceptibility` | `02-silver.config_mgb_susceptibility_mapping`, plus the MGB load time from `02-silver.silver_project_flood_map` |
 | `dim_project_status` | `03_gold_dim_project_status` | `02-silver.silver_project` statuses and `02-silver.config_project_status_mapping` |
 | `dim_project` | `04_gold_dim_project` | `02-silver.silver_project` and `02-silver.silver_project_source_match` |
-| `fact_region_population` | Planned | `02-silver.silver_region_population` |
-| `fact_region_flood_exposure` | Planned | `02-silver.silver_region_flood_exposure` |
-| `fact_project_snapshot` | Planned | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_flood_map` |
+| `fact_region_population` | `05_gold_fact_region_population` | `02-silver.silver_region_population` |
+| `fact_region_flood_exposure` | `06_gold_fact_region_flood_exposure` | `02-silver.silver_region_flood_exposure` |
+| `fact_project_snapshot` | `07_gold_fact_project_snapshot` | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_flood_map` |
 
 Gold runs no spatial matching, clipping, or area work. Region shapes are parsed only to store them for maps. The parser is the Table 13 rule. Its two patterns are written as raw literals, `r'...'`, and a test proves the rule is the same.
 
@@ -336,9 +351,9 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 3. `notebooks/03_gold/02_gold_dim_flood_susceptibility.ipynb`
 4. `notebooks/03_gold/03_gold_dim_project_status.ipynb`
 5. `notebooks/03_gold/04_gold_dim_project.ipynb`
-6. `fact_region_population`, planned
-7. `fact_region_flood_exposure`, planned
-8. `fact_project_snapshot`, planned
+6. `notebooks/03_gold/05_gold_fact_region_population.ipynb`
+7. `notebooks/03_gold/06_gold_fact_region_flood_exposure.ipynb`
+8. `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`
 
 ## Validation
 
