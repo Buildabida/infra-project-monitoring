@@ -112,6 +112,23 @@ These values are not seeded:
 - District engineering office names, `2026`, and blank regions. They are not
   region names.
 
+#### Census Table C aliases
+
+Version `census-table-c-aliases-2026-10-v1` (issue #88) holds four Table C
+aliases with `source_system = 'census_2024_table_c'`. `match_rule` tells the
+population notebook how to use each one.
+
+| Table C name | Context | PSGC target | `match_rule` |
+| --- | --- | --- | --- |
+| `City of Lapu` (sheet) | Region VII (Central Visayas) | `0731100000` City of Lapu-Lapu | `TABLE_C_SHEET_NAME` |
+| `SGA` (sheet) | BARMM | `1999900000` Special Geographic Area | `TABLE_C_SHEET_NAME` |
+| `SAN ISIDRO` (heading) | Davao del Norte | `1102324000` Sawata | `TABLE_C_LOCALITY_HEADING` |
+| `DON VICTORIANO CHIONGBIAN` (heading) | Misamis Occidental | `1004217000` Don Victoriano | `TABLE_C_LOCALITY_HEADING` |
+
+A sheet alias must name the target's region. A heading alias must name a region or
+province, and its target must be a city, municipality, or district inside the sheet's
+place. Any other approved Table C alias applies to one source row.
+
 ### `config_project_category_mapping`
 
 Grain: one source category and infrastructure-type pair per taxonomy version.

@@ -227,7 +227,7 @@ Table C source lineage is required for every row in
 `silver_population_place_reconciliation`.
 
 PSGC target lineage is required only when `match_status` is
-`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+`MATCHED_EXACT_CONTEXT`, `MATCHED_ALIAS`, or `MATCHED_NORMALIZED_CONTEXT`.
 
 Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
 have null `psgc_source_snapshot_id` and `psgc_source_ingest_run_id` because no

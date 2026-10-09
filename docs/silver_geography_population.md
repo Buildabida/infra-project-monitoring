@@ -94,19 +94,55 @@ counts are reference evidence, not a new filtering rule. Silver does not remove 
 
 ### Matching waterfall
 
-1. Resolve the sheet to one verified PSGC province or independent city.
-2. Resolve uppercase locality headings within that verified sheet context.
-3. Match ordinary rows to barangays under the verified current locality.
-4. If unresolved, use one active `APPROVED` alias from the selected alias version.
-5. Keep multiple candidates as `AMBIGUOUS`.
-6. Keep zero candidates as `UNMATCHED`.
+Context comes first:
 
-An approved alias must include geographic context. Blank context fields do not authorize a
-global name-only match. The configuration table may remain empty. The pipeline still runs,
-and unresolved rows remain visible.
+1. Resolve the sheet to one verified PSGC province, independent city, or the BARMM
+   Special Geographic Area. Use the exact sheet name. When it finds nothing, use one
+   approved `TABLE_C_SHEET_NAME` alias that names the target region.
+2. Resolve locality headings inside that sheet context: exact name, then an approved
+   `TABLE_C_LOCALITY_HEADING` alias, then the normalization key below. A Manila district
+   or an SGA municipality belongs to its sheet through the verified PSGC place at its
+   five-digit code, because neither has a `province_code`.
+3. Carry the last resolved heading down to later rows as the current locality.
 
-Fuzzy similarity cannot assign an accepted PSGC code. It may support a later review queue,
-but it is outside this milestone.
+Each row then follows a four-rank waterfall. A later rank runs only when every
+earlier rank found nothing for that row.
+
+| Rank | `match_method` | Rule |
+| --- | --- | --- |
+| 1 | `EXACT_CONTEXT` | Exact name: the sheet place, a heading's locality, or a barangay in the current locality |
+| 2 | `APPROVED_ALIAS` | One active `APPROVED` alias from the selected version, with nonblank context |
+| 3 | `NORMALIZED_NAME_CONTEXT` | The normalization key, against barangays in the current locality |
+| 4 | `FOOTNOTE_REMOVED_CONTEXT` | The name without its last number, by the same key, in the current locality |
+
+The normalization key is one shared view, applied to Table C and PSGC names alike.
+It removes superscript footnote digits and a trailing `*`. It reads `STO.`, `STA.`,
+and `ST.` as `SANTO`, `SANTA`, and `SAINT`. It treats a hyphen, a space between
+letters, and no separator as the same. It does not score similarity.
+
+Safeguards:
+
+- Ranks 3 and 4 never take a PSGC place that an exact or alias match already claimed.
+  When two rows reach the same place through them, both stay `AMBIGUOUS`.
+- Rank 4 never removes a number that is part of a real name. `Barangay 1` and
+  `Zapote 3` match at rank 1, so they never reach rank 4. `Zapote 3 5` loses only `5`.
+- An all-caps row is normally a subtotal heading. When it resolves to no heading, it is
+  tried as an exact barangay only if it is not the sheet subtotal and its name is not
+  any PSGC province, city, municipality, or district name. `H-2` and `UEP I` qualify.
+  An unresolved municipality subtotal such as `SAN ISIDRO` does not.
+- Matched province, city, municipality, and Manila district subtotals stay
+  `MATCHED_NON_PRIMARY_LEVEL` and never enter the regional total.
+
+Rank 1 gives `MATCHED_EXACT_CONTEXT`, rank 2 gives `MATCHED_ALIAS`, and ranks 3 and 4
+give `MATCHED_NORMALIZED_CONTEXT`. Multiple candidates stay `AMBIGUOUS`. Zero
+candidates stay `UNMATCHED`. `sheet_context_method` and `locality_context_code` show
+how each row got its context.
+
+An approved alias must include geographic context. Blank context fields do not authorize
+a global name-only match. Unresolved rows remain visible.
+
+Fuzzy similarity cannot assign an accepted PSGC code. It may support a review queue, but
+it never decides a match.
 
 ### Population handling
 
@@ -216,7 +252,8 @@ Flag checks report:
 
 - unassigned PSGC levels or hierarchy exceptions
 - repeated standardized place names
-- exact and alias coverage
+- exact, alias, and normalized-rule coverage
+- a PSGC barangay accepted for more than one Table C row
 - ambiguous and unmatched Table C rows
 - invalid or non-positive population
 - missing official-region population
@@ -229,6 +266,9 @@ Results are stored before the validator enforces the stop gate.
 - Table C provides no reliable PSGC code, so matching depends on verified sheet and section
   context.
 - Empty alias configuration is valid and may leave unresolved rows.
+- Issue #88 lists Table C barangay spellings that differ from PSGC by a letter or two,
+  such as `Lurogan` and `LURUGAN`. The normalization key does not cover them. Each one
+  needs a reviewed alias with its PSGC code and locality context.
 - Historical evidence says 43,748 of 43,750 rows matched PSGC population during an earlier
   review. The current snapshots determine the actual result.
 - The historical national population reference of 112,727,776 applies only when the selected

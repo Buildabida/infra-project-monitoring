@@ -237,7 +237,7 @@ def test_manual_override_table_is_allowed_to_start_empty():
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
     assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
-    assert sql.count("MERGE INTO `02-silver`.") == 3
+    assert sql.count("MERGE INTO `02-silver`.") == 4
     assert "CREATE TABLE IF NOT EXISTS" in sql
     assert "INSERT INTO `02-silver`.config_" not in sql
 
@@ -308,3 +308,29 @@ def test_major_sql_sections_have_explanatory_markdown():
             ):
                 assert index > 0
                 assert cells[index - 1]["cell_type"] == "markdown"
+
+
+def test_table_c_place_aliases_are_seeded_with_context():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_place_name_alias AS target" in cell
+        and "'census_2024_table_c' AS source_system" in cell
+    )
+    expected = {
+        "City of Lapu": ("0731100000", "TABLE_C_SHEET_NAME"),
+        "SGA": ("1999900000", "TABLE_C_SHEET_NAME"),
+        "SAN ISIDRO": ("1102324000", "TABLE_C_LOCALITY_HEADING"),
+        "DON VICTORIANO CHIONGBIAN": ("1004217000", "TABLE_C_LOCALITY_HEADING"),
+    }
+
+    for raw_name, (psgc_code, match_rule) in expected.items():
+        row = re.search(rf"\('{raw_name}',[^\n]*", seed_cell).group(0)
+        assert f"'{psgc_code}'" in row
+        assert f"'{match_rule}'" in row
+        context = re.match(r"\('[^']*', '([^']*)', '([^']*)'", row).groups()
+        assert any(value.strip() for value in context)
+
+    assert seed_cell.count("TABLE_C_") == len(expected)
+    assert "'census_2024_table_c' AS source_system" in seed_cell
+    assert "WHEN NOT MATCHED THEN INSERT" in seed_cell
