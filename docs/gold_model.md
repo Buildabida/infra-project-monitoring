@@ -291,7 +291,7 @@ Gold never adds its own `CASE` rule for a category or a status. See [Silver conf
 
 About 30 projects have a status that is really another field, such as `0.00` or a place name. Those rows were shifted in the source CSV. They stay as their own status members, and the Gold validator flags them.
 
-`implementing_office` is `NULL`. Bronze has the District Engineering Office in `deo`, filled for almost every project. Silver does not carry it yet. Gold reads only Silver, so the column fills once `silver_project` publishes it.
+`implementing_office` copies `silver_project.implementing_office`, which Silver resolves from the DPWH `deo` field since #95. It is `NULL` when a project has no single office, and Silver's `implementing_office_resolution_status` says why.
 
 ## Project delivery rules
 
