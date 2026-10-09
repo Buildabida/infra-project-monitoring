@@ -281,11 +281,11 @@ Silver keeps the real mapping result. Gold only resolves it to a key. See [Silve
 
 ## Unmapped values stay visible
 
-The category taxonomy is approved and lives in Silver (D-39). The status configuration has no approved rows yet. So:
+The category taxonomy is approved and lives in Silver (D-39). The DPWH status mapping `dpwh-status-2026-10-v1` is approved in configuration (D-40). So:
 
 - `dim_project` copies `source_infra_type`, `standardized_sector`, `taxonomy_version` and `is_dpwh_flood_related` from `silver_project`. A project with no usable `componentCategories` value keeps a `NULL` sector and flag.
 - `dim_project.infra_type_mapping_status` copies Silver's `category_classification_status`, so it says why a sector is `NULL`. See D-37.
-- `dim_project_status` has one row per observed DPWH status. `standardized_status` and `status_group` are `NULL`, and `status_mapping_version` is `NO_APPROVED_STATUS_MAPPING`.
+- `dim_project_status` has one row per observed DPWH status. The five approved statuses carry `standardized_status` and `status_group`. Shifted or malformed statuses keep `NULL` values. Gold reads configuration with the config key `source_system = 'dpwh_projects'`, while its own rows keep the Silver label `DPWH`.
 
 Gold never adds its own `CASE` rule for a category or a status. See [Silver configuration mappings](silver_config_mappings.md).
 
