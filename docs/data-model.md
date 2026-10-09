@@ -11,7 +11,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. Category, status, and place mapping decisions remain pending human review. |
-| Gold | Planned | The facts and dimensions below are design targets. They are not implemented yet. |
+| Gold | Partially implemented | The six dimensions are implemented in `notebooks/03_gold`. The three facts and Gold validation remain planned. The [Gold model](gold_model.md) holds the exact table definitions. |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
@@ -308,9 +308,9 @@ Uniqueness includes these fields:
 - `mgb_source_version`
 - `boundary_version`
 
-## Gold dimensions (planned)
+## Gold dimensions (implemented)
 
-These dimensions are design targets and do not exist yet.
+Five notebooks in `notebooks/03_gold` build these six dimensions. The exact columns and types are in the [Gold model](gold_model.md).
 
 | Dimension | Grain and key | Main columns |
 | --- | --- | --- |
