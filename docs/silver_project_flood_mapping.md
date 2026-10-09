@@ -124,7 +124,7 @@ No date, timestamp, UUID, or random value enters logical identity. An exact
 rerun of the same inputs reproduces the same run ID and keys.
 
 `classification_rule_version` is
-`silver-project-flood-map-v1|predicate=ST_INTERSECTS` followed by the
+`silver-project-flood-map-v2|predicate=ST_INTERSECTS` followed by the
 coordinate screen. A changed screen therefore changes the run ID.
 
 The candidate grid size is a performance setting only. It never changes which
@@ -177,7 +177,8 @@ for the parser contract. The parser tries three governed paths:
 
 1. parse the geometry as published
 2. apply the targeted quoted-number normalization
-3. convert supported Esri `rings` JSON
+3. convert supported Esri `rings` JSON, reading counterclockwise rings as holes
+   when the first reading is invalid
 
 The first successful parse wins. Each row receives one Table 14 geometry
 status: `BLANK_GEOMETRY`, `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`,
@@ -267,7 +268,7 @@ mapping pattern. No severity-precedence rule is approved for v1.
 
 Any future precedence must receive a new decision ID in `docs/decisions.md`
 and a new `silver-project-flood-map` rule version before implementation.
-Version `silver-project-flood-map-v1` must not change silently.
+Version `silver-project-flood-map-v2` must not change silently.
 
 ## Output columns
 
@@ -476,10 +477,25 @@ The 63,684 selected MGB rows equal the audited Bronze `rows_loaded`:
 ### Interpretation note
 
 Most usable project points, 90.5%, fall outside every approved MGB polygon.
-This run does not explain why. The selected extract may not cover every area,
-or many projects may sit outside mapped susceptibility zones. Excluded invalid
-polygons also remove some coverage. These results must not be read as Low or
-zero flood risk.
+These results must not be read as Low or zero flood risk.
+
+Issue #92 found one cause. Before the fix, the Esri parser read a polygon's
+holes as separate polygons, which made the whole feature invalid and excluded
+it. A diagnostic run on 2026-10-09 found:
+
+- 2,232 of the 2,340 invalid MGB polygons had holes.
+- Reading the holes correctly makes 2,200 of them valid and recovers about
+  4,472 sq km of susceptibility area.
+- 7,368 projects that were `UNMATCHED` with a usable coordinate lie inside one
+  of those polygons.
+- The live MGB layer reports 63,684 features, the same as the Bronze extract,
+  so the extract is not missing features.
+
+The counts in this section are from the run before the fix. A rerun replaces
+them. The diagnostic estimate is a match rate of about 12.9% of projects with
+a usable coordinate, up from 9.48%. That is still well below the 52% that the
+issue #92 spot check found against the live layer, so a further cause may
+remain.
 
 ### Unmatched project spot-check
 
@@ -542,8 +558,9 @@ spatial match, Table 15 is incomplete.
   extract may not cover every area, and unrated MGB rows never drive a level.
 - Points inside overlapping polygons of different approved levels stay
   `AMBIGUOUS` until the team approves a precedence rule.
-- Invalid MGB geometry is excluded rather than repaired, so a point inside an
-  excluded polygon cannot match it.
+- Esri holes are read as holes only when the first reading is invalid. A
+  geometry that is still invalid after that is excluded rather than repaired,
+  so a point inside an excluded polygon cannot match it.
 - The MGB extract has no stable polygon key, so per-polygon evidence is kept as
   counts and levels rather than polygon identifiers.
 - The optional MGB and DPWH publisher versions may be unavailable.

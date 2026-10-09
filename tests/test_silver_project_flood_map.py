@@ -207,12 +207,12 @@ def test_08_no_uuid_random_or_current_time_in_logical_identity():
 
 def test_09_rule_version_is_declared_once_and_covers_the_contract():
     code = code_without_comments(FLOOD_MAP_NOTEBOOK)
-    assert len(re.findall(r"silver-project-flood-map-v1", code)) == 1
+    assert len(re.findall(r"silver-project-flood-map-v2", code)) == 1
     assert "DECLARE OR REPLACE VARIABLE classification_rule STRING" in code
     rule = squash(code.split("SET VAR classification_rule_version = CONCAT(", 1)[1])
     rule = rule.split(");", 1)[0]
     for token in [
-        "silver-project-flood-map-v1|predicate=ST_INTERSECTS",
+        "silver-project-flood-map-v2|predicate=ST_INTERSECTS",
         "coordinate-screen-latitude=",
         "min_latitude",
         "max_latitude",
@@ -271,7 +271,7 @@ def test_13_validator_reuses_table_14_parser_and_geometry_statuses():
 def test_14_esri_rings_and_targeted_normalization_paths_are_present():
     text = sql(FLOOD_MAP_NOTEBOOK)
     if "$.rings" in sql(EXPOSURE_NOTEBOOK):
-        assert "GET_JSON_OBJECT(direct_parse.geometry_text, '$.rings')" in text
+        assert "GET_JSON_OBJECT(esri_ring_parts.geometry_text, '$.rings')" in text
         assert "'ESRI_JSON_CONVERTED'" in text
     assert "TRY_TO_GEOMETRY(geometry_text) AS published_geometry" in text
     assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in text

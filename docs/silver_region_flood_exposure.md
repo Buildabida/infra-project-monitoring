@@ -136,6 +136,20 @@ The parser tries the geometry through three controlled paths:
 The targeted normalization removes quotes only around numeric tokens and
 bracketed coordinate strings. It never strips JSON quotes globally.
 
+An Esri polygon lists its outer rings clockwise and its holes counterclockwise.
+The Esri path first reads every ring as its own polygon. When that reading is
+OGC-invalid and the feature has rings in both directions, it reads the
+counterclockwise rings as holes and subtracts them from the clockwise rings
+with `ST_DIFFERENCE`. A valid first reading is never changed, so a separate
+island drawn counterclockwise keeps its area. This follows the Esri format; it
+is not a repair, and a geometry that is still invalid is excluded and flagged.
+
+Before issue #92 every ring became its own polygon, so a hole lay inside its
+outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09
+found 2,232 of the 2,340 invalid MGB polygons had holes. Reading the holes
+correctly made 2,200 of them valid and recovered about 4,472 sq km of
+susceptibility area. The figures below are from the run before that fix.
+
 Runtime execution confirmed that Esri `rings` is the dominant encoding in the
 selected MGB snapshot. A total of 61,855 rows were converted through the Esri
 path. The final validation reports 59,501 usable geometries, with zero usable
