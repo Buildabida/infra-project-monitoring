@@ -92,6 +92,15 @@ DPWH `reported_region` spelling to exactly one official PSGC region from the
 | `Cordillera Administrative Region` | `1400000000` | Cordillera Administrative Region (CAR) |
 | `Region XIII` | `1600000000` | Region XIII (Caraga) |
 | `Negros Island Region` | `1800000000` | Negros Island Region (NIR) |
+| `Region IV-B` | `1700000000` | MIMAROPA Region |
+
+`Region IV-B` was reviewed before it was added. All 700 projects are
+`For Procurement`, with a budget of PHP 0, 0% progress, no contractor, and no
+start date. They come from 9 MIMAROPA district offices, such as Marinduque,
+Occidental Mindoro, and Palawan, for infrastructure years 2024 to 2026. None of
+their contract IDs appears under another region, so they are not duplicates of
+`MIMAROPA Region` rows. Like other `For Procurement` projects (D-40), they add
+project counts but no budget.
 
 The rows are `PENDING_REVIEW`, so the project-region map does not use them
 yet. To approve them, set `approval_status = 'APPROVED'`, `approved_by`, and
@@ -99,8 +108,6 @@ yet. To approve them, set `approval_status = 'APPROVED'`, `approved_by`, and
 
 These values are not seeded:
 
-- `Region IV-B`. All 700 projects have no coordinates and a zero or missing
-  budget. Review what they are before approving a `MIMAROPA` alias.
 - `MIMAROPA Region` and `Central Office`. They already match exactly or are
   non-geographic.
 - District engineering office names, `2026`, and blank regions. They are not
