@@ -20,7 +20,7 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Configuration validation | Implemented by the Silver config validator |
 | DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
 | DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
-| DPWH region aliases | Implemented as approved alias version `dpwh-region-aliases-2026-10-v1` (D-41). Databricks rerun required. |
+| DPWH region aliases | Implemented as approved alias version `dpwh-region-aliases-2026-10-v1` (D-41). Runtime-validated in Databricks on Oct 9. See [project-region runtime evidence](silver_project_region_mapping.md#runtime-evidence). |
 | Other place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
