@@ -213,11 +213,11 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
 
-As of the Oct 8 run, the 18 regions total 108,943,821 people for 2024. The national census total is 112,727,776. The gap of 3,783,955 people (3.4 percent) is 1,130 Table C barangay rows that Silver left `UNMATCHED`. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](silver_geography_population.md#population-handling).
+As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The gap of 4,789 people (0.004 percent) is two Table C barangays that Silver leaves `UNMATCHED`: `Sawata` in Sawata, Davao del Norte (4,152 people, Region XI), and `San Rafael` in the City of Calaca, Batangas (637 people, Region IV-A). No PSGC barangay in either place has a close name, so they need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](silver_geography_population.md#known-limitations).
 
-At the same run, the City of Manila is half of the gap. All 897 of its barangays, 1,902,590 people, are unmatched, so NCR has no Manila population. The other 233 barangays are mostly in Lapu-Lapu City, Taguig, Caloocan, Cavite, and the BARMM Special Geographic Area.
+Before the issue #88 fix, the gap was 3,783,955 people (3.4 percent), and NCR had no Manila population.
 
-Gold copies the Silver totals and does not fill the gap. Per-person measures run high in the regions that hold these barangays, most of all NCR. The Gold population checks flag the gap.
+Gold copies the Silver totals and does not fill the gap. The Gold population checks flag it.
 
 ## Relationships
 
