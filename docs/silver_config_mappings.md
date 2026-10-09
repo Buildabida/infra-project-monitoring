@@ -19,7 +19,8 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Five configuration tables | Implemented by the Silver config notebook |
 | Configuration validation | Implemented by the Silver config validator |
 | DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
-| Status and place decisions | Pending human review |
+| DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
+| Place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
@@ -142,15 +143,27 @@ Natural key:
 - `source_status`
 - `status_mapping_version`
 
-The initial table is empty pending approval.
+Decision D-40 approves mapping version `dpwh-status-2026-10-v1`. The config notebook seeds it
+with a deterministic `MERGE`:
 
-No canonical standardized-status vocabulary has been approved yet.
+| Source status | Standardized status | Status group |
+| --- | --- | --- |
+| `Completed` | `Completed` | `FINISHED` |
+| `On-Going` | `Ongoing` | `ACTIVE` |
+| `For Procurement` | `Ongoing` | `ACTIVE` |
+| `Not Yet Started` | `Inactive` | `INACTIVE` |
+| `Terminated` | `Inactive` | `INACTIVE` |
+
+Blank, shifted, or malformed source statuses, such as numbers or place names,
+get no rule. They stay `UNMAPPED` with `NULL` standardized values and remain in
+coverage reporting as a review flag.
+
+Project-level profiling for the decision found 265,656 projects: 265,580 with
+one source status, 76 with a blank status, and 0 with conflicting statuses.
+
 Downstream Silver transformations must consume only active, approved rows from
 `config_project_status_mapping` and must not recreate temporary status mappings
-independently.
-
-Observed source statuses remain review candidates until the team approves their
-standardized values and status groups.
+independently. A change to any rule needs a new `status_mapping_version`.
 
 `Delayed` is not a supported standardized status because the current sources
 lack a reliable target completion date.
@@ -288,7 +301,7 @@ No Python UDF, Pandas conversion, streaming job, or spatial operation is used.
 
 This configuration notebook does not itself transform source rows.
 The [Silver project foundation](silver_project_cleaning.md) consumes the approved
-DPWH component-category taxonomy. Status mappings remain pending approval.
+DPWH component-category taxonomy and status mapping `dpwh-status-2026-10-v1`.
 
 The local source folder was profiled during design.
 Its project row counts differ from the accepted Bronze evidence.

@@ -161,9 +161,38 @@ def test_only_verified_mgb_rules_are_seeded_with_expected_ranks():
     assert "PENDING_REVIEW" not in seed_cell
 
 
+def test_only_approved_dpwh_status_rules_are_seeded():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_project_status_mapping AS target" in cell
+    )
+    expected = {
+        "Completed": ("Completed", "FINISHED"),
+        "On-Going": ("Ongoing", "ACTIVE"),
+        "For Procurement": ("Ongoing", "ACTIVE"),
+        "Not Yet Started": ("Inactive", "INACTIVE"),
+        "Terminated": ("Inactive", "INACTIVE"),
+    }
+
+    assert len(re.findall(r"\('dpwh_projects',", seed_cell)) == len(expected)
+    for source_status, (standardized, group) in expected.items():
+        pattern = (
+            rf"\('dpwh_projects',\s*'{source_status}',\s*'{standardized}',"
+            rf"\s*'{group}'\)"
+        )
+        assert re.search(pattern, seed_cell), source_status
+
+    assert "'dpwh-status-2026-10-v1' AS status_mapping_version" in seed_cell
+    assert "'APPROVED' AS approval_status" in seed_cell
+    assert "TRUE AS is_active" in seed_cell
+    assert "'DPWH'" not in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
+
+
 def test_status_config_does_not_seed_delayed_or_derived_rules():
     sql = notebook_text(CONFIG_NOTEBOOK)
-    assert "MERGE INTO `02-silver`.config_project_status_mapping" not in sql
+    assert not re.search(r"'(Delayed|Stalled|Long-running)'", sql, flags=re.IGNORECASE)
     assert not re.search(
         r"VALUES\s*\([^)]*'Delayed'", sql, flags=re.DOTALL | re.IGNORECASE
     )
@@ -179,7 +208,7 @@ def test_manual_override_table_is_allowed_to_start_empty():
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
     assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
-    assert sql.count("MERGE INTO `02-silver`.") == 1
+    assert sql.count("MERGE INTO `02-silver`.") == 2
     assert "CREATE TABLE IF NOT EXISTS" in sql
     assert "INSERT INTO `02-silver`.config_" not in sql
 

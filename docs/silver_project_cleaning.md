@@ -488,12 +488,12 @@ run above replaces those category counts.
 
 - Projects with missing `componentCategories` remain unmapped. New source tokens
   remain unmapped until a reviewed taxonomy version approves them.
-- No status rule is approved yet, so every status remains `UNMAPPED`.
+- Status uses approved mapping `dpwh-status-2026-10-v1` (D-40). Blank or malformed statuses stay `UNMAPPED`. The runtime evidence above predates this mapping, so it shows 0 approved status rules until the next rerun.
 - Project-region assignment is implemented separately. See
   [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification remains unresolved in Silver.
-- Stalled classification remains unresolved. It needs an approved status mapping.
+- Stalled classification remains unresolved. The status mapping is approved, but the stalled rule itself is not. `stalled_rule_status` is `STALLED_RULE_REQUIRED`.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
 - Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v4` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
