@@ -159,7 +159,9 @@ punctuation, or directional words. It does not embed a `Region IV-B` to
 ## Alias behavior
 
 Aliases are optional governed data. Only active `APPROVED` DPWH region aliases
-from one selected version may participate. Each canonical target must exist in
+from one selected version may participate. The notebook reads them with the
+config key `source_system = 'dpwh_projects'`. Its own output rows keep the
+Silver label `DPWH`. Each canonical target must exist in
 the selected official PSGC region set.
 
 No alias is manufactured from observed values inside the notebook. When the
@@ -348,6 +350,50 @@ counts. The Databricks results are in [runtime evidence](#runtime-evidence).
 
 ## Runtime evidence
 
+### Run with approved region aliases (D-41, Oct 9)
+
+This run used alias version `dpwh-region-aliases-2026-10-v1`, with 17 approved
+rows, and no manual overrides. Validation run ID:
+`2bd57fa9ea7023e9980d6d8c4514924a6aaa437473af1afe2a0ae4aba0a276b7`. All 18
+STOP checks passed.
+
+| Method | Status | Projects | Share of all projects |
+| --- | --- | ---: | ---: |
+| `APPROVED_REGION_ALIAS` | `MATCHED` | 242,443 | 91.26% |
+| `APPROVED_REGION_ALIAS` | `MATCHED_WITH_CONFLICT` | 11,885 | 4.47% |
+| `EXACT_REGION_NAME` | `MATCHED` | 10,742 | 4.04% |
+| `NON_GEOGRAPHIC_RULE` | `NON_GEOGRAPHIC` | 306 | 0.12% |
+| `NONE` | `UNMATCHED` | 266 | 0.10% |
+| `EXACT_REGION_NAME` | `MATCHED_WITH_CONFLICT` | 14 | 0.01% |
+| Total | | 265,656 | 100% |
+
+- 265,084 projects have a region, 99.78% of all projects, up from 212,367.
+- Unmatched projects fell from 52,951 to 266, and ambiguous projects from 32 to
+  0.
+- The 266 unmatched projects are 255 with no reported region, 10 with a
+  district engineering office name, and 1 with `2026`. Their reported budget is
+  PHP 15.02 in total.
+- No project now uses the coordinate fallback. Every project with a usable
+  region name matches by exact name or approved alias first.
+- In Gold, `fact_project_snapshot` has 572 projects on `region_key = 0`, down
+  from 53,289: 266 unmatched and 306 `Central Office`.
+
+#### Name-versus-coordinate conflicts
+
+11,899 projects have a name region that differs from their coordinate region.
+The name region is kept, as D-31 requires.
+
+| Group | Projects | Reason |
+| --- | ---: | --- |
+| Negros Island Region named, point in Region VI or VII | 8,893 | The boundary file has no Negros Island Region polygon. |
+| Region IX, X, or XII named, point in BARMM | 2,084 | Likely border areas that moved to BARMM. Not yet confirmed. |
+| Other nearby regions | 922 | Points near region borders or slightly off. |
+
+Within the last group, 88 Region XI projects have points in the National
+Capital Region. That distance suggests wrong source coordinates.
+
+### First run without aliases
+
 The first documented Databricks run used the hardened project foundation:
 
 | Input | Value |
@@ -362,7 +408,7 @@ The validator wrote 37 checks to `04-validation.silver_dq_results`. All 18
 STOP checks passed. Of the 19 FLAG checks, 15 reported findings and 4 found
 none.
 
-### Mapping outcome
+#### Mapping outcome
 
 | Method | Status | Projects | Share of all projects |
 | --- | --- | ---: | ---: |
@@ -379,7 +425,7 @@ none.
 - 306 `Central Office` projects stay non-geographic with no PSGC region.
 - 52,983 projects have no region: 52,951 unmatched and 32 ambiguous.
 
-### Coverage detail
+#### Coverage detail
 
 - **Reported region text.** 265,401 projects have a reported region. Only
   10,756 of them match an official PSGC region name exactly. The other 254,645
@@ -397,10 +443,9 @@ none.
 
 ### Interpretation note
 
-Most regions come from the coordinate fallback, not from names. The DPWH
-`reported_region` labels rarely equal the official PSGC names. Approved region
-aliases could move some projects to the higher-priority name stage. This run
-does not measure how many.
+In the first run, most regions came from the coordinate fallback, because the
+DPWH `reported_region` labels rarely equal the official PSGC names. The D-41
+aliases moved 254,328 projects to the higher-priority alias stage.
 
 ## Cost and scalability
 

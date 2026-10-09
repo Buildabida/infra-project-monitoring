@@ -190,6 +190,35 @@ def test_only_approved_dpwh_status_rules_are_seeded():
     assert "PENDING_REVIEW" not in seed_cell
 
 
+def test_dpwh_region_aliases_are_approved_and_use_the_config_key():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_place_name_alias AS target" in cell
+    )
+
+    assert "'dpwh_projects' AS source_system" in seed_cell
+    assert "'REGION' AS place_type" in seed_cell
+    assert "'dpwh-region-aliases-2026-10-v1' AS alias_version" in seed_cell
+    assert "'APPROVED' AS approval_status" in seed_cell
+    assert "'Buildabida' AS approved_by" in seed_cell
+    assert "TIMESTAMP '2026-10-09 00:00:00' AS approved_at" in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
+    assert len(re.findall(r"\('[^']+', '\d{10}', '[^']+'\)", seed_cell)) == 17
+    assert "('Region IV-B', '1700000000', 'MIMAROPA Region')" in seed_cell
+    assert "'MIMAROPA Region', '1700000000'" not in seed_cell
+    assert "Poblacion" not in seed_cell
+
+
+def test_place_alias_coverage_matches_region_place_type_case_insensitively():
+    coverage_cell = next(
+        cell for cell in code_cells(CONFIG_NOTEBOOK) if "raw_place_alias AS (" in cell
+    )
+
+    assert "'dpwh_projects' AS source_system" in coverage_cell
+    assert "UPPER(TRIM(mapping.place_type)) = 'REGION'" in coverage_cell
+
+
 def test_status_config_does_not_seed_delayed_or_derived_rules():
     sql = notebook_text(CONFIG_NOTEBOOK)
     assert not re.search(r"'(Delayed|Stalled|Long-running)'", sql, flags=re.IGNORECASE)
@@ -208,7 +237,7 @@ def test_manual_override_table_is_allowed_to_start_empty():
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
     assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
-    assert sql.count("MERGE INTO `02-silver`.") == 2
+    assert sql.count("MERGE INTO `02-silver`.") == 3
     assert "CREATE TABLE IF NOT EXISTS" in sql
     assert "INSERT INTO `02-silver`.config_" not in sql
 

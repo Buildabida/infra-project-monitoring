@@ -67,6 +67,19 @@ def test_06_uses_only_approved_active_alias_rules():
     assert "selected.alias_version" in alias
 
 
+def test_alias_config_is_read_with_the_config_key():
+    map_text = sql(MAP_NOTEBOOK)
+    validation_text = sql(VALIDATION_NOTEBOOK)
+
+    assert map_text.count("source_system = 'dpwh_projects'") == 3
+    assert "config_place_name_alias\nWHERE source_system = 'DPWH'" not in map_text
+    assert "alias.source_system = 'DPWH'" not in map_text
+    assert (
+        "WHERE source_system = 'dpwh_projects' AND UPPER(TRIM(place_type)) = 'REGION'"
+        in validation_text
+    )
+
+
 def test_07_uses_only_approved_active_manual_rules():
     text = sql(MAP_NOTEBOOK)
     manual = text[text.index("approved_manual_project_targets") :]
