@@ -216,14 +216,15 @@ A difference in either direction makes a region with a usable polygon
 `BOUNDARY_TERRITORY_MISMATCH`. Missing, ambiguous, and invalid boundary
 statuses take precedence.
 
-Five regions cannot safely use the selected region-boundary snapshot:
+The Oct 9 run found five regions that cannot safely use the selected
+region-boundary snapshot:
 
 | Region | Boundary status | Evidence |
 | --- | --- | --- |
-| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | Negros Occidental left for Negros Island Region |
-| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | Negros Oriental and Siquijor left for Negros Island Region |
+| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0604500000` (Negros Occidental) and `0630200000` are no longer listed |
+| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0704600000` (Negros Oriental) and `0706100000` (Siquijor) are no longer listed |
 | Region IX (Zamboanga Peninsula) | `BOUNDARY_TERRITORY_MISMATCH` | Sulu joined; its current code `0906600000` is not in the boundary |
-| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` | No region-level boundary feature |
+| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` | No region-level boundary feature; `1804500000`, `1804600000`, and `1806100000` are missing |
 | BARMM | `BOUNDARY_TERRITORY_MISMATCH` | Sulu left; its old code `1906600000` is no longer in the PSGC |
 
 Sulu left BARMM in 2024 and is now under Region IX (issue #91). The 2023 Region
