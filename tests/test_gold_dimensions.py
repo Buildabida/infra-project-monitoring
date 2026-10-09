@@ -265,7 +265,10 @@ def test_14_status_dimension_never_maps_a_status_itself():
     for literal in ["'Completed'", "'On-Going'", "'Terminated'", "'For Procurement'"]:
         assert literal not in text
     assert "NO_APPROVED_STATUS_MAPPING" in text
-    assert "mapping.source_system = project_source_system" in text
+    # config rows use the bronze table name as their key, not the silver label
+    assert "STRING DEFAULT 'dpwh_projects'" in text
+    assert "mapping.source_system = status_config_source_system" in text
+    assert "source_system = project_source_system" not in text
     assert "mapping.approval_status = 'APPROVED'" in text
     assert "COUNT(DISTINCT status_mapping_version) <= 1" in text
     assert "SET is_active = FALSE" in text

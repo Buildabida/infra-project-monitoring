@@ -171,6 +171,25 @@ lack a reliable target completion date.
 Long-running and stalled are future derived measures.
 They do not belong in this mapping table.
 
+#### `For Procurement` in delivery measures
+
+`For Procurement` stays `Ongoing` (`ACTIVE`). The team kept it in the active
+pipeline on #96. The mapping stays independent of the delivery measures.
+
+The October 9 profile of the selected snapshot shows that none of the 19,037
+`For Procurement` projects has started work. All of them have 0% progress, no
+contractor, no start date, and a reported budget of PHP 0.
+
+So delivery measures must treat them this way:
+
+- **Stalled:** the future stalled rule must exclude `For Procurement`. Without
+  that, every one of these projects would count as stalled.
+- **Long-running:** no exclusion is needed. D-32 needs a start date, so
+  `long_running_flag` is `NULL` for these projects.
+- **Zero progress:** `zero_progress_flag` is true for all of them. A dashboard
+  count of zero-progress active projects must filter on `source_status` or say
+  that it includes projects still in procurement.
+
 ### `config_mgb_susceptibility_mapping`
 
 Grain: one raw MGB code per source-contract and mapping version.
