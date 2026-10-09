@@ -114,9 +114,9 @@ These values are not seeded:
 
 #### Census Table C aliases
 
-Version `census-table-c-aliases-2026-10-v1` (issue #88) holds four Table C
-aliases with `source_system = 'census_2024_table_c'`. `match_rule` tells the
-population notebook how to use each one.
+Version `census-table-c-aliases-2026-10-v1` (issue #88) holds 19 Table C aliases
+with `source_system = 'census_2024_table_c'`. `match_rule` tells the population
+notebook how to use each one.
 
 | Table C name | Context | PSGC target | `match_rule` |
 | --- | --- | --- | --- |
@@ -124,10 +124,29 @@ population notebook how to use each one.
 | `SGA` (sheet) | BARMM | `1999900000` Special Geographic Area | `TABLE_C_SHEET_NAME` |
 | `SAN ISIDRO` (heading) | Davao del Norte | `1102324000` Sawata | `TABLE_C_LOCALITY_HEADING` |
 | `DON VICTORIANO CHIONGBIAN` (heading) | Misamis Occidental | `1004217000` Don Victoriano | `TABLE_C_LOCALITY_HEADING` |
+| `Lurogan` | City of Valencia, Bukidnon | `1001321017` LURUGAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Kahapunan` | City of Valencia, Bukidnon | `1001321011` KAHAPONAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Merangerang` | Quezon, Bukidnon | `1001317019` MERANGERAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Ambuclao` | Bokod, Benguet | `1401104001` AMBUKLAO | `TABLE_C_BARANGAY_SPELLING` |
+| `Indalaza` | City of Malaybalay, Bukidnon | `1001312018` INDALASA | `TABLE_C_BARANGAY_SPELLING` |
+| `Villa Floresca` | San Jose City, Nueva Ecija | `0304926040` VILLA FLORESTA | `TABLE_C_BARANGAY_SPELLING` |
+| `Daclan` | Bokod, Benguet | `1401104004` DAKLAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Balukbukan` | Kitaotao, Bukidnon | `1001309002` BALOCBOCAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Baborawon` | Kalilangan, Bukidnon | `1001307002` BARORAWON | `TABLE_C_BARANGAY_SPELLING` |
+| `Kabalabag` | City of Malaybalay, Bukidnon | `1001312021` KIBALABAG | `TABLE_C_BARANGAY_SPELLING` |
+| `Lubusan` | Lapuyan, Zamboanga del Sur | `0907313012` LUBOSAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Ginitligan` | Baras, Catanduanes | `0502002010` GENITLIGAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Pinagsakahan` | Calauag, Quezon | `0405607061` PINAGSAKAYAN | `TABLE_C_BARANGAY_SPELLING` |
+| `Culasi` | Sumilao, Bukidnon | `1001319002` KULASI | `TABLE_C_BARANGAY_SPELLING` |
+| `Barangay ng mga Mangingisda` | City of Puerto Princesa | `1731500062` MANGINGISDA | `TABLE_C_BARANGAY_NAME` |
 
 A sheet alias must name the target's region. A heading alias must name a region or
 province, and its target must be a city, municipality, or district inside the sheet's
-place. Any other approved Table C alias applies to one source row.
+place. Every other Table C alias applies to one barangay row and must name its city or
+municipality. The 15 barangay aliases came from a review of the rows still unmatched
+after the first run on 2026-10-09. Each target is the closest PSGC barangay name in
+that locality, confirmed by the team. The edit distance helped a person review them; it
+never assigns a code.
 
 ### `config_project_category_mapping`
 

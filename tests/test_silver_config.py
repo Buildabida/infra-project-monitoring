@@ -322,15 +322,26 @@ def test_table_c_place_aliases_are_seeded_with_context():
         "SGA": ("1999900000", "TABLE_C_SHEET_NAME"),
         "SAN ISIDRO": ("1102324000", "TABLE_C_LOCALITY_HEADING"),
         "DON VICTORIANO CHIONGBIAN": ("1004217000", "TABLE_C_LOCALITY_HEADING"),
+        "Lurogan": ("1001321017", "TABLE_C_BARANGAY_SPELLING"),
+        "Culasi": ("1001319002", "TABLE_C_BARANGAY_SPELLING"),
+        "Barangay ng mga Mangingisda": ("1731500062", "TABLE_C_BARANGAY_NAME"),
     }
 
     for raw_name, (psgc_code, match_rule) in expected.items():
         row = re.search(rf"\('{raw_name}',[^\n]*", seed_cell).group(0)
         assert f"'{psgc_code}'" in row
         assert f"'{match_rule}'" in row
-        context = re.match(r"\('[^']*', '([^']*)', '([^']*)'", row).groups()
-        assert any(value.strip() for value in context)
 
-    assert seed_cell.count("TABLE_C_") == len(expected)
+    rows = re.findall(
+        r"^\s+\('([^']*)', '([^']*)', '([^']*)', '([^']*)', '([A-Z]+)'",
+        seed_cell,
+        re.MULTILINE,
+    )
+    assert len(rows) == 19
+    for raw_name, region, province, locality, place_type in rows:
+        assert any(value.strip() for value in (region, province, locality)), raw_name
+        if place_type == "BARANGAY":
+            assert locality.strip(), raw_name
+
     assert "'census_2024_table_c' AS source_system" in seed_cell
     assert "WHEN NOT MATCHED THEN INSERT" in seed_cell

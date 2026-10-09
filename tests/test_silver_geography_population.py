@@ -265,8 +265,10 @@ def test_normalization_key_is_deterministic_and_shared():
     sql = notebook_code(NOTEBOOKS[1])
     assert "CREATE OR REPLACE TEMPORARY VIEW place_name_match_key" in sql
     assert "[⁰¹²³⁴⁵⁶⁷⁸⁹]" in sql
-    for rule in ("'$1SANTO'", "'$1SANTA'", "'$1SAINT'"):
+    for rule in ("' SANTO '", "' SANTA '", "' SAINT '"):
         assert rule in sql
+    assert "CONCAT(' ', name_without_marks, ' ')" in sql
+    assert "$1" not in sql
     assert "REPLACE(name_with_saint_words, '-', '')" in sql
     assert "SELECT place_name_standardized FROM `02-silver`.silver_psgc_place" in sql
 

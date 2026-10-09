@@ -266,9 +266,13 @@ Results are stored before the validator enforces the stop gate.
 - Table C provides no reliable PSGC code, so matching depends on verified sheet and section
   context.
 - Empty alias configuration is valid and may leave unresolved rows.
-- Issue #88 lists Table C barangay spellings that differ from PSGC by a letter or two,
-  such as `Lurogan` and `LURUGAN`. The normalization key does not cover them. Each one
-  needs a reviewed alias with its PSGC code and locality context.
+- Some Table C barangays are spelled differently from PSGC, such as `Lurogan` and
+  `LURUGAN`. The normalization key does not cover them, so each needs a reviewed alias
+  with its PSGC code and locality context. Fifteen are approved for issue #88.
+- After issue #88, two Table C barangays have no PSGC match and stay `UNMATCHED`:
+  `Sawata` under Sawata, Davao del Norte (4,152 people), and `San Rafael` under the
+  City of Calaca, Batangas (637 people). No PSGC barangay in either place has a close
+  name, so they need a source check before any alias.
 - Historical evidence says 43,748 of 43,750 rows matched PSGC population during an earlier
   review. The current snapshots determine the actual result.
 - The historical national population reference of 112,727,776 applies only when the selected
