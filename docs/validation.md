@@ -369,15 +369,13 @@ the project validator consistent with the geography/population and source-reconc
 validation contracts.
 
 The validation run identity uses the Silver project run, the component run, and
-the validation-rule version `silver_project_validation_v3`. Exact reruns update the same logical evidence
+the validation-rule version `silver_project_validation_v4`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
-The first v2 Databricks run wrote 29 checks. All 19 STOP checks passed. Its
-results are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
-That historical run does not prove the new v3 taxonomy checks. A new Databricks
-run is required.
+The v4 Databricks run wrote 39 checks. All 24 STOP checks passed. Its results
+are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
 
 ## Silver source-reconciliation validation
 

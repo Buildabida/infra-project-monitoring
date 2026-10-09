@@ -177,7 +177,7 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v3' AS transformation_rule_version" in text
+    assert "'silver_project_v4' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
     assert "COALESCE(attribute.component_run_id, '')" in text
     assert "COALESCE(category.taxonomy_version, '')" in text
@@ -185,7 +185,7 @@ def test_14_project_keeps_key_recipe_and_versions_its_rule():
 
 def test_15_project_counts_and_values_use_the_same_expression():
     text = sql(PROJECT)
-    for column in ["reported_region", "contractor", "source_of_funds"]:
+    for column in ["reported_region", "contractor", "source_of_funds", "deo"]:
         expression = f"NULLIF(TRIM({column}), '')"
         assert f"COUNT(DISTINCT {expression})" in text, column
         assert f"MAX({expression})" in text, column
@@ -216,6 +216,8 @@ def test_16_project_keeps_every_downstream_column():
         "source_infra_type",
         "category_classification_status",
         "is_dpwh_flood_related",
+        "implementing_office",
+        "implementing_office_resolution_status",
     ]:
         assert re.search(rf"\b{column}\b", table), column
 
@@ -383,3 +385,33 @@ def test_28_validator_reports_taxonomy_and_budget_coverage():
     assert (
         "Project category arrays and classifications are internally consistent" in text
     )
+
+
+def test_29_component_carries_deo_and_hashes_it():
+    text = sql(COMPONENT)
+    assert "'deo', source.deo" in text
+    assert "identified_rows.deo," in text
+    assert "'silver_dpwh_component_v4' AS transformation_rule_version" in text
+    build = statement(
+        COMPONENT, "CREATE OR REPLACE TABLE `02-silver`.silver_dpwh_project_component"
+    )
+    assert "component.deo," in build
+
+
+def test_30_project_resolves_implementing_office_like_other_attributes():
+    resolution = statement(
+        PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
+    )
+    expression = "COUNT(DISTINCT NULLIF(TRIM(deo), ''))"
+    assert f"{expression} AS distinct_implementing_office_count" in resolution
+    assert f"WHEN {expression} = 0 THEN 'MISSING'" in resolution
+    assert f"WHEN {expression} = 1 THEN 'RESOLVED'" in resolution
+    assert "END AS implementing_office_resolution_status" in resolution
+
+
+def test_31_validator_checks_implementing_office_resolution():
+    text = sql(VALIDATION)
+    assert "implementing_office_resolution_status = 'CONFLICT'" in text
+    assert "'Implementing office follows the resolution rule'" in text
+    assert "'Missing or conflicting implementing offices remain visible'" in text
+    assert "'silver_project_validation_v4'" in text
