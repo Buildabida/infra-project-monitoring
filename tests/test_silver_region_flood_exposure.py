@@ -666,3 +666,28 @@ def test_62_validation_blocks_unsafe_territory_status():
     check = validation.split(check_name, 1)[1].split("NAMED_STRUCT", 1)[0]
     assert "territory_status_mismatches" in check
     assert "'action', 'stop'" in check
+
+
+def test_63_territory_check_catches_provinces_that_left_or_joined():
+    exposure = code_without_comments(EXPOSURE_NOTEBOOK)
+    territory = view_body(exposure, "region_boundary_territory_check")
+    # left: a boundary province the current PSGC moved or no longer lists
+    assert "current_place.region_code <> region.psgc_region_code" in territory
+    assert "COALESCE(current_place.region_code, 'unlisted')" in territory
+    # joined: a current PSGC province the boundary snapshot does not hold
+    assert "LEFT ANTI JOIN boundary_province" in territory
+    assert "current_place.region_code = region.psgc_region_code" in territory
+    assert "current_place.psgc_code = current_place.province_code" in territory
+    assert "FULL OUTER JOIN province_joined" in territory
+
+
+def test_64_validation_repeats_both_territory_directions():
+    validation = code_without_comments(VALIDATION_NOTEBOOK)
+    evidence = validation.split("territory_joined AS (", 1)[1].split(
+        "territory_detail AS (", 1
+    )[0]
+    assert "LEFT ANTI JOIN territory_boundary_province" in evidence
+    assert "current_place.psgc_code = current_place.province_code" in evidence
+    assert "' lacks '" in evidence
+    metrics = validation.split("territory_metrics AS (", 1)[1]
+    assert "published.published_boundary_status = 'VALID_REGION_BOUNDARY'" in metrics

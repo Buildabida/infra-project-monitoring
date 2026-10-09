@@ -201,34 +201,50 @@ version separate from PSGC lineage. `boundary_version_status` publishes
 
 ## Boundary territory limitations
 
-The selected boundary snapshot predates the current PSGC release. Runtime
-comparison against the current PSGC hierarchy identified four regions that
-cannot safely use the selected region-boundary snapshot:
+The selected boundary snapshot predates the current PSGC release. The territory
+check compares province-level evidence with the current PSGC hierarchy in both
+directions:
 
-| Region | Boundary status |
-| --- | --- |
-| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
-| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
-| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` |
-| BARMM | `BOUNDARY_TERRITORY_MISMATCH` |
+- A province the boundary places in a region, by its code prefix, must still
+  belong to that region in the current PSGC. This catches a province that left
+  the region.
+- Every current PSGC province of a region must appear in the boundary
+  snapshot. This catches a province that joined the region after the boundary
+  was published. Independent cities are not checked in this direction.
 
-Negros Island Region has no region-level boundary feature in the selected
-boundary snapshot.
+A difference in either direction makes a region with a usable polygon
+`BOUNDARY_TERRITORY_MISMATCH`. Missing, ambiguous, and invalid boundary
+statuses take precedence.
 
-Regions VI, VII, and BARMM have region polygons, but province-level evidence
-does not agree with current PSGC membership. Their geometries are therefore not
-treated as safe geography.
+The Oct 9 run found five regions that cannot safely use the selected
+region-boundary snapshot:
+
+| Region | Boundary status | Evidence |
+| --- | --- | --- |
+| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0604500000` (Negros Occidental) and `0630200000` are no longer listed |
+| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0704600000` (Negros Oriental) and `0706100000` (Siquijor) are no longer listed |
+| Region IX (Zamboanga Peninsula) | `BOUNDARY_TERRITORY_MISMATCH` | Sulu joined; its current code `0906600000` is not in the boundary |
+| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` | No region-level boundary feature; `1804500000`, `1804600000`, and `1806100000` are missing |
+| BARMM | `BOUNDARY_TERRITORY_MISMATCH` | Sulu left; its old code `1906600000` is no longer in the PSGC |
+
+Sulu left BARMM in 2024 and is now under Region IX (issue #91). The 2023 Region
+IX polygon has no Sulu, so before the two-direction check its exposure was
+calculated on the wrong territory.
+
+Regions VI, VII, IX, and BARMM have region polygons, but province-level
+evidence does not agree with current PSGC membership. Their geometries are
+therefore not treated as safe geography.
 
 These are source-version and boundary-coverage limitations, not pipeline
 failures.
 
-Table 14 protects downstream analysis by excluding these four regions from safe
+Table 14 protects downstream analysis by excluding these five regions from safe
 exposure calculation and publishing `NULL` measures instead of false zero
 exposure.
 
 The pipeline does not hardcode a Negros polygon, split Regions VI or VII,
-rewrite BARMM territory, use nearest geography, or perform any hidden spatial
-repair.
+add Sulu to Region IX, rewrite BARMM territory, use nearest geography, or
+perform any hidden spatial repair.
 
 The table can recover naturally when a newer approved boundary snapshot aligns
 with the current PSGC hierarchy.
@@ -471,6 +487,7 @@ A FLAG is a visible source limitation, not a failure.
 - The selected boundary snapshot predates the current PSGC release.
 - Region VI is `BOUNDARY_TERRITORY_MISMATCH`.
 - Region VII is `BOUNDARY_TERRITORY_MISMATCH`.
+- Region IX is `BOUNDARY_TERRITORY_MISMATCH`.
 - Negros Island Region is `NO_SAFE_REGION_BOUNDARY`.
 - BARMM is `BOUNDARY_TERRITORY_MISMATCH`.
 - These geographic findings are source-version limitations, not pipeline
