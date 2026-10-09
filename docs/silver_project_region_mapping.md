@@ -159,7 +159,9 @@ punctuation, or directional words. It does not embed a `Region IV-B` to
 ## Alias behavior
 
 Aliases are optional governed data. Only active `APPROVED` DPWH region aliases
-from one selected version may participate. Each canonical target must exist in
+from one selected version may participate. The notebook reads them with the
+config key `source_system = 'dpwh_projects'`. Its own output rows keep the
+Silver label `DPWH`. Each canonical target must exist in
 the selected official PSGC region set.
 
 No alias is manufactured from observed values inside the notebook. When the

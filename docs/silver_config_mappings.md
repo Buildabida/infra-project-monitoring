@@ -20,7 +20,8 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | Configuration validation | Implemented by the Silver config validator |
 | DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
 | DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
-| Place decisions | Pending human review |
+| DPWH region aliases | Seeded as `PENDING_REVIEW` version `dpwh-region-aliases-2026-10-v1` (#87). Team approval required. |
+| Other place decisions | Pending human review |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
@@ -59,7 +60,51 @@ They do not authorize global name-only matching.
 
 `Poblacion` is ambiguous without geographic context.
 No global `Poblacion` alias is seeded.
-`Region IV-B` to `MIMAROPA` also remains unseeded until the team approves it.
+
+#### DPWH region aliases
+
+Issue #87 seeds version `dpwh-region-aliases-2026-10-v1`. Each row maps one
+DPWH `reported_region` spelling to exactly one official PSGC region from the
+`2Q 2026 as of 2026-06-30` PSGC release. The rows use these key values:
+
+| Field | Value |
+| --- | --- |
+| `source_system` | `dpwh_projects`, the config key |
+| `place_type` | `REGION` |
+| `raw_place_name` | The trimmed DPWH `reported_region` spelling |
+| `raw_region_name`, `raw_province_name`, `raw_city_municipality_name` | `''` |
+
+| DPWH spelling | PSGC code | Official region |
+| --- | --- | --- |
+| `Region I` | `0100000000` | Region I (Ilocos Region) |
+| `Region II` | `0200000000` | Region II (Cagayan Valley) |
+| `Region III` | `0300000000` | Region III (Central Luzon) |
+| `Region IV-A` | `0400000000` | Region IV-A (CALABARZON) |
+| `Region V` | `0500000000` | Region V (Bicol Region) |
+| `Region VI` | `0600000000` | Region VI (Western Visayas) |
+| `Region VII` | `0700000000` | Region VII (Central Visayas) |
+| `Region VIII` | `0800000000` | Region VIII (Eastern Visayas) |
+| `Region IX` | `0900000000` | Region IX (Zamboanga Peninsula) |
+| `Region X` | `1000000000` | Region X (Northern Mindanao) |
+| `Region XI` | `1100000000` | Region XI (Davao Region) |
+| `Region XII` | `1200000000` | Region XII (SOCCSKSARGEN) |
+| `National Capital Region` | `1300000000` | National Capital Region (NCR) |
+| `Cordillera Administrative Region` | `1400000000` | Cordillera Administrative Region (CAR) |
+| `Region XIII` | `1600000000` | Region XIII (Caraga) |
+| `Negros Island Region` | `1800000000` | Negros Island Region (NIR) |
+
+The rows are `PENDING_REVIEW`, so the project-region map does not use them
+yet. To approve them, set `approval_status = 'APPROVED'`, `approved_by`, and
+`approved_at` in the configuration notebook, then rerun it.
+
+These values are not seeded:
+
+- `Region IV-B`. All 700 projects have no coordinates and a zero or missing
+  budget. Review what they are before approving a `MIMAROPA` alias.
+- `MIMAROPA Region` and `Central Office`. They already match exactly or are
+  non-geographic.
+- District engineering office names, `2026`, and blank regions. They are not
+  region names.
 
 ### `config_project_category_mapping`
 
@@ -101,7 +146,7 @@ team reviews and versions the taxonomy.
 
 ### Key values for DPWH rules
 
-Write DPWH category and status rules with these key values. The config validator checks coverage with them, and the DPWH component notebook joins on them.
+Write DPWH category, status, and region-alias rules with these key values. The config validator checks coverage with them, and the DPWH component notebook joins on them.
 
 | Field | Value for DPWH | Why |
 | --- | --- | --- |
