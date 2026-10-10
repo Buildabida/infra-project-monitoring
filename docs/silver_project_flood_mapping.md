@@ -180,6 +180,10 @@ for the parser contract. The parser tries three governed paths:
 3. convert supported Esri `rings` JSON, reading counterclockwise rings as holes
    when the first reading is invalid
 
+A row with a `rings` key skips the first two paths. The Esri path reads the
+rings as text and parses them into arrays only to find holes, which keeps the
+largest MGB polygons within executor memory.
+
 The first successful parse wins. Each row receives one Table 14 geometry
 status: `BLANK_GEOMETRY`, `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`,
 `UNSUPPORTED_GEOMETRY_TYPE`, `INVALID_GEOMETRY`, or `USABLE_GEOMETRY`.

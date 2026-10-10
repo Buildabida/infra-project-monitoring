@@ -551,7 +551,10 @@ def test_49_invalid_geometry_is_excluded_not_repaired():
 
 def test_50_geometry_parser_is_targeted_not_global_quote_stripping():
     code = sql(EXPOSURE_NOTEBOOK)
-    assert "TRY_TO_GEOMETRY(geometry_text) AS published_geometry" in code
+    assert (
+        "THEN TRY_TO_GEOMETRY(esri_text.geometry_text)\n        END AS published_geometry"
+        in code
+    )
     assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in code
     assert "REPLACE(mgb.geometry_json, '\"'" not in code
     assert "REPLACE(geometry_text, '\"'" not in code
@@ -712,12 +715,43 @@ def test_65_esri_holes_are_read_as_holes_only_when_the_first_reading_is_invalid(
     assert "part -> part.area > 0" in parser
     # a valid first reading is never changed
     assert (
-        "WHEN esri_ring_geometry IS NOT NULL AND ST_ISVALID(esri_ring_geometry)\n"
-        "                        THEN esri_ring_geometry"
+        "esri_ring_geometry IS NOT NULL AND ST_ISVALID(esri_ring_geometry) AS esri_ring_geometry_is_valid"
+        in parser
+    )
+    assert (
+        "WHEN esri_ring_geometry_is_valid\n                        THEN esri_ring_geometry"
     ) in parser
     assert "THEN ST_DIFFERENCE(" in parser
     assert "ST_BUFFER" not in parser.upper()
     assert "MAKEVALID" not in parser.upper()
+
+
+def test_67_esri_parser_reads_rings_as_text_and_arrays_only_for_holes():
+    parser = esri_parser_block(EXPOSURE_NOTEBOOK)
+    # the first reading is built from the rings text; arrays of the largest polygons run out of memory
+    assert (
+        "REGEXP_REPLACE(esri_rings_text, '\\\\]\\\\s*\\\\]\\\\s*,\\\\s*\\\\[\\\\s*\\\\[', ']]],[[[')"
+        in parser
+    )
+    first_reading = parser[: parser.index("esri_ring_checked AS (")]
+    assert "FROM_JSON(" not in first_reading
+    assert "TO_JSON(" not in first_reading
+    assert "GET_JSON_OBJECT" not in parser
+    # ring arrays are parsed only for a row whose first reading is invalid
+    assert (
+        "WHEN esri_rings_text IS NOT NULL AND NOT esri_ring_geometry_is_valid\n"
+        "            THEN FROM_JSON(esri_rings_text, 'ARRAY<ARRAY<ARRAY<DOUBLE>>>')"
+    ) in parser
+    # GeoJSON readers skip Esri rows
+    code = sql(EXPOSURE_NOTEBOOK)
+    assert (
+        "WHEN esri_text.esri_rings_text IS NULL\n            THEN TRY_TO_GEOMETRY(esri_text.geometry_text)"
+        in code
+    )
+    assert (
+        "WHEN esri_rings_text IS NULL\n            THEN TRY_TO_GEOMETRY(REGEXP_REPLACE("
+        in code
+    )
 
 
 def test_66_all_four_notebooks_share_one_esri_parser():

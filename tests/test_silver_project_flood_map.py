@@ -270,10 +270,13 @@ def test_13_validator_reuses_table_14_parser_and_geometry_statuses():
 
 def test_14_esri_rings_and_targeted_normalization_paths_are_present():
     text = sql(FLOOD_MAP_NOTEBOOK)
-    if "$.rings" in sql(EXPOSURE_NOTEBOOK):
-        assert "GET_JSON_OBJECT(esri_ring_parts.geometry_text, '$.rings')" in text
+    if '"rings"' in sql(EXPOSURE_NOTEBOOK):
+        assert "WHEN esri_ring_parts.esri_rings_text IS NOT NULL" in text
         assert "'ESRI_JSON_CONVERTED'" in text
-    assert "TRY_TO_GEOMETRY(geometry_text) AS published_geometry" in text
+    assert (
+        "THEN TRY_TO_GEOMETRY(esri_text.geometry_text)\n        END AS published_geometry"
+        in text
+    )
     assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in text
     assert (
         "COALESCE(\n            published_geometry,\n            normalized_geometry,\n            esri_geometry\n        )"

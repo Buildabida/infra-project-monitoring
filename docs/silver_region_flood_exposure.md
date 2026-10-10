@@ -144,6 +144,12 @@ with `ST_DIFFERENCE`. A valid first reading is never changed, so a separate
 island drawn counterclockwise keeps its area. This follows the Esri format; it
 is not a repair, and a geometry that is still invalid is excluded and flagged.
 
+The Esri path builds the first reading from the `rings` text with string
+functions. It reads the rings into arrays with `FROM_JSON` only when the first
+reading is invalid, because those arrays exhaust executor memory on the largest
+MGB polygons. One geometry field has 34,352,521 characters. A row with a
+`rings` key skips the two GeoJSON paths, since Esri JSON is never GeoJSON.
+
 Before issue #92 every ring became its own polygon, so a hole lay inside its
 outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09
 found 2,232 of the 2,340 invalid MGB polygons had holes. Reading the holes
