@@ -31,6 +31,9 @@ LOAD_LOG_COLUMNS = (
     "error_message string, column_mapping_json string"
 )
 INVALID_DELTA_COLUMN_CHARS = re.compile(r"[ ,;{}()\n\t=]+")
+# Python's csv module rejects fields over 131,072 characters by default. One MGB
+# geometry field reaches 34,352,521 characters, so the parser allows up to 256 MiB.
+CSV_FIELD_SIZE_LIMIT = 256 * 1024 * 1024
 
 
 def quoted_name(name):
@@ -355,6 +358,8 @@ def _parse_csv_line(value, num_cols):
     """Parse one physical CSV record and fail instead of fabricating null values."""
     if value is None:
         raise ValueError("CSV contains a null physical record")
+    # Set on every call because this runs inside Spark worker processes.
+    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
     try:
         parsed = next(csv.reader(io.StringIO(value.rstrip("\r")), strict=True))
     except (StopIteration, csv.Error) as error:
