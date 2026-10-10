@@ -433,29 +433,39 @@ The DPWH snapshot, MGB snapshot, and mapping version did not change. The
 validator again wrote 53 checks. All 37 STOP checks passed, and the selected
 project validation it checks had 29 checks with no blocking failure.
 
-Every count in the tables below is the same in the rerun. Only the project run
-and the Table 15 run ID changed.
+### Rerun after the Esri hole fix (issue #92)
+
+Table 15 was rerun on 2026-10-09 with rule version `silver-project-flood-map-v2`,
+which reads Esri polygon holes as holes.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| Table 15 run ID | `2425d8a112a3852faf653ffecd73135ab8e2033237bc08478b2560750f89cea3` |
+
+The DPWH snapshot, MGB snapshot, and mapping version did not change. The
+validator wrote 53 checks with no blocking failure. The tables below are from
+this run.
 
 ### Project classification
 
 | Outcome | Projects | Share of all projects |
 | --- | ---: | ---: |
-| `MATCHED` Low | 7,486 | 2.82% |
-| `MATCHED` Moderate | 7,037 | 2.65% |
-| `MATCHED` High | 4,574 | 1.72% |
-| `MATCHED` Very High | 1,301 | 0.49% |
-| `AMBIGUOUS` across approved levels | 15 | 0.01% |
-| `UNMATCHED`, usable point without an approved polygon | 194,725 | 73.30% |
+| `MATCHED` Low | 10,095 | 3.80% |
+| `MATCHED` Moderate | 9,656 | 3.63% |
+| `MATCHED` High | 6,010 | 2.26% |
+| `MATCHED` Very High | 2,002 | 0.75% |
+| `AMBIGUOUS` across approved levels | 18 | 0.01% |
+| `UNMATCHED`, usable point without an approved polygon | 187,357 | 70.53% |
 | `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
 | Total | 265,656 | 100% |
 
 - 215,138 projects have a `VALID_PAIR` coordinate. No project had a partial
   or out-of-range pair, and no project had an invalid identity.
-- 20,398 projects received a final level. That is 7.68% of all projects and
-  9.48% of projects with a usable coordinate.
-- 116 matched projects sit inside more than one polygon of the same level.
-- The independent recomputation matched the published candidate evidence for
-  every project.
+- 27,763 projects received a final level. That is 10.45% of all projects and
+  12.90% of projects with a usable coordinate. Before the fix, 20,398 did
+  (9.48% of projects with a usable coordinate).
+- 156 matched projects sit inside more than one polygon of the same level.
 
 ### MGB source accounting
 
@@ -463,39 +473,32 @@ The 63,684 selected MGB rows equal the audited Bronze `rows_loaded`:
 
 | Bucket | Rows |
 | --- | ---: |
-| Mapped and usable | 59,478 |
-| Mapped and unusable | 2,368 |
+| Mapped and usable | 61,678 |
+| Mapped and unusable | 168 |
 | Unmapped and usable | 23 |
 | Unmapped and unusable | 1,815 |
 
-- Unusable mapped rows are 2,340 OGC-invalid, 14 empty, and 14 unparseable
-  geometries.
+- Unusable mapped rows are 140 OGC-invalid, 14 empty, and 14 unparseable
+  geometries. Before the fix, 2,340 were OGC-invalid.
 - Unmapped rows are 1,822 blank codes and 16 `No rating` codes. All 1,815 blank
   geometries also have a blank code.
-- All 61,855 parsed geometries used the Esri `rings` path.
+- All parsed geometries used the Esri `rings` path.
 
 ### Interpretation note
 
-Most usable project points, 90.5%, fall outside every approved MGB polygon.
+Most usable project points, 87.1%, fall outside every approved MGB polygon.
 These results must not be read as Low or zero flood risk.
 
-Issue #92 found one cause. Before the fix, the Esri parser read a polygon's
-holes as separate polygons, which made the whole feature invalid and excluded
-it. A diagnostic run on 2026-10-09 found:
+Issue #92 found one cause of the low match rate. Before the fix, the Esri parser
+read a polygon's holes as separate polygons, which made the whole feature
+invalid and excluded it. A diagnostic run on 2026-10-09 found that 2,232 of the
+2,340 invalid MGB polygons had holes. The live MGB layer reports 63,684
+features, the same as the Bronze extract, so the extract is not missing
+features.
 
-- 2,232 of the 2,340 invalid MGB polygons had holes.
-- Reading the holes correctly makes 2,200 of them valid and recovers about
-  4,472 sq km of susceptibility area.
-- 7,368 projects that were `UNMATCHED` with a usable coordinate lie inside one
-  of those polygons.
-- The live MGB layer reports 63,684 features, the same as the Bronze extract,
-  so the extract is not missing features.
-
-The counts in this section are from the run before the fix. A rerun replaces
-them. The diagnostic estimate is a match rate of about 12.9% of projects with
-a usable coordinate, up from 9.48%. That is still well below the 52% that the
-issue #92 spot check found against the live layer, so a further cause may
-remain.
+The fix raised the match rate from 9.48% to 12.90% of projects with a usable
+coordinate. That is still well below the 52% that the issue #92 spot check
+found against the live layer, so a further cause may remain.
 
 ### Unmatched project spot-check
 

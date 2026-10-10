@@ -148,13 +148,16 @@ Before issue #92 every ring became its own polygon, so a hole lay inside its
 outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09
 found 2,232 of the 2,340 invalid MGB polygons had holes. Reading the holes
 correctly made 2,200 of them valid and recovered about 4,472 sq km of
-susceptibility area. The figures below are from the run before that fix.
+susceptibility area.
 
 Runtime execution confirmed that Esri `rings` is the dominant encoding in the
-selected MGB snapshot. A total of 61,855 rows were converted through the Esri
-path. The final validation reports 59,501 usable geometries, with zero usable
-rows carrying an unexpected SRID and zero usable rows outside the configured
-longitude-latitude screen.
+selected MGB snapshot. In the 2026-10-09 rerun with rule version
+`silver-region-flood-exposure-v2`, 140 MGB rows stayed OGC-invalid, down from
+2,340, and 61,701 geometries were usable, up from 59,501. Zero usable rows
+carried an unexpected SRID and zero usable rows fell outside the configured
+longitude-latitude screen. Inside safe regions, the four level totals sum to
+12,720.3 sq km, up from 9,439.1 sq km. Levels can overlap, so this sum compares
+runs but is not one exposed area.
 
 Each row records the parse path that succeeded. The run stops if mapped rows
 have geometry text but none parse.
