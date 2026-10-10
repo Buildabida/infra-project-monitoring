@@ -136,11 +136,34 @@ The parser tries the geometry through three controlled paths:
 The targeted normalization removes quotes only around numeric tokens and
 bracketed coordinate strings. It never strips JSON quotes globally.
 
+An Esri polygon lists its outer rings clockwise and its holes counterclockwise.
+The Esri path first reads every ring as its own polygon. When that reading is
+OGC-invalid and the feature has rings in both directions, it reads the
+counterclockwise rings as holes and subtracts them from the clockwise rings
+with `ST_DIFFERENCE`. A valid first reading is never changed, so a separate
+island drawn counterclockwise keeps its area. This follows the Esri format; it
+is not a repair, and a geometry that is still invalid is excluded and flagged.
+
+The Esri path builds the first reading from the `rings` text with string
+functions. It reads the rings into arrays with `FROM_JSON` only when the first
+reading is invalid, because those arrays exhaust executor memory on the largest
+MGB polygons. One geometry field has 34,352,521 characters. A row with a
+`rings` key skips the two GeoJSON paths, since Esri JSON is never GeoJSON.
+
+Before issue #92 every ring became its own polygon, so a hole lay inside its
+outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09
+found 2,232 of the 2,340 invalid MGB polygons had holes. Reading the holes
+correctly made 2,200 of them valid and recovered about 4,472 sq km of
+susceptibility area.
+
 Runtime execution confirmed that Esri `rings` is the dominant encoding in the
-selected MGB snapshot. A total of 61,855 rows were converted through the Esri
-path. The final validation reports 59,501 usable geometries, with zero usable
-rows carrying an unexpected SRID and zero usable rows outside the configured
-longitude-latitude screen.
+selected MGB snapshot. In the 2026-10-09 rerun with rule version
+`silver-region-flood-exposure-v2`, 140 MGB rows stayed OGC-invalid, down from
+2,340, and 61,701 geometries were usable, up from 59,501. Zero usable rows
+carried an unexpected SRID and zero usable rows fell outside the configured
+longitude-latitude screen. Inside safe regions, the four level totals sum to
+12,720.3 sq km, up from 9,439.1 sq km. Levels can overlap, so this sum compares
+runs but is not one exposed area.
 
 Each row records the parse path that succeeded. The run stops if mapped rows
 have geometry text but none parse.

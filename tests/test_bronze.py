@@ -168,6 +168,18 @@ def test_parse_csv_line_rejects_wrong_width_and_invalid_quotes():
         bronze._parse_csv_line('"unterminated', 1)
 
 
+def test_parse_csv_line_reads_geometry_over_default_field_limit():
+    geometry = '{"rings":[' + "1" * 200_000 + "]}"
+    line = '1,HF,"' + geometry.replace('"', '""') + '"\r'
+    assert bronze._parse_csv_line(line, 3) == ["1", "HF", geometry]
+
+
+def test_parse_csv_line_still_rejects_field_over_raised_limit(monkeypatch):
+    monkeypatch.setattr(bronze, "CSV_FIELD_SIZE_LIMIT", 10)
+    with pytest.raises(ValueError, match="unreadable record"):
+        bronze._parse_csv_line('1,"' + "x" * 11 + '"', 2)
+
+
 def test_snapshot_conflict_does_not_poison_the_canonical_claim():
     canonical_a = {
         "status": "SUCCESS",
