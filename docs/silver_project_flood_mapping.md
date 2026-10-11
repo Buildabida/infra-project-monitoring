@@ -48,7 +48,8 @@ contract. Neither table is derived from the other.
 | Input | Role in Table 15 |
 | --- | --- |
 | `02-silver.silver_project` | Canonical project identity, parsed coordinates, and project lineage |
-| `01-bronze.flood_susceptibility` | Selected MGB flood-area rows, raw `flood_susceptibility_code`, and `geometry_json` |
+| `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `01-bronze.load_log` | Newest terminal MGB and DPWH load state, audited row count, load time, and optional publisher versions |
 | `04-validation.dq_results` | Latest Bronze MGB and DPWH validation evidence |
@@ -68,8 +69,11 @@ mapping and project-flood mapping are separate relationships.
 If Bronze, CONFIG, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
-3. Run `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`.
+2. Run `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb` and
+   `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless
+   they already ran for the current MGB snapshot.
+3. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
+4. Run `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`.
 
 When upstream inputs changed, use this dependency-aware order:
 
@@ -79,8 +83,10 @@ When upstream inputs changed, use this dependency-aware order:
 4. `notebooks/02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
 5. `notebooks/02_silver/05_silver_project.ipynb`, after step 4
 6. `notebooks/04_validation/04_validation_silver_projects.ipynb`, after step 5
-7. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
-8. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+7. `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb`, when MGB changed
+8. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, after step 7
+9. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
+10. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 
 Tables 11 to 14 do not need to rerun for Table 15.
 
@@ -171,28 +177,16 @@ behavior does not permit a Silver `Unknown` classification.
 
 ## Geometry parsing reuse
 
-Table 15 reuses the Table 14 parser without change. See
-[Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
-for the parser contract. The parser tries three governed paths:
+Table 15 reads parsed geometry from `02-silver.silver_mgb_flood_area`, the same
+table Table 14 reads. It never parses `geometry_json` itself. See
+[Silver MGB flood areas](silver_mgb_flood_area.md) for the parser contract,
+including Esri holes, and its validation.
 
-1. parse the geometry as published
-2. apply the targeted quoted-number normalization
-3. convert supported Esri `rings` JSON, reading counterclockwise rings as holes
-   when the first reading is invalid
-
-A row with a `rings` key skips the first two paths. The Esri path reads the
-rings as text and parses them into arrays only to find holes, which keeps the
-largest MGB polygons within executor memory.
-
-The first successful parse wins. Each row receives one Table 14 geometry
-status: `BLANK_GEOMETRY`, `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`,
-`UNSUPPORTED_GEOMETRY_TYPE`, `INVALID_GEOMETRY`, or `USABLE_GEOMETRY`.
-
-The parser SQL is copied into the Table 15 notebook and its validator. Two
-regression tests prove that both copies match Table 14 exactly. The only
-differences allowed are the selected-version view name and the added severity
-rank. If Table 14's parser changes, these tests fail until Table 15 is updated
-in the same pull request.
+Each row carries one geometry status from that table: `BLANK_GEOMETRY`,
+`UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`, `UNSUPPORTED_GEOMETRY_TYPE`,
+`INVALID_GEOMETRY`, or `USABLE_GEOMETRY`. Table 15 reads only the parsed run
+whose `run_id` it hashes into `project_flood_run_id`, and it stops when the
+`06a` validation is missing or has a blocking failure.
 
 Only rows with `susceptibility_mapping_status = 'MAPPED_APPROVED'` and
 `source_geometry_status = 'USABLE_GEOMETRY'` take part in classification.
@@ -356,7 +350,7 @@ The validator does not trust the transformation's intermediate results:
 
 - It declares the coordinate screen independently and recomputes every
   project's coordinate status.
-- It reparses MGB with the governed parser and recomputes source accounting.
+- It reads MGB from the independently validated `silver_mgb_flood_area` and recomputes source accounting.
 - It rebuilds every project's candidates with a different grid size and
   compares polygon counts, level counts, and candidate levels row by row.
 

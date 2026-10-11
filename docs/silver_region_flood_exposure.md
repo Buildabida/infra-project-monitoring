@@ -32,7 +32,8 @@ flood-control spending is enough, fair, effective, or caused by any factor.
 
 | Input | Role in Table 14 |
 | --- | --- |
-| `01-bronze.flood_susceptibility` | Selected MGB flood-area rows, raw `flood_susceptibility_code`, and `geometry_json` |
+| `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `02-silver.silver_psgc_place` | Current official region set and PSGC lineage |
 | `01-bronze.boundaries` | Region boundary geometry, boundary versions, and boundary lineage |
@@ -51,8 +52,11 @@ sequence but is not a data dependency. Table 14 never rereads R2 directly.
 If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
-3. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+2. Run `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb`. It skips the parse
+   when the MGB snapshot and parse rule are unchanged.
+3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
+4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
+5. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.
@@ -127,7 +131,12 @@ are reference findings only. Runtime counts decide the actual values.
 
 ## Geometry parsing
 
-The parser tries the geometry through three controlled paths:
+Table 14 reads parsed geometry from `02-silver.silver_mgb_flood_area`. It never
+parses `geometry_json` itself. See [Silver MGB flood areas](silver_mgb_flood_area.md)
+for that table and its validation.
+
+The parser in `09a_silver_mgb_flood_area` tries the geometry through three
+controlled paths:
 
 1. parse the geometry as published
 2. apply the targeted quoted-number normalization
@@ -146,9 +155,13 @@ is not a repair, and a geometry that is still invalid is excluded and flagged.
 
 The Esri path builds the first reading from the `rings` text with string
 functions. It reads the rings into arrays with `FROM_JSON` only when the first
-reading is invalid, because those arrays exhaust executor memory on the largest
-MGB polygons. One geometry field has 34,352,521 characters. A row with a
-`rings` key skips the two GeoJSON paths, since Esri JSON is never GeoJSON.
+reading is invalid. A row with a `rings` key skips the two GeoJSON paths, since
+Esri JSON is never GeoJSON.
+
+Parsing used to run inside Table 14. After the October 10 Bronze reload, the
+largest geometry field has 34,352,521 characters, and parsing it in the same
+query as the clip-and-dissolve stage ran out of executor memory. Parsing once in
+`silver_mgb_flood_area` keeps each stage within memory.
 
 Before issue #92 every ring became its own polygon, so a hole lay inside its
 outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09

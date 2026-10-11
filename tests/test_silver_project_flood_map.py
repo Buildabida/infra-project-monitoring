@@ -61,19 +61,7 @@ def view_body(text, view):
 
 def classified_view(text):
     start = text.index("CREATE OR REPLACE TEMPORARY VIEW mgb_source_classified AS")
-    end_marker = "ON parsed.raw_susceptibility_code = mapping.raw_susceptibility_code;"
-    return text[start : text.index(end_marker, start) + len(end_marker)]
-
-
-def parser_ctes(text):
-    start = text.index("direct_parse AS (")
-    end_marker = "FROM normalized\n)"
-    return text[start : text.index(end_marker, start) + len(end_marker)]
-
-
-def geometry_status_case(text):
-    start = text.index("WHEN parsed.geometry_text IS NULL THEN 'BLANK_GEOMETRY'")
-    end_marker = "END AS source_geometry_status"
+    end_marker = "  AND area.run_id = selected.mgb_flood_area_run_id;"
     return text[start : text.index(end_marker, start) + len(end_marker)]
 
 
@@ -261,28 +249,27 @@ def test_12_table_14_parser_is_reused_without_change():
     assert flood_map == expected
 
 
-def test_13_validator_reuses_table_14_parser_and_geometry_statuses():
-    exposure = sql(EXPOSURE_NOTEBOOK)
-    validation = sql(VALIDATION_NOTEBOOK)
-    assert parser_ctes(validation) == parser_ctes(exposure)
-    assert geometry_status_case(validation) == geometry_status_case(exposure)
+def test_13_validator_reads_the_parsed_mgb_table_without_parsing():
+    for path in (FLOOD_MAP_NOTEBOOK, VALIDATION_NOTEBOOK):
+        code = code_without_comments(path)
+        assert "silver_mgb_flood_area AS area" in code
+        assert "ST_GEOMFROMWKB(area.geometry_wkb)" in code
+        assert "area.source_geometry_status" in code
+        for parser_part in [
+            "direct_parse",
+            "esri_rings",
+            "FROM_JSON(",
+            "geometry_json",
+        ]:
+            assert parser_part not in code
 
 
-def test_14_esri_rings_and_targeted_normalization_paths_are_present():
+def test_14_flood_map_reads_the_parsed_mgb_run_it_hashes():
     text = sql(FLOOD_MAP_NOTEBOOK)
-    if '"rings"' in sql(EXPOSURE_NOTEBOOK):
-        assert "WHEN esri_ring_parts.esri_rings_text IS NOT NULL" in text
-        assert "'ESRI_JSON_CONVERTED'" in text
-    assert (
-        "THEN TRY_TO_GEOMETRY(esri_text.geometry_text)\n        END AS published_geometry"
-        in text
-    )
-    assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in text
-    assert (
-        "COALESCE(\n            published_geometry,\n            normalized_geometry,\n            esri_geometry\n        )"
-        in text
-    )
-    assert "REPLACE(geometry_text, '\"'" not in text
+    assert "AND area.run_id = selected.mgb_flood_area_run_id;" in text
+    assert "mgb_flood_area_context.mgb_flood_area_run_id," in text
+    assert "'STOP: Silver MGB flood-area validation is missing or unsafe'" in text
+    assert "'ESRI_JSON_CONVERTED'" in text
 
 
 def test_15_geometry_statuses_follow_table_14_vocabulary():
@@ -350,8 +337,10 @@ def test_19_native_spatial_predicate_with_grid_equality_and_no_cross_join():
         "project_audit",
         "mgb_context",
         "mgb_publisher",
+        "mgb_flood_area_context",
         "mapping_context",
         "latest_project_flood_source_load",
+        "project_flood_validation_context",
     }
     assert not re.search(r"\bJOIN\b(?<!INNER JOIN)(?<!LEFT JOIN)(?<!CROSS JOIN)", code)
     assert "RIGHT JOIN" not in code.upper()
@@ -521,6 +510,7 @@ def test_29_reads_only_allowed_tables():
     allowed = {
         "`02-silver`.silver_project",
         "`01-bronze`.flood_susceptibility",
+        "`02-silver`.silver_mgb_flood_area",
         "`02-silver`.config_mgb_susceptibility_mapping",
         "`01-bronze`.load_log",
         "`04-validation`.dq_results",
