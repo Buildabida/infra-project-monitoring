@@ -280,3 +280,38 @@ def test_16_every_validator_check_has_a_known_action():
     actions = re.findall(r"'action', '(\w+)'", text)
     assert actions
     assert set(actions) <= {"stop", "flag"}
+
+
+def run_id_parts(text, start, end):
+    segment = text[text.index(start) :]
+    segment = segment[: segment.index(end)]
+    segment = re.sub(r"'[^']*'", "", segment.split("CONCAT_WS(", 1)[1])
+    names = re.findall(r"(?:\w+\.)?(\w+)", segment)
+    return [name for name in names if name.upper() not in {"COALESCE", "SHA2"}]
+
+
+def test_17_validators_recompute_run_ids_with_the_same_parts_as_the_transformations():
+    exposure = run_id_parts(
+        sql(READER_NOTEBOOKS[0]),
+        "SHA2(CONCAT_WS(\n        '||',\n        mgb_context",
+        ") AS exposure_run_id",
+    )
+    exposure_check = run_id_parts(
+        sql(READER_NOTEBOOKS[2]),
+        "published.run_id <> SHA2(CONCAT_WS(",
+        ") AS invalid_run_ids",
+    )
+    flood_map = run_id_parts(
+        sql(READER_NOTEBOOKS[1]),
+        "SHA2(CONCAT_WS(\n        '||',\n        project_context",
+        ") AS project_flood_run_id",
+    )
+    flood_map_check = run_id_parts(
+        sql(READER_NOTEBOOKS[3]),
+        "COUNT_IF(run_id <> SHA2(CONCAT_WS(",
+        ") AS invalid_run_ids",
+    )
+    assert "mgb_flood_area_run_id" in exposure
+    assert exposure == exposure_check
+    assert "mgb_flood_area_run_id" in flood_map
+    assert flood_map == flood_map_check
