@@ -46,14 +46,20 @@ Those decisions belong in Silver because they change analytical meaning.
 5. The loader verifies every required source field group before replacement.
    For example, the MGB extract requires a susceptibility field and geometry.
 6. Spark reads standard CSVs as strings with `FAILFAST` and no inferred business schema.
+   It keeps Spark's default quote and escape settings, which read the files' quoted values correctly.
+   Do not set `escape` to `"` (see [CSV quoting](#csv-quoting)).
    A strict line parser handles the CRLF-delimited MGB extract.
    It rejects unreadable or wrong-width records instead of creating null values.
+   It also rejects a line that holds more than one record.
+   The first line must be the header, and the header must appear only once.
    It reads fields up to 256 MiB, because 1,815 MGB geometry fields exceed the Python default of 131,072 characters.
    The largest field is 34,352,521 characters.
 7. The loader adds only technical lineage columns.
    Source values and row multiplicity remain unchanged.
 8. Delta atomically replaces the selected table.
-   The loader reconciles source and Bronze row counts, then records the outcome in `load_log`.
+   The loader counts the file's data lines without the CSV parser and compares them with the parsed rows and the Bronze rows.
+   If any count differs, it restores the previous table version and records `FAILED`.
+   Otherwise it records `SUCCESS` in `load_log`.
 9. Grouped validation records STOP and FLAG checks without transforming Bronze.
 
 ## Six sources and provenance
@@ -88,6 +94,8 @@ Routine snapshot identity never hashes the full 2 GB flood-susceptibility file.
   A historical success alone never causes a skip.
 - Same snapshot ID with a changed path, size, or modification time: fail clearly.
   A changed source needs a new snapshot ID.
+  Only a completed load (`SUCCESS` or `SKIPPED_IDEMPOTENT`) claims an ID.
+  An attempt that failed before it committed does not, so a corrected file can reuse that ID.
 - Same completed snapshot with `force_reload=true`: atomically rebuild the current Bronze table.
 - Different snapshot ID: atomically replace the selected Bronze table.
 
@@ -130,7 +138,8 @@ It checks snapshot identity, artifact metadata, and row count before recording a
 - Header validation checks every configured business-critical field family.
   It does not read or transform business rows.
 - File identity uses metadata instead of full-file checksums.
-- Each normal load scans its source once.
+- The MGB load counts its lines during the write, so it scans its large file once.
+  Each Spark CSV load adds one text scan to count lines, which the row check needs.
   Validation aggregates each Bronze table once.
 - The MGB table is not cached, collected, spatially joined, sorted, or coalesced to one file.
   It is not repartitioned without a clear requirement.
@@ -144,11 +153,22 @@ It checks snapshot identity, artifact metadata, and row count before recording a
 - Reusing a snapshot ID for different artifact metadata records a failed conflict.
   The selected table remains unchanged.
 - A failure before Delta commit leaves the previous complete version visible.
+- A row-count mismatch found after the commit restores the previous table version.
+  When there was no previous table, the new table is dropped.
+  The attempt is recorded as `FAILED`.
 - A table commit and `load_log` append cannot share one cross-table transaction.
   A later attempt reconciles an interrupted terminal audit append.
   It verifies snapshot identity, artifact metadata, and row count before recording an idempotent skip.
 - Validation accepts only `SUCCESS` or a verified `SKIPPED_IDEMPOTENT`.
   Other audit states, missing state, row mismatches, and snapshot mismatches block downstream use.
+
+## CSV quoting
+
+Spark's CSV reader keeps its default settings: `"` quotes a field and `\` escapes a character inside it.
+The values checked below arrive as valid JSON and text with these settings.
+An Oct 11, 2026 check of Bronze found 0 values with doubled quotes (`""`) in `dpwh_projects.source_record_json`, `dpwh_projects.description`, and `boundaries.geometry_json`.
+Silver parses `source_record_json` with `GET_JSON_OBJECT` for every project.
+Setting `escape` to `"` would change how these files are read, so the loader does not set it (issue #105).
 
 ## Provenance limits
 

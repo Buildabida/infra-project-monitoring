@@ -16,7 +16,10 @@ These tests protect the low-cost Bronze contract without requiring Spark:
 - exact current-table artifact matching
 - rejection of historical snapshots as the current selected snapshot
 - strict quoted-record parsing and wrong-width rejection
-- canonical snapshot identity after a rejected conflict
+- one record per text line, a first line that is the header, and one header line (#106)
+- file, parser, and table row counts that must agree, with restore or drop on a mismatch (#107)
+- canonical snapshot identity after a rejected conflict, and no claim from a failed attempt (#107)
+- acceptance-evidence check names that match the Bronze validator (#108)
 
 ## `test_xlsx.py`
 
