@@ -116,6 +116,8 @@ Uniqueness: `psgc_region_code`, `psgc_version`.
 | None | `centroid_longitude` | DOUBLE |
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `exposure_run_id` | STRING |
 
 #### `dim_region_boundary`
 
@@ -134,6 +136,10 @@ Uniqueness: `region_key`, `boundary_version`.
 | None | `source_system` | STRING |
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `exposure_run_id` | STRING |
+
+`psgc_run_id` is the run of `02-silver.silver_psgc_place` and `exposure_run_id` is the run of `02-silver.silver_region_flood_exposure` (Table 14) behind each row in `dim_region` and `dim_region_boundary`. They make a row traceable to its Silver runs without recomputing the `run_id` hash (issue #93). `run_id` and every key keep their recipe. `CREATE TABLE IF NOT EXISTS` does not add columns to an existing table, so `01_gold_dim_region` adds the two columns once with `ALTER TABLE ... ADD COLUMNS` when `information_schema.columns` does not list them. A STOP check blocks a row without either value.
 
 ### Facts
 
@@ -247,8 +253,8 @@ Gold keys are deterministic. The same Silver inputs always give the same key, so
 | Key | Type | Label | How it is made | Code |
 | --- | --- | --- | --- | --- |
 | `date_key` | INT | None | The date as `yyyymmdd`, such as `20261004` | `00_gold_dim_date.ipynb`, cell 6, line 224 |
-| `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 448 to 451, and the gate in cell 2, line 121 |
-| `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 557 to 559 |
+| `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 506 to 509, and the gate in cell 2, line 121 |
+| `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 620 to 622 |
 | `project_key` | BIGINT | `PROJECT` | `XXHASH64(CONCAT_WS('\|', 'PROJECT', source_system, contract_id))` | `04_gold_dim_project.ipynb`, cell 8, line 380 |
 | `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 340 to 342 |
 | `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 293 to 295 |
@@ -297,7 +303,7 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
-- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date.
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. This is the only published long-running flag. `silver_project` has none (D-44).
 - **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
 
 `zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
@@ -372,6 +378,84 @@ Before you finish any Gold task, check that:
 - [ ] Every table and column has a comment.
 - [ ] Nothing was added that this doc does not list.
 - [ ] Any doubt was raised with the team, not settled by guessing.
+
+## Runtime evidence
+
+### Run on October 11, 2026 (issues #93, #97, #98)
+
+Gold `00` to `07` ran twice on Databricks serverless compute, on commit `3da7665` of branch `gold/issues-93-97-98`. Before that, the project-dependent Silver notebooks reran once on `silver_project_v5` and their validators passed every STOP check. Times come from the notebook run metadata.
+
+| Run | Notebooks | Start (UTC) | End (UTC) |
+| --- | --- | --- | --- |
+| Silver rerun | `05`, `07`, `08`, `10` and their validators | 10:11 | 11:27 |
+| Gold run 1 | `00` to `07` | 11:27 | 12:37 |
+| Gold run 2 | `00` to `07` | 12:39 | 13:25 |
+
+No STOP check failed in either Gold run. Both runs gave the same row counts, totals, and run IDs. Each exported `MERGE` result shows updated rows and no inserted or deleted rows. The row counts did not change, so the second run added no duplicates.
+
+| Table | Rows, run 1 | Rows, run 2 |
+| --- | ---: | ---: |
+| `dim_date` | 13,150 | 13,150 |
+| `dim_region` | 19 | 19 |
+| `dim_region_boundary` | 17 | 17 |
+| `dim_flood_susceptibility` | 5 | 5 |
+| `dim_project_status` | 35 | 35 |
+| `dim_project` | 265,656 | 265,656 |
+| `fact_region_population` | 18 | 18 |
+| `fact_region_flood_exposure` | 72 | 72 |
+| `fact_project_snapshot`, current snapshot | 265,656 | 265,656 |
+
+Silver run IDs in `dim_region` and `dim_region_boundary` (#93): every row carries one `psgc_run_id` and one `exposure_run_id`, and none is missing. Both equal the current Silver runs.
+
+| Column | Value |
+| --- | --- |
+| `psgc_run_id` | `0b65c728d2436e0efe02825f2358c0eac765d5e76dc938518f519962a1f2aaa8` |
+| `exposure_run_id` | `423a78d92beeeea9c36888d8fb27a43466a1f6c7ce16b9eb303b0aa645946afb` |
+
+Project coverage (#97), with 265,656 projects as the denominator:
+
+| Measure | Projects |
+| --- | ---: |
+| `infra_type_mapping_status = MAPPED_SINGLE` | 243,943 |
+| `infra_type_mapping_status = MAPPED_MULTI` | 1,217 |
+| `infra_type_mapping_status = MISSING_SOURCE_CATEGORY` | 20,496 |
+| `is_dpwh_flood_related` true | 35,147 |
+| `is_dpwh_flood_related` false | 210,013 |
+| `is_dpwh_flood_related` `NULL` | 20,496 |
+| `implementing_office` filled | 265,559 (221 offices) |
+| `implementing_office` `NULL` | 97 |
+| `implementing_office` different from Silver | 0 |
+
+Projects by standardized status and group, current snapshot:
+
+| Status | Group | Projects |
+| --- | --- | ---: |
+| Completed | `FINISHED` | 214,535 |
+| Ongoing | `ACTIVE` | 49,095 |
+| Inactive | `INACTIVE` | 1,924 |
+| `NULL` | `NULL` | 102 |
+
+The 102 projects without a status are 76 on `status_key` 0 (blank status) and 26 with a shifted source value.
+
+Gold totals equal Silver:
+
+| Measure | Gold | Silver |
+| --- | ---: | ---: |
+| Projects | 265,656 | 265,656 |
+| Reported budget (PHP) | 6,535,616,688,962.02 | 6,535,616,688,962.02 |
+| Population | 112,722,987 | 112,722,987 |
+| Flood area (sq km) | 44,218.7219 | 44,218.7219 |
+
+Long-running (#98): `silver_project` has no long-running column, and its rule version is `silver_project_v5`. `fact_project_snapshot.long_running_flag` is true for 15,209 current projects, false for 230,408, and `NULL` for 20,039. The true count equals the October 8 run.
+
+Run IDs, the same in both runs:
+
+| Table | `run_id` |
+| --- | --- |
+| `silver_project` | `704d8ed884b482f8c972d72bf27c4640f6121bfb6900d0a925ae617104d0f13e` |
+| `dim_region` | `0e4a50bd17f0d38d46c35e1a6f636775e4c12e14c113b34147559209199f7f09` |
+| `dim_project` | `43279e1e4b1d876819a9193873ef9dae915e819fb81872d45b4083ebe8ffc3a7` |
+| `fact_project_snapshot`, current | `185190695a2153a9cd67c5055a5542993ef7280aadde3f77cf9cf4543b911ac4` |
 
 ## Settled questions
 

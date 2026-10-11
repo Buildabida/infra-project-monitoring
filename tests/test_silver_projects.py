@@ -177,7 +177,7 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v4' AS transformation_rule_version" in text
+    assert "'silver_project_v5' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
     assert "COALESCE(attribute.component_run_id, '')" in text
     assert "COALESCE(category.taxonomy_version, '')" in text
@@ -220,6 +220,15 @@ def test_16_project_keeps_every_downstream_column():
         "implementing_office_resolution_status",
     ]:
         assert re.search(rf"\b{column}\b", table), column
+
+
+def test_16b_project_publishes_no_long_running_flag():
+    # d-44: gold fact_project_snapshot owns the d-32 flag. silver never had a value
+    table = statement(PROJECT, "CREATE OR REPLACE TABLE `02-silver`.silver_project")
+    for column in ["long_running_flag", "long_running_rule_status"]:
+        assert column not in table, column
+    assert "stalled_flag" in table
+    assert "D-44" in markdown(PROJECT)
 
 
 def test_17_no_current_time_or_random_identity_in_rules():
