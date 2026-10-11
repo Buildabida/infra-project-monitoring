@@ -498,6 +498,64 @@ The fix raised the match rate from 9.48% to 12.90% of projects with a usable
 coordinate. That is still well below the 52% that the issue #92 spot check
 found against the live layer, so a further cause may remain.
 
+### Rerun after the Bronze reload and one-time parsing (issue #92)
+
+The October 9 run still missed 1,815 MGB polygons. The October 4 Bronze load
+had replaced every row with a geometry field longer than 131,072 characters with
+an all-null row, so those polygons reached Silver with no code and no geometry.
+The October 10 Bronze reload restored them. The live MGB layer and the reloaded
+Bronze table now agree on every code count.
+
+Table 15 was rerun on 2026-10-11. It reads parsed geometry from
+`silver_mgb_flood_area` instead of parsing `geometry_json` itself.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| MGB snapshot | `metadata-17bf5e65e1838a2f7be9`, ingest run `07bfbee8-62ba-4b45-976f-10e51c4ab9f3` |
+| Table 15 run ID | `97a8cf5ccf2cba8e34cb739e35e1026b37a7b91102439a3292e0d5cbf2c01961` |
+
+The DPWH snapshot, project run, and mapping version did not change. The
+validator wrote 53 checks: all 37 STOP checks passed, with 13 FLAG and 3 PASS
+review checks.
+
+| Outcome | Projects | Share of all projects |
+| --- | ---: | ---: |
+| `MATCHED` | 62,302 | 23.45% |
+| `AMBIGUOUS` across approved levels | 52 | 0.02% |
+| `UNMATCHED`, usable point without an approved polygon | 152,784 | 57.51% |
+| `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
+| Total | 265,656 | 100% |
+
+- 62,302 projects received a final level. That is 28.96% of the 215,138
+  projects with a usable coordinate, up from 12.90% on October 9.
+- 269 matched projects sit inside more than one polygon of the same level.
+- The validator output does not split matched projects by level, so this
+  section does not report a per-level count.
+
+MGB source accounting for this run:
+
+| Bucket | Rows |
+| --- | ---: |
+| Mapped and usable | 63,335 |
+| Mapped and unusable | 326 |
+| Unmapped and usable | 23 |
+| Unmapped and unusable | 0 |
+| Total, equal to the audited Bronze `rows_loaded` | 63,684 |
+
+- Unusable mapped rows are 297 OGC-invalid, 15 unparseable, and 14 empty
+  geometries.
+- Unmapped rows are 7 blank codes and 16 `No rating` codes. No geometry is blank.
+- 63,669 geometries used the Esri `rings` path.
+- The `Runtime MGB counts are compared with historical Bronze references` FLAG
+  reports 0 blank geometries against the old reference of 1,815. The reference
+  predates the Bronze fix; the difference is expected.
+
+71.02% of usable project points still fall outside every approved MGB polygon.
+These results must not be read as Low or zero flood risk. The match rate is
+still below the 52% from the issue #92 spot check. The cause of the remaining
+gap is not established.
+
 ### Unmatched project spot-check
 
 To investigate the low project-flood match coverage, the validator selects a

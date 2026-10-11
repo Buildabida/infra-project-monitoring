@@ -154,6 +154,25 @@ screen, and differences from the 63,684-row reference visible.
 ## Runtime
 
 Requires Databricks execution with native spatial SQL (`ST_TRANSFORM` requires
-Databricks Runtime 17.1 or later) and `EXECUTE IMMEDIATE`. The notebooks were
-tested on local Spark with shapely standing in for the `ST_` functions. They
-have not run on Databricks yet.
+Databricks Runtime 17.1 or later) and `EXECUTE IMMEDIATE`.
+
+## Runtime evidence
+
+The first Databricks run was on 2026-10-11, on MGB snapshot
+`metadata-17bf5e65e1838a2f7be9` (ingest run
+`07bfbee8-62ba-4b45-976f-10e51c4ab9f3`). Tables 14 and 15 then passed their
+check that validation `06a` exists and has no blocking failure. Their
+validators reproduced this source accounting from the table:
+
+| Measure | Rows |
+| --- | ---: |
+| Selected MGB rows, equal to the audited `rows_loaded` | 63,684 |
+| Parsed from Esri `rings` | 63,669 |
+| `USABLE_GEOMETRY` | 63,358 |
+| `INVALID_GEOMETRY` | 297 |
+| `UNPARSEABLE_GEOMETRY` | 15 |
+| `EMPTY_GEOMETRY` | 14 |
+| `BLANK_GEOMETRY` | 0 |
+
+The run time of `08a` and the `06a` check list were not recorded for this
+evidence.

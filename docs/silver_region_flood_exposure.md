@@ -178,6 +178,38 @@ longitude-latitude screen. Inside safe regions, the four level totals sum to
 12,720.3 sq km, up from 9,439.1 sq km. Levels can overlap, so this sum compares
 runs but is not one exposed area.
 
+The October 9 run still missed 1,815 MGB polygons that the October 4 Bronze load
+had replaced with all-null rows. After the October 10 Bronze reload, Table 14
+was rerun on 2026-10-11 with run ID
+`4a38c7a28621994a890dded1988ea04426de5e4d11e8f3809636af0376d473ca`. It read
+parsed geometry from `silver_mgb_flood_area`.
+
+| Measure | 2026-10-09 | 2026-10-11 |
+| --- | ---: | ---: |
+| Usable MGB geometries | 61,701 | 63,358 |
+| OGC-invalid MGB geometries | 140 | 297 |
+| Blank MGB geometries | 1,815 | 0 |
+| Mapped usable rows intersecting a safe region | not recorded | 50,327 |
+| Mapped usable rows outside every safe region | not recorded | 13,008 |
+
+| Level | Area inside safe regions, 2026-10-11 |
+| --- | ---: |
+| Low | 8,963.9 sq km |
+| Moderate | 6,584.9 sq km |
+| High | 8,074.1 sq km |
+| Very High | 2,880.2 sq km |
+| Sum of levels | 26,503.1 sq km |
+
+The sum of levels is up from 12,720.3 sq km on October 9. Levels can overlap,
+so the sum compares runs but is not one exposed area. Cross-level overlap
+totals 17.6 sq km across 8 regions, and the dissolve removed 202.1 sq km of
+within-level overlap.
+
+The validator wrote 58 checks: all 37 STOP checks passed, with 14 FLAG and 7
+PASS review checks. The 13,008 mapped usable rows outside every safe region
+contain the polygons in the five regions with no safe boundary. The split of
+that count by region was not measured.
+
 Each row records the parse path that succeeded. The run stops if mapped rows
 have geometry text but none parse.
 
