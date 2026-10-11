@@ -268,7 +268,11 @@ Columns added for downstream use:
 - `source_system` and `component_run_id`
 - `implementing_office`, `implementing_office_resolution_status`, and `distinct_implementing_office_count`, resolved from the DPWH `deo` field with the same missing, resolved, or conflict rule. Gold `dim_project.implementing_office` can read this column.
 
-No column was removed or renamed. `project_key` uses the same recipe, so keys do not change.
+`project_key` uses the same recipe, so keys do not change.
+
+Columns removed by D-44 (issue #98):
+
+- `long_running_flag` and `long_running_rule_status`. The flag was always `NULL`, and no table read either column. Gold `fact_project_snapshot.long_running_flag` applies D-32 and is the only long-running flag. An empty Silver column could be read as "not long-running".
 
 ### Delivery-rule fields
 
@@ -276,14 +280,9 @@ The project table currently supports:
 
 - `zero_progress_flag`
 
-The project table intentionally leaves:
+The project table intentionally leaves `stalled_flag` unresolved until its rule is approved.
 
-- `stalled_flag`
-- `long_running_flag`
-
-unresolved until their required governed inputs are available.
-
-The implementation does not use the current date to derive long-running status.
+The project table has no long-running flag. See D-44 and the [Gold model](gold_model.md#project-delivery-rules).
 
 ### Project lineage
 
@@ -293,7 +292,7 @@ The table retains:
 - source ingest identity
 - deterministic project key
 - deterministic run identity
-- transformation rule version, now `silver_project_v4`
+- transformation rule version, now `silver_project_v5`
 - the component run it was built from
 
 The rule version changed, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
@@ -492,10 +491,10 @@ run above replaces those category counts.
 - Project-region assignment is implemented separately. See
   [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
-- Long-running classification remains unresolved in Silver.
+- Long-running classification lives in Gold only (D-44). Moving it to Silver, as D-38 intends over time, needs the DPWH snapshot date in Silver.
 - Stalled classification remains unresolved. The status mapping is approved, but the stalled rule itself is not. `stalled_rule_status` is `STALLED_RULE_REQUIRED`.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
-- Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v4` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
+- Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v5` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
 
 ## Open questions for the team
 

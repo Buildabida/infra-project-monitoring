@@ -116,6 +116,8 @@ Uniqueness: `psgc_region_code`, `psgc_version`.
 | None | `centroid_longitude` | DOUBLE |
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `exposure_run_id` | STRING |
 
 #### `dim_region_boundary`
 
@@ -134,6 +136,10 @@ Uniqueness: `region_key`, `boundary_version`.
 | None | `source_system` | STRING |
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `exposure_run_id` | STRING |
+
+`psgc_run_id` is the run of `02-silver.silver_psgc_place` and `exposure_run_id` is the run of `02-silver.silver_region_flood_exposure` (Table 14) behind each row in `dim_region` and `dim_region_boundary`. They make a row traceable to its Silver runs without recomputing the `run_id` hash (issue #93). `run_id` and every key keep their recipe. `CREATE TABLE IF NOT EXISTS` does not add columns to an existing table, so `01_gold_dim_region` adds the two columns once with `ALTER TABLE ... ADD COLUMNS` when `information_schema.columns` does not list them. A STOP check blocks a row without either value.
 
 ### Facts
 
@@ -247,8 +253,8 @@ Gold keys are deterministic. The same Silver inputs always give the same key, so
 | Key | Type | Label | How it is made | Code |
 | --- | --- | --- | --- | --- |
 | `date_key` | INT | None | The date as `yyyymmdd`, such as `20261004` | `00_gold_dim_date.ipynb`, cell 6, line 224 |
-| `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 448 to 451, and the gate in cell 2, line 121 |
-| `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 557 to 559 |
+| `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 506 to 509, and the gate in cell 2, line 121 |
+| `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 620 to 622 |
 | `project_key` | BIGINT | `PROJECT` | `XXHASH64(CONCAT_WS('\|', 'PROJECT', source_system, contract_id))` | `04_gold_dim_project.ipynb`, cell 8, line 380 |
 | `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 340 to 342 |
 | `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 293 to 295 |
@@ -297,7 +303,7 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
-- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date.
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. This is the only published long-running flag. `silver_project` has none (D-44).
 - **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
 
 `zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.

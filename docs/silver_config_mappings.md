@@ -272,7 +272,7 @@ So delivery measures must treat them this way:
 - **Stalled:** the future stalled rule must exclude `For Procurement`. Without
   that, every one of these projects would count as stalled.
 - **Long-running:** no exclusion is needed. D-32 needs a start date, so
-  `long_running_flag` is `NULL` for these projects.
+  Gold `fact_project_snapshot.long_running_flag` is `NULL` for these projects.
 - **Zero progress:** `zero_progress_flag` is true for all of them. A dashboard
   count of zero-progress active projects must filter on `source_status` or say
   that it includes projects still in procurement.

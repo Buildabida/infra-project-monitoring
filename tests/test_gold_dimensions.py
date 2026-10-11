@@ -320,3 +320,32 @@ def test_17_gold_model_documents_the_dimension_answers():
         "D-33",
     ]:
         assert phrase in text, phrase
+
+
+def test_18_region_tables_carry_the_silver_run_ids():
+    # issue #93: a row is traceable to its silver runs without recomputing run_id
+    text = sql(GOLD / "01_gold_dim_region.ipynb")
+    for table in ["dim_region", "dim_region_boundary"]:
+        columns = [name for name, _ in ddl_columns(text, table)]
+        assert columns[-2:] == ["psgc_run_id", "exposure_run_id"], table
+        # create table if not exists adds no column, so an older table is altered once
+        assert f"THEN 'ALTER TABLE `03-gold`.{table} ADD COLUMNS (" in text, table
+        assert f"AND table_name = '{table}'" in text, table
+    assert text.count("EXECUTE IMMEDIATE dim_region") == 2
+    assert "COUNT_IF(table_name = 'dim_region') = 2" in text
+    assert "COUNT_IF(table_name = 'dim_region_boundary') = 2" in text
+    # both dim_region members and every boundary row take the run ids from one selection
+    assert (
+        text.count("        selected.psgc_run_id,\n        selected.exposure_run_id\n")
+        == 2
+    )
+    assert (
+        "    selected.psgc_run_id,\n    selected.exposure_run_id\nFROM gold_region_boundary_parsed"
+        in text
+    )
+    assert (
+        text.count("COUNT_IF(psgc_run_id IS NULL OR exposure_run_id IS NULL) = 0") == 2
+    )
+    # the run id recipe and the keys stay as they were
+    assert "DEFAULT 'gold-dim-region-v1'" in text
+    assert "DEFAULT 'gold-dim-region-boundary-v1'" in text

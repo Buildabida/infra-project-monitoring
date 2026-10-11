@@ -281,6 +281,8 @@ Main measures and lineage:
 - `long_running_flag`, `zero_progress_flag`, and `delivery_rule_version`.
 - `source_snapshot_id`, `run_id`, `is_current_snapshot`, and `source_load_ts`.
 
+`long_running_flag` exists only here. Gold applies D-32 to it, and `silver_project` publishes no long-running column (D-44).
+
 Uniqueness: `project_key`, `source_snapshot_id`.
 
 ### `03-gold.fact_region_population`
