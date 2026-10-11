@@ -11,7 +11,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. Category, status, and place mapping decisions remain pending human review. |
-| Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. Gold validation remains planned. The [Gold model](gold_model.md) holds the exact table definitions. |
+| Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
@@ -34,8 +34,10 @@ R2 source snapshots → Bronze → Silver matching and reconciliation → Gold f
 
 The Bronze result schema remains Bronze-only. Silver configuration checks use
 `04-validation.silver_config_dq_results`. Silver transformation checks use
-`04-validation.silver_dq_results`. Separate result tables avoid breaking fixed writers.
-Silver results retain their source layer, snapshots, and rule versions.
+`04-validation.silver_dq_results`. Gold checks use `04-validation.gold_dq_results`,
+with the same columns as `silver_dq_results` (D-47). Separate result tables avoid
+breaking fixed writers. Silver and Gold results retain their source layer,
+snapshots, and rule versions.
 
 Census Table C is the authoritative population source.
 PSGC population remains a cross-check.
@@ -379,9 +381,10 @@ Dimension uniqueness:
 - Key `0` is reserved for unknown, unmapped, or non-geographic records.
   Central Office uses key `0` with `region_match_status = 'Non-geographic reporting unit'`.
 
-## Required analytical validation (planned)
+## Required analytical validation
 
-Apply these checks when the corresponding Silver and Gold tables are implemented.
+`notebooks/04_validation/09_validation_gold.ipynb` runs these checks on Gold.
+See [Gold validation](validation.md#gold-validation).
 
 1. At most one `is_current_snapshot = true` row exists per `project_key`.
 2. Physical progress is between 0 and 100 or null.
@@ -393,6 +396,9 @@ Apply these checks when the corresponding Silver and Gold tables are implemented
 8. Severity rank is unique within each source system and version.
 9. `source_snapshot_id` is not null. All fact foreign keys resolve.
 10. Spatial areas use an appropriate projected CRS instead of square degrees.
+
+Check 6 covers the population fact today: no population row uses region key `0`.
+When the dashboard datasets exist, they need the same check for their ratios (#61).
 
 ## Business-question coverage (planned)
 

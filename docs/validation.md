@@ -2,8 +2,8 @@
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
-project-region, regional flood-exposure, and project-flood mapping validators. Gold
-checks remain planned.
+project-region, regional flood-exposure, and project-flood mapping validators, and
+the Gold validator.
 
 ## Bronze validation
 
@@ -761,6 +761,92 @@ See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
 handoff contracts. The first Databricks run passed every STOP check. Its results
 are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
+
+## Gold validation
+
+`notebooks/04_validation/09_validation_gold.ipynb` checks the six Gold
+dimensions and three Gold facts. It covers issues #60 to #64. It only reads Gold
+and Silver, and it never changes them.
+
+Run it after the last Gold fact:
+
+1. `notebooks/03_gold/00_gold_dim_date.ipynb` to
+   `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`, in the
+   [Gold build order](gold_model.md#build-order)
+2. `notebooks/04_validation/09_validation_gold.ipynb`
+
+The validator saves its results to `04-validation.gold_dq_results` before its
+STOP gate runs (D-47). The table has the same columns as `silver_dq_results`,
+with `layer = 'gold'`. The gate reads the saved rows.
+
+The validation run ID comes from the run IDs of the three Gold facts and the
+rule version `gold-validation-v1`. So an exact rerun updates the same evidence
+instead of adding copies.
+
+The expected values live in the validator, not in the Gold notebooks, so Gold
+never checks itself. They are the key `0` match rules, the five flood levels,
+and the area CRS `EPSG:6933`. The 2024 census total of 112,727,776 people comes
+from issue #61.
+
+### Gold stop checks
+
+- **Project fact (#60):** at most one current row per project. Progress is 0
+  to 100 or empty. Budget is zero or more, or empty. Every row has a source
+  snapshot, and every key finds its dimension row.
+- **Population (#61):** primary population is above zero. Each official region
+  has exactly one primary source in each year. No population row uses region
+  key `0`, so per-person ratios leave it out. The check records the denominator
+  of those ratios.
+- **Flood (#62):** flood area is zero or more, and its share of the region area
+  is 0 to 100. Areas use the equal-area CRS `EPSG:6933`, and the check names the
+  CRS it found. Levels are Unknown, Low, Moderate, High and Very High. Each
+  source system and version has one severity rank per level.
+- **Grain and keys (#63):** every fact and dimension passes its uniqueness rule
+  from the [data model](data-model.md#required-analytical-validation). The
+  date, region, flood and status dimensions each have one key `0` row. Key `0`
+  appears only in the documented cases. Central Office uses region key `0` with
+  the `NON_GEOGRAPHIC` match status.
+- **Lineage (#63):** lineage columns are filled in every table that has them.
+  `dim_date` is built from a date range, so it has none.
+- **Totals (#64):** Gold rows, budgets, population and flood areas equal Silver.
+  Project counts and budgets also match Silver region by region. Current
+  project rows must use the DPWH snapshot that Silver holds now. The details
+  record the Gold and Silver runs and the snapshot.
+
+Two more STOP checks come from the review of #60. Every
+`silver_project_flood_map` row needs an MGB load time, because a count of
+distinct load times skips empty ones. Also, every current Gold project row must
+still be in Silver.
+
+The population and flood facts have no current flag, and their `MERGE` never
+deletes. A new PSGC version, MGB snapshot, or boundary version would leave the
+old rows in place. The row checks stop the run when Gold has more rows than
+Silver, so old rows can't double a total unnoticed.
+
+### Gold review flags
+
+FLAG checks keep known data limits visible with their counts:
+
+- projects without a region, by match status
+- projects without a flood level, by match status and coordinate status
+- projects without a status
+- progress that Silver did not mark `VALID`
+- projects without a long-running flag because they have no start date
+- primary population rows with no count
+- region and level pairs with no area data
+- official regions without a boundary, and boundary shapes marked not valid
+- active statuses that look like numbers or map points, from DPWH rows split
+  by a line break
+- the gap between the Gold population total and the 2024 census total, with
+  the Table C rows that Silver could not match inside a known town
+
+Every check names the columns it tested in `details`.
+
+### Gold checks that wait for the marts
+
+Issue #61 also asks that a mart that uses region key `0` in a ratio fails.
+There are no marts yet. When the dashboard datasets exist, add a check that
+their per-person ratios leave key `0` out.
 
 ## Future validation documents
 
