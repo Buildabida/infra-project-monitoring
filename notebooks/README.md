@@ -407,7 +407,9 @@ Then run the facts, which need every dimension key:
 2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
 3. `03_gold/07_gold_fact_project_snapshot.ipynb`
 
-`04_validation/09_validation_gold.ipynb` is planned. Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
+Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation.md#gold-validation).
+
+Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 
 ## Validation connection
 
@@ -418,8 +420,9 @@ Each layer records checks that match its responsibility.
 - Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
 - Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
 
-This sequence produces Bronze, Silver configuration, and Silver geography and population
-results. They live in `04-validation` using separate result tables during this milestone.
+This sequence produces Bronze, Silver, and Gold results. They live in `04-validation`
+in separate result tables: `dq_results` for Bronze, `silver_config_dq_results` and
+`silver_dq_results` for Silver, and `gold_dq_results` for Gold.
 Promotion requires the current layer to pass its blocking checks.
 
 ## Future layer organization
