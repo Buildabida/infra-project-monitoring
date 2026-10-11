@@ -117,15 +117,15 @@ FROM `04-validation`.dq_results
 WHERE run_id = (SELECT run_id FROM latest_validation)
   AND (
       data_quality_check IN (
-          'Bronze row count matches latest load_log',
+          'current Bronze row count matches load_log',
           'current Bronze snapshot matches load_log',
           'repeated Contract IDs are preserved for Silver review',
           'known BARMM duplicate rows are preserved',
           'original Table C row provenance is available',
           'flood-area geometry is not null or empty'
       )
-      OR data_quality_check LIKE '%row count matches documented reference%'
-      OR data_quality_check = 'missing-rating row count matches documented reference'
+      -- covers the per-category, missing-or-unrated, and historical reference counts
+      OR data_quality_check LIKE '%row count matches documented%reference%'
   )
 ORDER BY table_name, data_quality_check;
 

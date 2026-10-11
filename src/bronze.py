@@ -34,6 +34,8 @@ INVALID_DELTA_COLUMN_CHARS = re.compile(r"[ ,;{}()\n\t=]+")
 # Python's csv module rejects fields over 131,072 characters by default. One MGB
 # geometry field reaches 34,352,521 characters, so the parser allows up to 256 MiB.
 CSV_FIELD_SIZE_LIMIT = 256 * 1024 * 1024
+# Only these audit states mean a snapshot was committed under its ID.
+COMPLETED_STATUSES = frozenset({"SUCCESS", "SKIPPED_IDEMPOTENT"})
 
 
 def quoted_name(name):
@@ -226,14 +228,20 @@ def _snapshot_audit_rows(spark, source_name, snapshot_id, functions):
 
 
 def _snapshot_audit_state(audits):
-    """Return the canonical identity claim and newest completed audit event."""
-    canonical = audits[0] if audits else None
+    """Return the canonical identity claim and newest completed audit event.
+
+    Only a completed load claims a snapshot ID. A STARTED or FAILED row from an
+    attempt that committed nothing must not block a corrected rerun of the same ID.
+    A table that a crashed run did commit is still caught by the current-table check.
+    """
+    canonical = next(
+        (row for row in audits if row["status"] in COMPLETED_STATUSES), None
+    )
     completed = next(
         (
             row
             for row in reversed(audits)
-            if row["status"] in {"SUCCESS", "SKIPPED_IDEMPOTENT"}
-            and row["rows_loaded"] is not None
+            if row["status"] in COMPLETED_STATUSES and row["rows_loaded"] is not None
         ),
         None,
     )
@@ -360,15 +368,60 @@ def _parse_csv_line(value, num_cols):
         raise ValueError("CSV contains a null physical record")
     # Set on every call because this runs inside Spark worker processes.
     csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
+    reader = csv.reader(io.StringIO(value.rstrip("\r")), strict=True)
     try:
-        parsed = next(csv.reader(io.StringIO(value.rstrip("\r")), strict=True))
+        parsed = next(reader)
+        extra = next(reader, None)
     except (StopIteration, csv.Error) as error:
         raise ValueError("CSV contains an unreadable record") from error
+    if extra is not None:
+        # a bare line break outside quotes joined two records into one line
+        raise ValueError(
+            "CSV line holds more than one record. Check the configured line separator."
+        )
     if len(parsed) != num_cols:
         raise ValueError(
             f"CSV record has {len(parsed)} columns; expected exactly {num_cols}"
         )
     return parsed
+
+
+def _check_header_line(header_line, expected_header):
+    """Fail unless the first text line is the CSV header that inspect_source read."""
+    if header_line is None:
+        raise ValueError("CSV text has no first line")
+    parsed = _parse_csv_line(header_line.lstrip("\ufeff"), len(expected_header))
+    if parsed != list(expected_header):
+        raise ValueError("The first text line is not the CSV header")
+
+
+def _check_row_preservation(physical_records, parsed_rows, bronze_rows):
+    """Fail when the file, the parsed frame, and the Bronze table disagree on rows.
+
+    ``physical_records`` counts data lines in the file without the CSV parser, so a
+    record the parser drops or skips shows up as a difference.
+    """
+    if parsed_rows <= 0:
+        raise RuntimeError(
+            "The CSV header was readable but the source contained no data rows"
+        )
+    if bronze_rows != parsed_rows:
+        raise RuntimeError(
+            f"Source-to-Bronze row preservation failed: parsed={parsed_rows}, Bronze={bronze_rows}"
+        )
+    if physical_records != parsed_rows:
+        raise RuntimeError(
+            f"File-to-parser row preservation failed: file data lines={physical_records}, "
+            f"parsed={parsed_rows}"
+        )
+
+
+def _check_header_count(header_lines):
+    """The header line must appear exactly once, so no data line is mistaken for it."""
+    if header_lines != 1:
+        raise RuntimeError(
+            f"The CSV header line appears {header_lines} times; expected exactly once"
+        )
 
 
 def _read_csv_as_text(spark, source, metadata, clean_header):
@@ -380,6 +433,7 @@ def _read_csv_as_text(spark, source, metadata, clean_header):
     preserving the same all-strings output.
     """
     import pandas as pd
+    from pyspark.sql import Observation
     from pyspark.sql import functions as F
 
     num_cols = len(clean_header)
@@ -395,10 +449,57 @@ def _read_csv_as_text(spark, source, metadata, clean_header):
     text_df = spark.read.option("lineSep", source.get("line_sep", "\n")).text(
         metadata["path"]
     )
-    header_line = text_df.limit(1).collect()[0]["value"]
-    return text_df.filter(F.col("value") != F.lit(header_line)).mapInPandas(
+    first = text_df.limit(1).collect()
+    header_line = first[0]["value"] if first else None
+    _check_header_line(header_line, metadata["header"])
+    # counted during the write, so the large MGB file is still scanned once
+    lines = Observation("text_lines")
+    counted = text_df.observe(
+        lines,
+        F.count(F.lit(1)).alias("lines"),
+        F.sum(F.when(F.col("value") == F.lit(header_line), 1).otherwise(0)).alias(
+            "header_lines"
+        ),
+    )
+    frame = counted.filter(F.col("value") != F.lit(header_line)).mapInPandas(
         _parse_batch, schema=schema_str
     )
+    return frame, lines
+
+
+def _count_text_records(spark, path):
+    """Count nonempty data lines without the CSV parser, for the Spark CSV path.
+
+    Spark's CSV reader skips empty lines, so this count skips them too.
+    """
+    from pyspark.sql import functions as F
+
+    row = (
+        spark.read.text(path)
+        .agg(
+            F.count(F.lit(1)).alias("lines"),
+            F.sum(F.when(F.col("value") != F.lit(""), 1).otherwise(0)).alias(
+                "nonempty_lines"
+            ),
+        )
+        .first()
+    )
+    return {"lines": int(row["lines"]), "data_lines": int(row["nonempty_lines"]) - 1}
+
+
+def _table_version(spark, target):
+    """Return the current Delta version of a table, or None when it does not exist."""
+    if not spark.catalog.tableExists(target):
+        return None
+    return int(spark.sql(f"DESCRIBE HISTORY {target} LIMIT 1").first()["version"])
+
+
+def _undo_write(spark, target, previous_version):
+    """Put back the table that existed before a write that failed its row checks."""
+    if previous_version is None:
+        spark.sql(f"DROP TABLE IF EXISTS {target}")
+    else:
+        spark.sql(f"RESTORE TABLE {target} TO VERSION AS OF {int(previous_version)}")
 
 
 def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
@@ -406,9 +507,11 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
 
     The function checks the artifact and header before replacement, fails closed on
     snapshot conflicts, verifies current table state before a skip, reads business
-    values as strings, adds technical lineage, and reconciles source and target rows.
-    The source is scanned once during the write. Delta overwrite is atomic, so readers
-    see either the previous complete table or the new complete table.
+    values as strings, adds technical lineage, and reconciles the file's data lines with
+    the parsed and written rows. The MGB text path counts lines during the write, so it
+    scans its large file once. The Spark CSV path counts lines in one extra text scan.
+    Delta overwrite is atomic. When a row check fails after the commit, the loader
+    restores the previous table version, so readers never keep a bad load.
     """
     from pyspark.sql import Observation
     from pyspark.sql import functions as F
@@ -519,10 +622,13 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
             column_mapping=column_mapping,
         ),
     )
+    target = table_name(source["table"])
     try:
+        text_lines = None
         if source.get("line_sep"):
-            frame = _read_csv_as_text(spark, source, metadata, clean_header)
+            frame, text_lines = _read_csv_as_text(spark, source, metadata, clean_header)
         else:
+            text_counts = _count_text_records(spark, metadata["path"])
             frame = (
                 spark.read.option("header", "true")
                 .option("inferSchema", "false")
@@ -557,19 +663,30 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
             )
             .observe(observed, F.count(F.lit(1)).alias("rows"))
         )
+        previous_version = _table_version(spark, target)
         prepared.write.format("delta").mode("overwrite").option(
             "overwriteSchema", "true"
-        ).saveAsTable(table_name(source["table"]))
+        ).saveAsTable(target)
         source_rows = int(observed.get["rows"])
-        rows_loaded = spark.table(table_name(source["table"])).count()
-        if source_rows <= 0:
-            raise RuntimeError(
-                "The CSV header was readable but the source contained no data rows"
-            )
-        if rows_loaded != source_rows:
-            raise RuntimeError(
-                f"Source-to-Bronze row preservation failed: source={source_rows}, Bronze={rows_loaded}"
-            )
+        rows_loaded = spark.table(target).count()
+        try:
+            if text_lines is not None:
+                _check_header_count(int(text_lines.get["header_lines"]))
+                physical_records = int(text_lines.get["lines"]) - 1
+            else:
+                physical_records = text_counts["data_lines"]
+            _check_row_preservation(physical_records, source_rows, rows_loaded)
+        except Exception as check_error:
+            # the checks need the write's own counts, so they run after the commit.
+            # put the previous table back so a bad load is never left in Bronze.
+            try:
+                _undo_write(spark, target, previous_version)
+            except Exception as undo_error:  # noqa: BLE001 - keep the check error
+                raise RuntimeError(
+                    f"{check_error} The previous Bronze table could not be restored: "
+                    f"{undo_error}"
+                ) from check_error
+            raise
         _append_log(
             spark,
             _log_row(
