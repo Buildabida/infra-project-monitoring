@@ -537,7 +537,7 @@ in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
 
 `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
 validates `02-silver.silver_mgb_flood_area` after
-`notebooks/02_silver/09a_silver_mgb_flood_area.ipynb` builds or keeps it.
+`notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` builds or keeps it.
 Tables 14 and 15 stop when this evidence is missing or has a blocking failure.
 
 The validator compares the table with the selected Bronze snapshot on
@@ -574,7 +574,7 @@ validates `02-silver.silver_region_flood_exposure` after Table 14 is rebuilt.
 
 Use this order for the final steps:
 
-1. `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb`
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`
 2. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
 3. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
 4. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
@@ -665,7 +665,7 @@ validates `02-silver.silver_project_flood_map` after Table 15 is rebuilt.
 
 Use this order for the final steps:
 
-1. `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb` and
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
    `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, when
    they have not run for the current MGB snapshot
 2. `notebooks/02_silver/10_silver_project_flood_map.ipynb`

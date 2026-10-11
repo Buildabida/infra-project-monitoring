@@ -60,7 +60,7 @@ UNIQUE(
 )
 ```
 
-Bronze does not check `object_id` for this source. Notebook `09a` stops when an
+Bronze does not check `object_id` for this source. Notebook `08a` stops when an
 `object_id` is blank or repeated, before it builds any key.
 
 The table does not map codes to levels. Tables 14 and 15 apply the approved
@@ -97,7 +97,7 @@ status. The new version makes the next run parse again.
 
 ## Skip rule
 
-Notebook `09a` keeps the published table when it already holds the selected
+Notebook `08a` keeps the published table when it already holds the selected
 run: every row carries the selected `run_id`, and the row count equals the
 audited Bronze count. Otherwise it parses the snapshot and replaces the table
 with `INSERT OVERWRITE`.
@@ -119,7 +119,7 @@ validation `06a` is missing or has a blocking failure.
 ```text
 01-bronze.flood_susceptibility
         ↓
-02_silver/09a_silver_mgb_flood_area
+02_silver/08a_silver_mgb_flood_area
         ↓
 04_validation/06a_validation_silver_mgb_flood_area
         ↓
@@ -127,7 +127,7 @@ validation `06a` is missing or has a blocking failure.
 02_silver/10_silver_project_flood_map     → 04_validation/08_...
 ```
 
-Run `09a` and `06a` after every MGB Bronze load. When nothing changed, `09a`
+Run `08a` and `06a` after every MGB Bronze load. When nothing changed, `08a`
 skips the parse and finishes quickly.
 
 ## Validation

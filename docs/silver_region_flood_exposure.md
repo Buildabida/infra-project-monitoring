@@ -52,7 +52,7 @@ sequence but is not a data dependency. Table 14 never rereads R2 directly.
 If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb`. It skips the parse
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse
    when the MGB snapshot and parse rule are unchanged.
 3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
 4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
@@ -135,7 +135,7 @@ Table 14 reads parsed geometry from `02-silver.silver_mgb_flood_area`. It never
 parses `geometry_json` itself. See [Silver MGB flood areas](silver_mgb_flood_area.md)
 for that table and its validation.
 
-The parser in `09a_silver_mgb_flood_area` tries the geometry through three
+The parser in `08a_silver_mgb_flood_area` tries the geometry through three
 controlled paths:
 
 1. parse the geometry as published

@@ -69,7 +69,7 @@ mapping and project-flood mapping are separate relationships.
 If Bronze, CONFIG, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb` and
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
    `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless
    they already ran for the current MGB snapshot.
 3. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
@@ -83,7 +83,7 @@ When upstream inputs changed, use this dependency-aware order:
 4. `notebooks/02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
 5. `notebooks/02_silver/05_silver_project.ipynb`, after step 4
 6. `notebooks/04_validation/04_validation_silver_projects.ipynb`, after step 5
-7. `notebooks/02_silver/09a_silver_mgb_flood_area.ipynb`, when MGB changed
+7. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`, when MGB changed
 8. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, after step 7
 9. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
 10. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`

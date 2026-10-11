@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-AREA_NOTEBOOK = ROOT / "notebooks/02_silver/09a_silver_mgb_flood_area.ipynb"
+AREA_NOTEBOOK = ROOT / "notebooks/02_silver/08a_silver_mgb_flood_area.ipynb"
 VALIDATION_NOTEBOOK = (
     ROOT / "notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb"
 )

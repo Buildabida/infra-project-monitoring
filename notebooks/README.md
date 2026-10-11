@@ -47,7 +47,7 @@ Governed mappings remain separate from geography and population transformations.
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
 | 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
-| 25 | `02_silver/09a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`; skip the parse when the snapshot and parse rule are unchanged. |
+| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`; skip the parse when the snapshot and parse rule are unchanged. |
 | 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
 | 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
 | 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
@@ -312,7 +312,7 @@ flood-control reconciliation, or Table 13.
 If Bronze, configuration, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `02_silver/09a_silver_mgb_flood_area.ipynb`. It skips the parse when the
+2. Run `02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse when the
    MGB snapshot and parse rule are unchanged.
 3. Run `04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
 4. Run `02_silver/09_silver_region_flood_exposure.ipynb`.
@@ -325,7 +325,7 @@ When upstream inputs changed, use this dependency-aware order:
 3. `04_validation/02_validation_silver_config.ipynb`, after step 2
 4. `02_silver/01_silver_psgc_place.ipynb`, when PSGC changed
 5. `04_validation/03_validation_silver_geography_population.ipynb`, after step 4
-6. `02_silver/09a_silver_mgb_flood_area.ipynb`
+6. `02_silver/08a_silver_mgb_flood_area.ipynb`
 7. `04_validation/06a_validation_silver_mgb_flood_area.ipynb`
 8. `02_silver/09_silver_region_flood_exposure.ipynb`
 9. `04_validation/07_validation_silver_region_flood_exposure.ipynb`
@@ -353,7 +353,7 @@ Table 13, or Table 14.
 If Bronze, configuration, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `02_silver/09a_silver_mgb_flood_area.ipynb` and
+2. Run `02_silver/08a_silver_mgb_flood_area.ipynb` and
    `04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless they
    already ran for the current MGB snapshot.
 3. Run `02_silver/10_silver_project_flood_map.ipynb`.
@@ -367,7 +367,7 @@ When upstream inputs changed, use this dependency-aware order:
 4. `02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
 5. `02_silver/05_silver_project.ipynb`, after step 4
 6. `04_validation/04_validation_silver_projects.ipynb`, after step 5
-7. `02_silver/09a_silver_mgb_flood_area.ipynb`, when MGB changed
+7. `02_silver/08a_silver_mgb_flood_area.ipynb`, when MGB changed
 8. `04_validation/06a_validation_silver_mgb_flood_area.ipynb`, after step 7
 9. `02_silver/10_silver_project_flood_map.ipynb`
 10. `04_validation/08_validation_silver_project_flood_map.ipynb`
@@ -376,7 +376,7 @@ The notebook keeps every canonical project. A project receives a flood level
 only when its usable map point falls inside polygons of exactly one approved MGB
 level. Points inside several approved levels stay `AMBIGUOUS` because no
 severity precedence is approved. Execution requires Databricks Runtime 17.1 or
-later, because the governed MGB parser in `09a` uses `ST_TRANSFORM`.
+later, because the governed MGB parser in `08a` uses `ST_TRANSFORM`.
 
 The validator writes all seven quality attributes to
 `04-validation.silver_dq_results` before enforcing its STOP gate. Review
