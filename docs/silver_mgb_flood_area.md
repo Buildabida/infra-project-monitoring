@@ -93,8 +93,11 @@ OGC-valid Polygon or MultiPolygon is usable.
 
 ## Repair of invalid polygons (D-43)
 
-An OGC-invalid polygon is passed to `ST_MAKEVALID`. The repair is kept, with
-the status `REPAIRED_GEOMETRY`, only when all of these hold:
+An OGC-invalid polygon is rebuilt with a zero-distance buffer,
+`ST_BUFFER(geometry, 0)`. Databricks SQL has no `ST_MAKEVALID`. A zero-distance
+buffer can drop part of a polygon whose ring crosses itself, so the area check
+below is what makes the repair safe. The repair is kept, with the status
+`REPAIRED_GEOMETRY`, only when all of these hold:
 
 - the result is a valid, nonempty Polygon or MultiPolygon
 - the MGB `Shape__Area` is present and positive
@@ -109,7 +112,7 @@ depend on a repair.
 Most MGB invalid polygons have rings that touch or cross themselves. Esri allows
 a ring to touch itself, while the OGC rules that Databricks applies do not. A
 diagnostic run on 2026-10-11 found 297 invalid polygons covering about
-22,739 sq km in Web Mercator. `ST_MAKEVALID` made all 297 valid polygons and
+22,739 sq km in Web Mercator. The zero-distance buffer made all 297 valid polygons and
 changed their total area by 0.02%. Only two changed by more than 1%, and both
 are smaller than 0.001 sq km. In a sample of 50 unmatched projects, all 17 that
 sat inside an MGB polygon sat inside one of these 297.

@@ -166,7 +166,8 @@ def test_08_geometry_statuses_and_parse_methods_use_the_governed_vocabulary():
     ]:
         assert f"'{status}'" in text
     assert "WHEN NOT ST_ISVALID(parsed.mgb_geometry) THEN 'INVALID_GEOMETRY'" in text
-    assert "ST_BUFFER" not in text.upper()
+    # the zero-distance buffer is the D-43 repair and appears only once
+    assert text.upper().count("ST_BUFFER(") == 1
 
 
 def test_18_only_invalid_polygons_are_repaired_within_the_d43_area_tolerance():
@@ -179,11 +180,11 @@ def test_18_only_invalid_polygons_are_repaired_within_the_d43_area_tolerance():
         "DECLARE OR REPLACE VARIABLE repair_area_tolerance_sqm DOUBLE DEFAULT 10000;"
         in text
     )
-    # ST_MAKEVALID runs only for an OGC-invalid polygon
-    assert text.count("ST_MAKEVALID(") == 1
+    # the zero-distance buffer runs only for an OGC-invalid polygon
+    assert text.count("ST_BUFFER(") == 1
     assert (
         "WHEN classified.source_geometry_status = 'INVALID_GEOMETRY'\n"
-        "            THEN ST_MAKEVALID(classified.mgb_geometry)"
+        "            THEN ST_BUFFER(classified.mgb_geometry, 0)"
     ) in text
     # the repair must be a valid polygon whose area stays close to the MGB Shape__Area
     assert "ST_AREA(ST_TRANSFORM(repaired_geometry, source_area_srid))" in text
@@ -203,6 +204,7 @@ def test_19_readers_use_repaired_geometry_as_usable_and_keep_it_visible():
     for path in READER_NOTEBOOKS:
         code = code_without_comments(path)
         assert "ST_MAKEVALID" not in code.upper(), path.name
+        assert "ST_BUFFER" not in code.upper(), path.name
         assert "'REPAIRED_GEOMETRY'" in code, path.name
         assert "AS is_repaired_geometry" in code, path.name
     region_check = sql(READER_NOTEBOOKS[2])

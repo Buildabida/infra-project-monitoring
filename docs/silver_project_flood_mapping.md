@@ -566,7 +566,7 @@ A diagnostic on 2026-10-11 found the remaining gap. In a deterministic sample of
 and all 17 polygons were `INVALID_GEOMETRY`. The 297 invalid polygons cover
 about 22,739 sq km in Web Mercator. Most have rings that touch or cross
 themselves, which Esri allows and OGC does not. Decision D-43 repairs them with
-`ST_MAKEVALID` in `silver_mgb_flood_area` when the repaired area stays within
+a zero-distance buffer, `ST_BUFFER(geometry, 0)`, in `silver_mgb_flood_area` when the repaired area stays within
 1% or 0.01 sq km of the MGB `Shape__Area`.
 
 Table 15 was rerun on 2026-10-11 after `silver_mgb_flood_area` was rebuilt with
