@@ -556,8 +556,57 @@ MGB source accounting for this run:
 
 71.02% of usable project points still fall outside every approved MGB polygon.
 These results must not be read as Low or zero flood risk. The match rate is
-still below the 52% from the issue #92 spot check. The cause of the remaining
-gap is not established.
+still below the 52% from the issue #92 spot check. The next section explains
+the remaining gap.
+
+### Rerun after the invalid polygon repair (D-43)
+
+A diagnostic on 2026-10-11 found the remaining gap. In a deterministic sample of
+50 unmatched projects with a usable coordinate, 17 sat inside an MGB polygon,
+and all 17 polygons were `INVALID_GEOMETRY`. The 297 invalid polygons cover
+about 22,739 sq km in Web Mercator. Most have rings that touch or cross
+themselves, which Esri allows and OGC does not. Decision D-43 repairs them with
+`ST_MAKEVALID` in `silver_mgb_flood_area` when the repaired area stays within
+1% or 0.01 sq km of the MGB `Shape__Area`.
+
+Table 15 was rerun on 2026-10-11 after `silver_mgb_flood_area` was rebuilt with
+parse rule v2.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| MGB parse run | `12765b9cc50d7f107298ab18de2f6bafd8ab10f04bc2a9bee06800c9d984969c` |
+
+The validator wrote 54 checks: all 37 STOP checks passed, with 13 FLAG and 4
+PASS review checks.
+
+| Outcome | Projects | Share of all projects |
+| --- | ---: | ---: |
+| `MATCHED` Low | 35,146 | 13.23% |
+| `MATCHED` Moderate | 27,467 | 10.34% |
+| `MATCHED` High | 35,672 | 13.43% |
+| `MATCHED` Very High | 14,425 | 5.43% |
+| `AMBIGUOUS` across approved levels | 250 | 0.09% |
+| `UNMATCHED`, usable point without an approved polygon | 102,178 | 38.46% |
+| `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
+| Total | 265,656 | 100% |
+
+- 112,710 projects received a final level. That is 52.39% of the 215,138
+  projects with a usable coordinate, which matches the 52% from the issue #92
+  spot check. The rate was 28.96% before the repair and 9.48% before any
+  issue #92 fix.
+- 50,475 matched projects, 44.8% of all matched projects, sit inside at least
+  one repaired polygon.
+- 285 matched projects sit inside more than one polygon of the same level.
+- Ambiguous projects rose from 52 to 250, because repaired polygons of
+  different levels can overlap the same point.
+
+MGB source accounting: 63,632 mapped and usable, including 297 repaired; 29
+mapped and unusable (15 unparseable and 14 empty); 23 unmapped and usable. No
+polygon stays `INVALID_GEOMETRY`.
+
+47.49% of usable project points still fall outside every approved MGB polygon.
+These results must not be read as Low or zero flood risk.
 
 ### Unmatched project spot-check
 

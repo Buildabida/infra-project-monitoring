@@ -205,3 +205,24 @@ validators reproduced this source accounting from the table:
 
 The run time of `08a` and the `06a` check list were not recorded for this
 evidence.
+
+### Parse rule v2, with the D-43 repair
+
+`08a` rebuilt the table on 2026-10-11 with parse run
+`12765b9cc50d7f107298ab18de2f6bafd8ab10f04bc2a9bee06800c9d984969c`. The parse
+and publish step took about 3 minutes.
+
+| Measure | Rows |
+| --- | ---: |
+| Selected MGB rows, equal to the audited `rows_loaded` | 63,684 |
+| `USABLE_GEOMETRY` | 63,358 |
+| `REPAIRED_GEOMETRY` | 297 |
+| `INVALID_GEOMETRY` | 0 |
+| `UNPARSEABLE_GEOMETRY` | 15 |
+| `EMPTY_GEOMETRY` | 14 |
+| `BLANK_GEOMETRY` | 0 |
+
+Validation `06a` wrote 23 checks: all 18 STOP checks passed, with 3 FLAG and 2
+PASS review checks. Every repaired polygon stayed within the D-43 area
+tolerance. The repaired polygons cover 22,738.7 sq km of MGB `Shape__Area` in
+Web Mercator.

@@ -210,6 +210,27 @@ PASS review checks. The 13,008 mapped usable rows outside every safe region
 contain the polygons in the five regions with no safe boundary. The split of
 that count by region was not measured.
 
+Decision D-43 then repaired the 297 OGC-invalid MGB polygons in
+`silver_mgb_flood_area`. Table 14 was rerun on 2026-10-11 with MGB parse run
+`12765b9cc50d7f107298ab18de2f6bafd8ab10f04bc2a9bee06800c9d984969c`.
+
+| Level | Area inside safe regions, before D-43 | After D-43 |
+| --- | ---: | ---: |
+| Low | 8,963.9 sq km | 11,448.8 sq km |
+| Moderate | 6,584.9 sq km | 11,626.4 sq km |
+| High | 8,074.1 sq km | 16,615.1 sq km |
+| Very High | 2,880.2 sq km | 4,528.4 sq km |
+| Sum of levels | 26,503.1 sq km | 44,218.7 sq km |
+
+- 63,632 mapped rows were usable, including 297 repaired; none stayed invalid.
+- 50,596 mapped usable rows intersect a safe region and 13,036 do not.
+- Cross-level overlap totals 72.2 sq km across 10 regions, and the dissolve
+  removed 221.7 sq km of within-level overlap.
+- The validator wrote 59 checks: all 37 STOP checks passed, with 14 FLAG and 8
+  PASS review checks.
+- The clip-and-dissolve table took about 21 minutes on Databricks Free Edition
+  serverless compute.
+
 Each row records the parse path that succeeded. The run stops if mapped rows
 have geometry text but none parse.
 

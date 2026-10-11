@@ -568,8 +568,10 @@ FLAG checks keep unusable geometry, blank codes, geometry outside the degree
 screen, and differences from the 63,684-row reference visible. See
 [Silver MGB flood areas](silver_mgb_flood_area.md) for the table contract.
 
-On 2026-10-11, validators 07 and 08 passed all 37 of their STOP checks each
-after reading this table. Their results are in
+On 2026-10-11, `06a` passed all 18 of its STOP checks on parse rule v2, with
+297 polygons repaired under D-43 and none outside the area tolerance.
+Validators 07 and 08 passed all 37 of their STOP checks each after reading this
+table, both before and after the repair. Their results are in
 [Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
 and [Silver project flood mapping](silver_project_flood_mapping.md#rerun-after-the-bronze-reload-and-one-time-parsing-issue-92).
 
