@@ -349,3 +349,16 @@ def test_18_region_tables_carry_the_silver_run_ids():
     # the run id recipe and the keys stay as they were
     assert "DEFAULT 'gold-dim-region-v1'" in text
     assert "DEFAULT 'gold-dim-region-boundary-v1'" in text
+
+
+def test_19_flood_dimension_stops_on_an_empty_mgb_load_time():
+    # COUNT(DISTINCT) skips NULL, so the gate also counts empty load times (#60)
+    text = " ".join(
+        code_without_comments(GOLD / "02_gold_dim_flood_susceptibility.ipynb").split()
+    )
+    assert (
+        "SELECT ASSERT_TRUE( COUNT(DISTINCT mgb_source_load_ts) = 1 "
+        "AND COUNT_IF(mgb_source_load_ts IS NULL) = 0, "
+        "'STOP: silver_project_flood_map must carry exactly one MGB load time on every row' ) "
+        "FROM `02-silver`.silver_project_flood_map;"
+    ) in text
