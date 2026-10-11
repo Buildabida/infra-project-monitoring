@@ -368,6 +368,37 @@ Flag findings remain visible for review.
 
 ## Runtime evidence
 
+### Run on rule version 5
+
+The current code, without the long-running columns (D-44), ran on Databricks on
+October 11, 2026, on commit `3da7665`.
+
+| Input | Value |
+| --- | --- |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| Bronze load status | `SKIPPED_IDEMPOTENT`, 265,661 rows loaded |
+| Component run ID | `2a62271eabc092b5938f42c2b8e0ea730df08a6f5491ff76d329a097122808e2` |
+| Project rule version | `silver_project_v5` |
+| Project run ID | `704d8ed884b482f8c972d72bf27c4640f6121bfb6900d0a925ae617104d0f13e` |
+
+The project validator gate passed, so no STOP check failed. Row accounting,
+budgets, taxonomy coverage, and implementing-office coverage are the same as in
+the v4 run below. 265,554 projects now have an approved status mapping
+(`dpwh-status-2026-10-v1`).
+
+The project-dependent tables reran on this run, and their validators passed
+every STOP check:
+
+| Table | Checks | STOP passed | FLAG with findings |
+| --- | ---: | ---: | ---: |
+| `silver_project_source_match` and `silver_flood_control_component` | 23 | 13 of 13 | 6 |
+| `silver_project_region_map` (Table 13) | 37 | 18 of 18 | 13 |
+| `silver_project_flood_map` (Table 15) | 54 | 37 of 37 | 13 |
+
+Table 13 and Table 15 results did not change. Table 13 has 266 unmatched and 306
+non-geographic projects. Table 15 matched 112,710 of 215,138 projects with a
+usable coordinate.
+
 ### Run on rule version 4
 
 The current code, with the `dpwh-component-categories-2026-10-v1` taxonomy and
@@ -487,14 +518,14 @@ run above replaces those category counts.
 
 - Projects with missing `componentCategories` remain unmapped. New source tokens
   remain unmapped until a reviewed taxonomy version approves them.
-- Status uses approved mapping `dpwh-status-2026-10-v1` (D-40). Blank or malformed statuses stay `UNMAPPED`. The runtime evidence above predates this mapping, so it shows 0 approved status rules until the next rerun.
+- Status uses approved mapping `dpwh-status-2026-10-v1` (D-40). Blank or malformed statuses stay `UNMAPPED`. The v5 run maps 265,554 projects. The v4 run predates the mapping.
 - Project-region assignment is implemented separately. See
   [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification lives in Gold only (D-44). Moving it to Silver, as D-38 intends over time, needs the DPWH snapshot date in Silver.
 - Stalled classification remains unresolved. The status mapping is approved, but the stalled rule itself is not. `stalled_rule_status` is `STALLED_RULE_REQUIRED`.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
-- Tables 13 and 15 were last run on the `silver_project_v2` run. Both validators passed every STOP check then. They must be rerun on the `silver_project_v5` run, because their checks require the current project run. See [Table 13 runtime evidence](silver_project_region_mapping.md#runtime-evidence) and [Table 15 rerun evidence](silver_project_flood_mapping.md#rerun-on-project-rule-version-2).
+- Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
 
 ## Open questions for the team
 
