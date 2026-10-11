@@ -837,8 +837,8 @@ FLAG checks keep known data limits visible with their counts:
 - official regions without a boundary, and boundary shapes marked not valid
 - active statuses that look like numbers or map points, from DPWH rows split
   by a line break
-- the gap between the Gold population total and the 2024 census total, with
-  the Table C rows that Silver could not match inside a known town
+- the gap between the Gold population and the 2024 census total, with the
+  unmatched Table C rows behind it
 
 Every check names the columns it tested in `details`.
 
@@ -847,6 +847,30 @@ Every check names the columns it tested in `details`.
 Issue #61 also asks that a mart that uses region key `0` in a ratio fails.
 There are no marts yet. When the dashboard datasets exist, add a check that
 their per-person ratios leave key `0` out.
+
+### Gold validation runtime evidence
+
+On October 12, 2026, `09_validation_gold.ipynb` ran twice in the team workspace
+on serverless compute, from commit `6770773` of branch
+`validation/issues-60-64-gold-checks`. Both runs wrote the same 76 checks under
+one validation run ID, so the second run updated the rows instead of adding
+copies. All 65 STOP checks passed.
+
+The FLAG checks found:
+
+| Check | Rows | Out of |
+| --- | ---: | ---: |
+| Projects without a region (key `0`): 306 Central Office, 266 unmatched | 572 | 265,656 |
+| Projects without a flood level (key `0`): 250 ambiguous, 50,518 with no map point, 102,178 unmatched | 152,946 | 265,656 |
+| Projects without a status (key `0`) | 76 | 265,656 |
+| Progress not published because Silver did not mark it `VALID` | 98 | 265,656 |
+| Long-running flag is empty because there is no start date | 20,039 | 265,656 |
+| Region and level pairs with no area data | 20 | 72 |
+| Official regions without a boundary | 1 | 18 |
+| Active statuses that are shifted numbers: `0.00` and `121.0181138` | 2 | 18 |
+| Table C rows behind the 4,789-person gap to the 2024 census total | 2 | 43,750 |
+
+The other 2 FLAG checks found nothing.
 
 ## Future validation documents
 
