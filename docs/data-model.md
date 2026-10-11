@@ -144,7 +144,7 @@ silver_project_source_match
         ↑
 silver_project
         ├──→ silver_project_region_map
-        ├──→ silver_project_flood_map ← 01-bronze.flood_susceptibility + config_mgb_susceptibility_mapping
+        ├──→ silver_project_flood_map ← silver_mgb_flood_area + config_mgb_susceptibility_mapping
         ↓
 future Gold dim_project and project facts
 ```
@@ -183,15 +183,41 @@ approved polygon stay `UNMATCHED`. That is never Low, zero, or `Unknown` risk.
 See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete coordinate, MGB, spatial, lineage, and validation contracts.
 
+## Silver MGB flood-area table (implemented)
+
+`silver_mgb_flood_area` parses every selected MGB polygon once. Tables 14 and 15
+and their validators read it, so none of them parses `geometry_json`. It is a
+Silver matching table, not part of the Gold star schema.
+
+```text
+01-bronze.flood_susceptibility
+        ↓
+silver_mgb_flood_area
+        ├──→ silver_region_flood_exposure
+        └──→ silver_project_flood_map
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_mgb_flood_area` | One MGB flood-susceptibility polygon (one Bronze source row) per Bronze snapshot per parse rule version | `mgb_flood_area_key` | `object_id`, `raw_susceptibility_code`, `geometry_wkb`, `geometry_srid`, `geometry_parse_method`, `source_geometry_status`.<br>MGB snapshot, ingest run, and publisher version, `parse_rule_version`, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness: `object_id`, `mgb_source_snapshot_id`, `parse_rule_version`.
+
+`mgb_flood_area_key` is a deterministic SHA-256 key. Codes stay raw; Tables 14
+and 15 apply the approved mapping. See [Silver MGB flood areas](silver_mgb_flood_area.md)
+for the parser, skip rule, and validation.
+
 ## Silver regional flood-exposure table (implemented)
 
 Table 14 performs the MGB-to-region spatial work once in Silver.
-It reads only MGB, region boundaries, official PSGC regions, approved MGB mappings,
-and compact audit and validation evidence. It does not read projects, population,
+It reads only parsed MGB polygons from `silver_mgb_flood_area`, region boundaries,
+official PSGC regions, approved MGB mappings, and compact audit and validation evidence. It does not read projects, population,
 Table 13, or Gold.
 
 ```text
 01-bronze.flood_susceptibility
+        ↓
+silver_mgb_flood_area
         ↓
 config_mgb_susceptibility_mapping
         ↓

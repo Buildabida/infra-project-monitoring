@@ -533,24 +533,69 @@ complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
 The first documented Databricks run passed all 18 STOP checks. Its results are
 in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
 
+## Silver MGB flood-area validation
+
+`notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+validates `02-silver.silver_mgb_flood_area` after
+`notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` builds or keeps it.
+Tables 14 and 15 stop when this evidence is missing or has a blocking failure.
+
+The validator compares the table with the selected Bronze snapshot on
+`object_id` in one full outer join. It reads Bronze lineage and codes only,
+never `geometry_json`. It rebuilds every usable geometry from WKB.
+
+The validator persists results to `04-validation.silver_dq_results` before
+enforcing its blocking gate. The validation run ID is deterministic for the
+parse run and validation-rule version, so an exact rerun updates the same
+evidence.
+
+### MGB flood-area data-quality attributes
+
+- Consistency: every published row has a Bronze row, and raw codes equal Bronze.
+- Accuracy: usable and repaired geometry rebuilds as a valid, nonempty polygon
+  and lies inside the degree screen. Every `REPAIRED_GEOMETRY` row stays within
+  the D-43 area tolerance of the MGB `Shape__Area` (STOP).
+- Completeness: every Bronze row is published, and the row count equals the
+  audited `rows_loaded`.
+- Auditability: one deterministic run, complete lineage, and one Bronze ingest run.
+- Validity: deterministic keys, governed vocabularies, WKB presence that matches
+  the status, and SRID 4326 for usable and repaired geometry.
+- Uniqueness: one row per `object_id`, snapshot, and parse rule version.
+- Timeliness: the newest MGB load and its Bronze validation are safe, and the
+  table holds the latest validated snapshot.
+
+FLAG checks keep unusable geometry, blank codes, geometry outside the degree
+screen, and differences from the 63,684-row reference visible. See
+[Silver MGB flood areas](silver_mgb_flood_area.md) for the table contract.
+
+On 2026-10-11, `06a` passed all 18 of its STOP checks on parse rule v2, with
+297 polygons repaired under D-43 and none outside the area tolerance.
+Validators 07 and 08 passed all 37 of their STOP checks each after reading this
+table, both before and after the repair. Their results are in
+[Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
+and [Silver project flood mapping](silver_project_flood_mapping.md#rerun-after-the-bronze-reload-and-one-time-parsing-issue-92).
+
 ## Silver regional flood exposure validation
 
 `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
 validates `02-silver.silver_region_flood_exposure` after Table 14 is rebuilt.
 
-Use this order for the final two steps:
+Use this order for the final steps:
 
-1. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
-2. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`
+2. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+3. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
+4. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
 
 The validator persists results to `04-validation.silver_dq_results` before
 enforcing its blocking gate. The gate reads the persisted rows. The validation
 run ID is deterministic for the exposure run and validation-rule version, so an
 exact rerun updates the same evidence.
 
-The validator recomputes evidence independently. It reparses the published MGB
-snapshot once, rebuilds the expected region × level grid from current inputs,
-reparses the selected region boundaries, and recalculates region areas.
+The validator recomputes evidence independently. It reads the published MGB
+snapshot from the validated `silver_mgb_flood_area`, rebuilds the expected
+region × level grid from current inputs, reparses the selected region
+boundaries, and recalculates region areas.
 
 ### Regional flood exposure data-quality attributes
 
@@ -626,10 +671,13 @@ Runtime outcomes require Databricks execution.
 `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 validates `02-silver.silver_project_flood_map` after Table 15 is rebuilt.
 
-Use this order for the final two steps:
+Use this order for the final steps:
 
-1. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
-2. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
+   `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, when
+   they have not run for the current MGB snapshot
+2. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
+3. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 
 The validator persists results to `04-validation.silver_dq_results` before
 enforcing its blocking gate. The gate reads the persisted rows. The validation
@@ -638,7 +686,7 @@ so an exact rerun updates the same evidence.
 
 The validator recomputes evidence independently. It declares the Table 13
 coordinate screen itself and recomputes every project's coordinate status. It
-reparses MGB with the governed Table 14 parser and recomputes source accounting.
+reads MGB from the validated `silver_mgb_flood_area` and recomputes source accounting.
 It also rebuilds every project's MGB candidates with a different grid size and
 compares them with the published evidence row by row.
 

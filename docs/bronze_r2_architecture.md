@@ -48,6 +48,8 @@ Those decisions belong in Silver because they change analytical meaning.
 6. Spark reads standard CSVs as strings with `FAILFAST` and no inferred business schema.
    A strict line parser handles the CRLF-delimited MGB extract.
    It rejects unreadable or wrong-width records instead of creating null values.
+   It reads fields up to 256 MiB, because 1,815 MGB geometry fields exceed the Python default of 131,072 characters.
+   The largest field is 34,352,521 characters.
 7. The loader adds only technical lineage columns.
    Source values and row multiplicity remain unchanged.
 8. Delta atomically replaces the selected table.
