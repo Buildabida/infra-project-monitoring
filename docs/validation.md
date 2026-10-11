@@ -552,13 +552,14 @@ evidence.
 ### MGB flood-area data-quality attributes
 
 - Consistency: every published row has a Bronze row, and raw codes equal Bronze.
-- Accuracy: usable geometry rebuilds as a valid, nonempty polygon and lies
-  inside the degree screen.
+- Accuracy: usable and repaired geometry rebuilds as a valid, nonempty polygon
+  and lies inside the degree screen. Every `REPAIRED_GEOMETRY` row stays within
+  the D-43 area tolerance of the MGB `Shape__Area` (STOP).
 - Completeness: every Bronze row is published, and the row count equals the
   audited `rows_loaded`.
 - Auditability: one deterministic run, complete lineage, and one Bronze ingest run.
 - Validity: deterministic keys, governed vocabularies, WKB presence that matches
-  the status, and SRID 4326 for usable geometry.
+  the status, and SRID 4326 for usable and repaired geometry.
 - Uniqueness: one row per `object_id`, snapshot, and parse rule version.
 - Timeliness: the newest MGB load and its Bronze validation are safe, and the
   table holds the latest validated snapshot.

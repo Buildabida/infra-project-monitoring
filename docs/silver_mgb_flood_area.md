@@ -88,9 +88,34 @@ changed. This follows the source format; it is not a repair.
 
 Each row receives one geometry status: `BLANK_GEOMETRY`,
 `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`, `UNSUPPORTED_GEOMETRY_TYPE`,
-`INVALID_GEOMETRY`, or `USABLE_GEOMETRY`. Only a nonempty, OGC-valid Polygon or
-MultiPolygon is usable. Invalid geometry is kept with its status and never
-repaired.
+`INVALID_GEOMETRY`, `REPAIRED_GEOMETRY`, or `USABLE_GEOMETRY`. A nonempty,
+OGC-valid Polygon or MultiPolygon is usable.
+
+## Repair of invalid polygons (D-43)
+
+An OGC-invalid polygon is passed to `ST_MAKEVALID`. The repair is kept, with
+the status `REPAIRED_GEOMETRY`, only when all of these hold:
+
+- the result is a valid, nonempty Polygon or MultiPolygon
+- the MGB `Shape__Area` is present and positive
+- the repaired area in Web Mercator (EPSG:3857, the CRS of `Shape__Area`) stays
+  within 1% or within 0.01 sq km of `Shape__Area`, whichever is larger
+
+Otherwise the row stays `INVALID_GEOMETRY` with its unrepaired geometry. Valid
+polygons are never changed. Tables 14 and 15 use `REPAIRED_GEOMETRY` as usable
+geometry, and their validators report how many polygons and matched projects
+depend on a repair.
+
+Most MGB invalid polygons have rings that touch or cross themselves. Esri allows
+a ring to touch itself, while the OGC rules that Databricks applies do not. A
+diagnostic run on 2026-10-11 found 297 invalid polygons covering about
+22,739 sq km in Web Mercator. `ST_MAKEVALID` made all 297 valid polygons and
+changed their total area by 0.02%. Only two changed by more than 1%, and both
+are smaller than 0.001 sq km. In a sample of 50 unmatched projects, all 17 that
+sat inside an MGB polygon sat inside one of these 297.
+
+The tolerance values are part of `parse_rule_version`, so changing them forces
+a new parse.
 
 Change `parse_rule_version` whenever a parser change can change a geometry or a
 status. The new version makes the next run parse again.
@@ -146,10 +171,12 @@ STOP checks cover:
 - unique and deterministic keys
 - the governed status and parse-method vocabularies
 - WKB presence that matches the status
-- usable geometry that rebuilds from WKB as a valid, nonempty polygon in SRID 4326
+- usable and repaired geometry that rebuilds from WKB as a valid, nonempty polygon in SRID 4326
+- every repaired polygon within the D-43 area tolerance, recomputed from WKB
 
-FLAG checks keep unusable geometry, blank codes, geometry outside the degree
-screen, and differences from the 63,684-row reference visible.
+FLAG checks keep unusable geometry, repaired polygons and their area, blank
+codes, geometry outside the degree screen, and differences from the 63,684-row
+reference visible.
 
 ## Runtime
 
@@ -157,6 +184,8 @@ Requires Databricks execution with native spatial SQL (`ST_TRANSFORM` requires
 Databricks Runtime 17.1 or later) and `EXECUTE IMMEDIATE`.
 
 ## Runtime evidence
+
+These results are from parse rule v1, before the D-43 repair.
 
 The first Databricks run was on 2026-10-11, on MGB snapshot
 `metadata-17bf5e65e1838a2f7be9` (ingest run

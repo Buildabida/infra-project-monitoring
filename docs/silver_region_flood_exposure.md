@@ -224,11 +224,16 @@ Each row receives one geometry status:
 - `EMPTY_GEOMETRY`
 - `UNSUPPORTED_GEOMETRY_TYPE`
 - `INVALID_GEOMETRY`
+- `REPAIRED_GEOMETRY`
 - `USABLE_GEOMETRY`
 
-Only a nonempty, OGC-valid Polygon or MultiPolygon is usable. Invalid geometry
-is excluded and flagged. It is not repaired with `ST_BUFFER` or any other hidden
-rule. A future repair rule would need its own version and documentation.
+A nonempty, OGC-valid Polygon or MultiPolygon is usable. `REPAIRED_GEOMETRY` is
+an invalid polygon repaired under D-43 in `silver_mgb_flood_area`, kept only
+when its area stays within 1% or 0.01 sq km of the MGB `Shape__Area`. Table 14
+uses it as usable geometry, and the validator reports how many repaired polygons
+it used. Geometry that stays `INVALID_GEOMETRY` is excluded and flagged. Table 14
+applies no repair or buffer of its own. See
+[Silver MGB flood areas](silver_mgb_flood_area.md#repair-of-invalid-polygons-d-43).
 
 ## Region boundary strategy
 

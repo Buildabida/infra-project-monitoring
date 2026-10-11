@@ -579,7 +579,8 @@ def test_54_unrated_and_invalid_source_findings_are_flags_not_failures():
     for name in [
         "Unmapped or unrated MGB rows remain visible",
         "Blank MGB geometry remains visible",
-        "Invalid MGB geometry is excluded without repair",
+        "Invalid MGB geometry that D-43 cannot repair is excluded",
+        "Repaired MGB geometry used in area remains visible",
         "Official regions without a safe boundary remain no data",
         "Full boundary source lineage duplicates remain visible",
     ]:

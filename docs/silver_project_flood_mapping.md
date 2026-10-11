@@ -184,14 +184,17 @@ including Esri holes, and its validation.
 
 Each row carries one geometry status from that table: `BLANK_GEOMETRY`,
 `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`, `UNSUPPORTED_GEOMETRY_TYPE`,
-`INVALID_GEOMETRY`, or `USABLE_GEOMETRY`. Table 15 reads only the parsed run
+`INVALID_GEOMETRY`, `REPAIRED_GEOMETRY`, or `USABLE_GEOMETRY`. Table 15 reads only the parsed run
 whose `run_id` it hashes into `project_flood_run_id`, and it stops when the
 `06a` validation is missing or has a blocking failure.
 
-Only rows with `susceptibility_mapping_status = 'MAPPED_APPROVED'` and
-`source_geometry_status = 'USABLE_GEOMETRY'` take part in classification.
-Invalid geometry is excluded and flagged. It is never repaired with
-`ST_BUFFER` or any other hidden rule.
+Only rows with `susceptibility_mapping_status = 'MAPPED_APPROVED'` and usable
+geometry take part in classification. Usable geometry includes
+`REPAIRED_GEOMETRY`, an invalid polygon repaired under D-43 in
+`silver_mgb_flood_area`; `is_repaired_geometry` keeps it visible, and the
+validator flags matched projects that depend on a repaired polygon. Geometry
+that stays `INVALID_GEOMETRY` is excluded and flagged. Table 15 applies no
+repair, buffer, or other hidden rule of its own.
 
 The MGB extract has no stable polygon business key. Table 15 does not invent
 one. It keeps snapshot and run lineage plus candidate counts per project.

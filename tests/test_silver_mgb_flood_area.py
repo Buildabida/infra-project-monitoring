@@ -158,6 +158,7 @@ def test_08_geometry_statuses_and_parse_methods_use_the_governed_vocabulary():
         "EMPTY_GEOMETRY",
         "UNSUPPORTED_GEOMETRY_TYPE",
         "INVALID_GEOMETRY",
+        "REPAIRED_GEOMETRY",
         "USABLE_GEOMETRY",
         "GEOJSON_AS_PUBLISHED",
         "GEOJSON_QUOTED_NUMBERS_NORMALIZED",
@@ -166,7 +167,51 @@ def test_08_geometry_statuses_and_parse_methods_use_the_governed_vocabulary():
         assert f"'{status}'" in text
     assert "WHEN NOT ST_ISVALID(parsed.mgb_geometry) THEN 'INVALID_GEOMETRY'" in text
     assert "ST_BUFFER" not in text.upper()
-    assert "MAKEVALID" not in text.upper()
+
+
+def test_18_only_invalid_polygons_are_repaired_within_the_d43_area_tolerance():
+    text = sql(AREA_NOTEBOOK)
+    assert (
+        "DECLARE OR REPLACE VARIABLE repair_area_tolerance_ratio DOUBLE DEFAULT 0.01;"
+        in text
+    )
+    assert (
+        "DECLARE OR REPLACE VARIABLE repair_area_tolerance_sqm DOUBLE DEFAULT 10000;"
+        in text
+    )
+    # ST_MAKEVALID runs only for an OGC-invalid polygon
+    assert text.count("ST_MAKEVALID(") == 1
+    assert (
+        "WHEN classified.source_geometry_status = 'INVALID_GEOMETRY'\n"
+        "            THEN ST_MAKEVALID(classified.mgb_geometry)"
+    ) in text
+    # the repair must be a valid polygon whose area stays close to the MGB Shape__Area
+    assert "ST_AREA(ST_TRANSFORM(repaired_geometry, source_area_srid))" in text
+    assert (
+        "<= GREATEST(repair_area_tolerance_ratio * source_shape_area, repair_area_tolerance_sqm)"
+        in text
+    )
+    assert (
+        "CASE WHEN is_repaired THEN 'REPAIRED_GEOMETRY' ELSE source_geometry_status END"
+        in text
+    )
+    # the rule version changes with the tolerance, so a new tolerance forces a new parse
+    assert "'|makevalid-invalid-within-ratio=', repair_area_tolerance_ratio," in text
+
+
+def test_19_readers_use_repaired_geometry_as_usable_and_keep_it_visible():
+    for path in READER_NOTEBOOKS:
+        code = code_without_comments(path)
+        assert "ST_MAKEVALID" not in code.upper(), path.name
+        assert "'REPAIRED_GEOMETRY'" in code, path.name
+        assert "AS is_repaired_geometry" in code, path.name
+    region_check = sql(READER_NOTEBOOKS[2])
+    assert "'Repaired MGB geometry used in area remains visible'" in region_check
+    project_check = sql(READER_NOTEBOOKS[3])
+    assert (
+        "'Matched projects that depend on repaired MGB geometry remain visible'"
+        in project_check
+    )
 
 
 def test_09_parser_is_targeted_not_global_quote_stripping():
@@ -315,3 +360,19 @@ def test_17_validators_recompute_run_ids_with_the_same_parts_as_the_transformati
     assert exposure == exposure_check
     assert "mgb_flood_area_run_id" in flood_map
     assert flood_map == flood_map_check
+
+
+def test_20_validator_checks_the_d43_repair_independently():
+    text = sql(VALIDATION_NOTEBOOK)
+    assert (
+        "DECLARE OR REPLACE VARIABLE repair_area_tolerance_ratio DOUBLE DEFAULT 0.01;"
+        in text
+    )
+    assert "'REPAIRED_GEOMETRY', 'USABLE_GEOMETRY'" in text
+    assert "ST_AREA(ST_TRANSFORM(published.usable_geometry, source_area_srid))" in text
+    stop = text.split(
+        "'Repaired geometry keeps the MGB area within the D-43 tolerance'", 1
+    )[1]
+    assert "'action', 'stop'" in stop.split("NAMED_STRUCT", 1)[0]
+    flag = text.split("'Repaired MGB geometry remains visible'", 1)[1]
+    assert "'action', 'flag'" in flag.split("NAMED_STRUCT", 1)[0]

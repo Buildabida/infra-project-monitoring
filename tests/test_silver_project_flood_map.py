@@ -706,7 +706,11 @@ def test_38_validation_status_and_completeness_checks_exist():
         ),
         ("Projects inside several same-level polygons remain visible", "flag"),
         ("Unmapped or unrated MGB rows remain visible", "flag"),
-        ("Invalid MGB geometry is excluded without repair", "flag"),
+        ("Invalid MGB geometry that D-43 cannot repair is excluded", "flag"),
+        (
+            "Matched projects that depend on repaired MGB geometry remain visible",
+            "flag",
+        ),
         ("Optional MGB publisher version gaps remain visible", "flag"),
     ]:
         assert f"'action', '{action}'" in check_block(name), name
