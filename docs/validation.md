@@ -967,9 +967,11 @@ rows instead of adding copies. New Gold runs give a new ID and a new set of rows
 
 ### Analytics validation runtime evidence
 
-On October 12, 2026, both notebooks ran twice on serverless compute. All 74 STOP
-checks passed, 11 FLAG checks found data limits, and the second run updated the
-same 87 rows. The run used Gold from before #125. See the
+On October 12, 2026, both notebooks ran twice on Databricks serverless compute.
+The final rerun used Gold after PR #125 merged. All 74 STOP checks passed, 11
+FLAG checks found data limits, and the second final rerun updated the same 87
+rows for validation run `e14864fd…297f`. Evidence from before #125 remains as
+historical comparison only. See the
 [analytics evidence](evidence/analytics-views/README.md).
 
 ## Future validation documents
