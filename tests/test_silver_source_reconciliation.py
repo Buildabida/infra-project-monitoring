@@ -258,7 +258,7 @@ def test_validation_run_id_includes_match_run_id():
     )
     context_sql = sql[context_start:checks_start]
     assert "COALESCE(match.match_run_id, '')" in context_sql
-    assert "silver_source_reconciliation_validation_v2" in context_sql
+    assert "silver_source_reconciliation_validation_v3" in context_sql
 
 
 def test_source_and_target_lineage_are_retained():
@@ -345,3 +345,17 @@ def test_decision_d04_is_not_claimed_as_resolved():
     assert "D-04 remains open" in match_text
     if docs.exists():
         assert "D-04 remains open" in docs.read_text(encoding="utf-8")
+
+
+def test_validation_stops_when_the_match_targets_an_older_project_run():
+    # issue #114: the match must target the current silver_project run
+    sql = notebook_code(VALIDATION)
+    assert (
+        "COUNT_IF(NOT (source_match.target_project_run_id <=> project.project_run_id))"
+        in sql
+    )
+    assert "AS stale_target_project_run_rows" in sql
+    check = sql.split("'Match targets the current silver_project run'", 1)[1].split(
+        "UNION ALL", 1
+    )[0]
+    assert "stale_target_project_run_rows = 0, 'stop'" in check

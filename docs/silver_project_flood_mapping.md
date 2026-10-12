@@ -309,8 +309,11 @@ selected MGB rows
 ```
 
 The total must also equal the audited `rows_loaded` of the newest terminal MGB
-load. Both totals are derived at runtime. The 63,684-row and 1,815-blank-geometry
+load. Both totals are derived at runtime. The 63,684-row and 0-blank-geometry
 historical counts are reference evidence only. They never decide correctness.
+The blank-geometry reference was 1,815 until the October 10 Bronze reload
+restored those polygons. Validation version `silver-project-flood-map-validation-v2`
+sets it to 0, so the reference FLAG no longer fires on every run (#115).
 
 ## Lineage
 
@@ -414,6 +417,10 @@ STOP protects correctness. Examples:
 - a matched row without exactly one distinct level
 - candidate evidence that differs from the independent recomputation
 - a match from an unsafe coordinate
+- usable MGB geometry stored with an SRID other than 4326. Notebook 10 and
+  validator 08 read `silver_mgb_flood_area.geometry_srid`. `ST_SRID` of a
+  geometry rebuilt with `ST_SETSRID` always returns the SRID just set, so it
+  cannot catch a wrong stored SRID (#114).
 - a broken deterministic identity or missing mandatory lineage
 
 FLAG keeps limitations visible with a denominator. Examples:

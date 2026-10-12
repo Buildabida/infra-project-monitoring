@@ -325,6 +325,15 @@ Blocking checks protect:
 - current-PSGC resolution and uniqueness of selected region boundaries
 - manual override decision evidence
 - mandatory project, PSGC, boundary, configuration, rule, and load lineage
+- coordinate statuses limited to `VALID_PAIR`, `MISSING_PAIR`, `PARTIAL_PAIR`,
+  and `OUT_OF_RANGE` (#114)
+- every row built from the current `silver_project` run and the current PSGC
+  region run (#114)
+
+The validation version is `silver-project-region-map-validation-v2`. Before
+issue #114, the coordinate-exception FLAG looked for `OUTSIDE_SCREENING_RANGE`,
+a value Table 13 never emits. So it counted partial pairs but never out-of-range
+ones.
 
 Nonblocking checks retain:
 

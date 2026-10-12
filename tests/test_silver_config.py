@@ -345,3 +345,16 @@ def test_table_c_place_aliases_are_seeded_with_context():
 
     assert "'census_2024_table_c' AS source_system" in seed_cell
     assert "WHEN NOT MATCHED THEN INSERT" in seed_cell
+
+
+def test_dpwh_region_aliases_must_name_the_bronze_psgc_version():
+    # issue #114: Table 13 joins DPWH region aliases on the code alone
+    sql = "\n".join(code_cells(VALIDATION_NOTEBOOK))
+    assert "NULLIF(TRIM(source_release), '') AS psgc_version" in sql
+    check_name = "'approved DPWH region aliases name the Bronze PSGC version'"
+    check = sql.split(check_name, 1)[1].split("UNION ALL", 1)[0]
+    assert "'stop'" in check
+    assert "AND TRIM(config.psgc_version) = reference.psgc_version" in check
+    assert "WHERE config.source_system = 'dpwh_projects'" in check
+    assert "UPPER(TRIM(config.place_type)) = 'REGION'" in check
+    assert "'silver_config_validation_v3'" in sql

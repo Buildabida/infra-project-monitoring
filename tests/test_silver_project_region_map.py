@@ -491,3 +491,44 @@ def test_61_validator_keeps_null_regions_in_precedence_and_boundary_checks():
     assert "reported_region_standardized <> 'CENTRAL OFFICE'" not in text
     no_boundary = squashed[: squashed.index("AS no_boundary_match_rows")]
     assert no_boundary.rstrip().endswith(f"{null_safe} )")
+
+
+def test_62_validator_counts_the_coordinate_statuses_table_13_emits():
+    # issue #114: Table 13 emits OUT_OF_RANGE, so OUTSIDE_SCREENING_RANGE never matched
+    mapping = sql(MAP_NOTEBOOK)
+    text = sql(VALIDATION_NOTEBOOK)
+    assert "THEN 'OUT_OF_RANGE'" in mapping
+    assert "OUTSIDE_SCREENING_RANGE" not in text
+    assert "COUNT_IF(coordinate_status IN ('PARTIAL_PAIR', 'OUT_OF_RANGE'))" in text
+    assert (
+        "coordinate_status NOT IN ('VALID_PAIR', 'MISSING_PAIR', 'PARTIAL_PAIR', 'OUT_OF_RANGE')"
+        in text
+    )
+    assert (
+        "'Coordinate statuses use the controlled contract', invalid_coordinate_statuses, map_rows, 'stop'"
+        in text
+    )
+
+
+def test_63_validator_stops_on_a_stale_project_or_psgc_run():
+    # issue #114: Table 13 must come from the current silver_project and PSGC runs
+    text = sql(VALIDATION_NOTEBOOK)
+    assert "MAX(run_id) AS current_project_run_id" in text
+    assert "MAX(run_id) AS current_psgc_run_id" in text
+    assert (
+        "COUNT_IF(NOT (project_run_id <=> project_run.current_project_run_id)) AS stale_project_run_rows"
+        in text
+    )
+    assert (
+        "COUNT_IF(NOT (psgc_run_id <=> psgc_run.current_psgc_run_id)) AS stale_psgc_run_rows"
+        in text
+    )
+    assert (
+        "'Mapping uses the current silver_project run', stale_project_run_rows, map_rows, 'stop'"
+        in text
+    )
+    assert (
+        "'Mapping uses the current PSGC run', stale_psgc_run_rows, map_rows, 'stop'"
+        in text
+    )
+    assert "'silver-project-region-map-validation-v2'" in text

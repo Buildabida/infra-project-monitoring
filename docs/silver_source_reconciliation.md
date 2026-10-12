@@ -204,6 +204,9 @@ Blocking checks protect:
 - complete component-to-match accounting
 - exact Contract ID assignment correctness
 - protection against resolved values for conflicting source costs
+- a match that targets the current `silver_project` run. Every
+  `target_project_run_id` must equal `MAX(run_id)` of `silver_project` (#114).
+  The validation version is `silver_source_reconciliation_validation_v3`.
 
 ### Review flags
 

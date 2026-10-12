@@ -388,6 +388,11 @@ Changing that shared table now could break Bronze validation.
 - the unsupported `Delayed` target
 - MGB levels, ranks, and approved-row count
 - PSGC target existence for approved geographic rules
+- the PSGC version of each approved DPWH region alias. It must equal the
+  `source_release` that Bronze `psgc` holds for the alias's target code. Table 13
+  joins these aliases on the code alone, so this check is the only version guard
+  (#114). A missing alias `psgc_version` fails too. The validation version is
+  `silver_config_validation_v3`.
 
 `flag` checks cover:
 
