@@ -177,7 +177,7 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v6' AS transformation_rule_version" in text
+    assert "'silver_project_v7' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
     assert "COALESCE(attribute.component_run_id, '')" in text
     assert "COALESCE(category.taxonomy_version, '')" in text
@@ -218,6 +218,9 @@ def test_16_project_keeps_every_downstream_column():
         "is_dpwh_flood_related",
         "implementing_office",
         "implementing_office_resolution_status",
+        "contractor",
+        "contractor_resolution_status",
+        "distinct_contractor_count",
     ]:
         assert re.search(rf"\b{column}\b", table), column
 
@@ -423,10 +426,42 @@ def test_31_validator_checks_implementing_office_resolution():
     assert "implementing_office_resolution_status = 'CONFLICT'" in text
     assert "'Implementing office follows the resolution rule'" in text
     assert "'Missing or conflicting implementing offices remain visible'" in text
-    assert "'silver_project_validation_v5'" in text
+    assert "'silver_project_validation_v6'" in text
 
 
-def test_32_project_resolves_coordinates_as_one_valid_pair():
+def test_32_project_resolves_contractor_like_the_office():
+    # #119: a reader can tell a missing contractor from conflicting ones
+    resolution = statement(
+        PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
+    )
+    expression = "COUNT(DISTINCT NULLIF(TRIM(contractor), ''))"
+    assert f"{expression} AS distinct_contractor_count" in resolution
+    assert (
+        f"CASE WHEN {expression} = 0 THEN 'MISSING' "
+        f"WHEN {expression} = 1 THEN 'RESOLVED' "
+        "ELSE 'CONFLICT' END AS contractor_resolution_status"
+    ) in " ".join(resolution.split())
+    table = statement(PROJECT, "CREATE OR REPLACE TABLE `02-silver`.silver_project")
+    assert "attribute.contractor_resolution_status," in table
+
+
+def test_33_validator_checks_contractor_resolution():
+    text = " ".join(sql(VALIDATION).split())
+    check = (
+        "'Contractor follows the resolution rule', "
+        "invalid_contractor_resolutions, project_rows, 'stop',"
+    )
+    assert check in text
+    for predicate in [
+        "contractor_resolution_status NOT IN ('MISSING', 'RESOLVED', 'CONFLICT')",
+        "(contractor_resolution_status = 'RESOLVED' AND contractor IS NULL)",
+        "(contractor_resolution_status <> 'RESOLVED' AND contractor IS NOT NULL)",
+        "(contractor_resolution_status = 'CONFLICT' AND distinct_contractor_count < 2)",
+    ]:
+        assert predicate in text, predicate
+
+
+def test_34_project_resolves_coordinates_as_one_valid_pair():
     resolution = statement(
         PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
     )
@@ -452,7 +487,7 @@ def test_32_project_resolves_coordinates_as_one_valid_pair():
     assert "attribute.distinct_coordinate_pair_count," in table
 
 
-def test_33_status_publishes_only_for_a_resolved_raw_status():
+def test_35_status_publishes_only_for_a_resolved_raw_status():
     status = statement(
         PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_status_resolution"
     )
@@ -477,7 +512,7 @@ def test_33_status_publishes_only_for_a_resolved_raw_status():
     assert "LEFT JOIN project_status_resolution AS status_resolution" in table
 
 
-def test_34_validator_recounts_pairs_and_checks_status_resolution():
+def test_36_validator_recounts_pairs_and_checks_status_resolution():
     metrics = statement(
         VALIDATION, "CREATE OR REPLACE TEMPORARY VIEW silver_project_validation_metrics"
     )

@@ -50,13 +50,13 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_psgc_place` | Implemented |
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
-| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v4. |
-| `silver_project` | Implemented. Rule version `silver_project_v6` (#110). The Databricks rerun on v6 is pending. Earlier runs were validated on v4 and v5. |
-| Silver project validation | Implemented. Validation version `silver_project_validation_v5` has 42 checks, 26 of them STOP. The Databricks rerun is pending. All 24 v4 STOP checks passed in Databricks. |
-| Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
-| `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
+| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v6 on Oct 12. |
+| `silver_project` | Implemented. Rule version `silver_project_v7` (#110). The Databricks rerun on v7 is pending. Runtime-validated in Databricks on rule version v6 on Oct 12. |
+| Silver project validation | Implemented. Validation version `silver_project_validation_v6` adds the #110 checks, for 43 checks, 27 of them STOP. The Databricks rerun is pending. All 25 STOP checks passed on the v6 run on Oct 12. |
+| Flood-control component and source-match outputs | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 13 STOP checks passed. |
+| `silver_project_region_map` and its validator | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 18 STOP checks passed. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
-| Gold dimensions and facts | Planned |
+| Gold dimensions and facts | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
 
 ## Dependency order
 
@@ -162,7 +162,7 @@ Each parsed field has a status, so a reader can tell why a value is `NULL` or su
 | `progress_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE`, `OUT_OF_RANGE` |
 | `infra_year_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE` |
 
-The progress range is 0 to 100, from the required analytical validation in [Data model](data-model.md#required-analytical-validation-planned). It is declared once in the notebook's parameter view.
+The progress range is 0 to 100, from the required analytical validation in [Data model](data-model.md#required-analytical-validation). It is declared once in the notebook's parameter view.
 
 `infra_year` keeps the raw string. `infra_year_parsed` adds the integer, so Gold does not need to cast it.
 
@@ -302,6 +302,7 @@ Columns added for downstream use:
 - `is_dpwh_flood_related`
 - `source_system` and `component_run_id`
 - `implementing_office`, `implementing_office_resolution_status`, and `distinct_implementing_office_count`, resolved from the DPWH `deo` field with the same missing, resolved, or conflict rule. Gold `dim_project.implementing_office` can read this column.
+- `contractor_resolution_status`, beside `contractor` and `distinct_contractor_count`, with the same rule (#119). It tells a missing contractor from conflicting ones.
 
 `project_key` uses the same recipe, so keys do not change.
 
@@ -315,7 +316,7 @@ The project table currently supports:
 
 - `zero_progress_flag`
 
-The project table intentionally leaves `stalled_flag` unresolved until its rule is approved.
+The project table leaves `stalled_flag` as `NULL`. Stalled is out of scope for the capstone (D-46).
 
 The project table has no long-running flag. See D-44 and the [Gold model](gold_model.md#project-delivery-rules).
 
@@ -327,10 +328,10 @@ The table retains:
 - source ingest identity
 - deterministic project key
 - deterministic run identity
-- transformation rule version, now `silver_project_v6`
+- transformation rule version, now `silver_project_v7`. It moved from v5 to v6 when `contractor_resolution_status` was added (#119), and from v6 to v7 when coordinates and status resolution changed (#110).
 - the component run it was built from
 
-The rule version moved to `silver_project_v6` for issue #110, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
+The rule version moved to `silver_project_v7` for issue #110, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
 
 ## Idempotency and cost
 
@@ -385,6 +386,7 @@ Stop conditions include:
 - zero-progress flags that disagree with progress
 - coordinates that are not one complete pair, or that differ from a component recount
 - a standardized status published for an unresolved or unmapped raw status
+- implementing office or contractor statuses that break the missing, resolved, or conflict rule
 - mapped rows without a mapping version
 - missing or non-reproducible keys, run IDs, and lineage
 - more than one snapshot or run, or a snapshot that differs from the latest Bronze load
@@ -405,6 +407,43 @@ Flag conditions include:
 Flag findings remain visible for review.
 
 ## Runtime evidence
+
+### Run on rule version 6
+
+The code with `contractor_resolution_status` (#119) ran on Databricks on
+October 12, 2026, on commit `ff7cacc`.
+
+| Input | Value |
+| --- | --- |
+| Project rule version | `silver_project_v6` |
+| Projects | 265,656 from 265,661 component rows |
+| Projects without a usable budget | 87 |
+| Resolved reported budget (PHP) | 6,535,616,688,962.02 |
+| Projects with an approved status mapping | 265,554 |
+
+Row accounting, budgets, and taxonomy coverage are the same as in the v5 run.
+
+The resolution split that #119 asked for:
+
+| Field | `MISSING` | `CONFLICT` |
+| --- | ---: | ---: |
+| Implementing office | 97 | 0 |
+| Contractor | 19,142 | 0 |
+
+All 97 projects without an office have no `deo` value at all. No project has
+conflicting offices or conflicting contractors.
+
+The validator and the project-dependent tables passed every STOP check:
+
+| Table | Checks | STOP passed | FLAG with findings |
+| --- | ---: | ---: | ---: |
+| `silver_dpwh_project_component` and `silver_project` | 40 | 25 of 25 | 13 |
+| `silver_project_source_match` and `silver_flood_control_component` | 23 | 13 of 13 | 6 |
+| `silver_project_region_map` (Table 13) | 37 | 18 of 18 | 13 |
+| `silver_project_flood_map` (Table 15) | 54 | 37 of 37 | 13 |
+
+The project validator has one more STOP check than in v5: "Contractor follows
+the resolution rule".
 
 ### Run on rule version 5
 
@@ -561,13 +600,15 @@ run above replaces those category counts.
   [Silver project-to-region mapping](silver_project_region_mapping.md).
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification lives in Gold only (D-44). Moving it to Silver, as D-38 intends over time, needs the DPWH snapshot date in Silver.
-- Stalled classification remains unresolved. The status mapping is approved, but the stalled rule itself is not. `stalled_rule_status` is `STALLED_RULE_REQUIRED`.
-- 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
-- Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5). They must rerun on the `silver_project_v6` run (#110).
+- Stalled is out of scope for the capstone (D-46). `stalled_flag` stays `NULL`, and `stalled_rule_status` is `STALLED_RULE_REQUIRED`, which means no rule is approved.
+- 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The v6 run on October 12 shows all 97 are `MISSING` and none is `CONFLICT`.
+- Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
+- The v6 run on October 12 changed the project `run_id`. The project validator, the source match, Tables 13 and 15 with their validators, and Gold `03`, `04`, and `07` reran after it, and every STOP check passed. See [Run on rule version 6](#run-on-rule-version-6).
+- `silver_project_v7` (#110) changes the project `run_id` again. The same dependent notebooks must rerun after it.
 
 ## Open questions for the team
 
-1. **Long-running rule location.** Draft decision D-32 is on an open Gold branch and computes the flag in Gold. The team notes list it as a Silver rule. Decide where it lives. If it lives in Silver, `silver_project` needs the snapshot date from `01-bronze.load_log`.
+1. **Long-running rule location.** Resolved. D-32 computes the flag in Gold, and D-44 dropped the empty Silver column.
 2. **Implementing office.** Resolved. DPWH Bronze has `deo`. The component table carries it, and `silver_project` publishes it as `implementing_office`.
 
 ## Gold handoff

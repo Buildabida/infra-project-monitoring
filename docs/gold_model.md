@@ -256,8 +256,8 @@ Gold keys are deterministic. The same Silver inputs always give the same key, so
 | `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 506 to 509, and the gate in cell 2, line 121 |
 | `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 620 to 622 |
 | `project_key` | BIGINT | `PROJECT` | `XXHASH64(CONCAT_WS('\|', 'PROJECT', source_system, contract_id))` | `04_gold_dim_project.ipynb`, cell 8, line 380 |
-| `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 340 to 342 |
-| `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 293 to 295 |
+| `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 342 to 344 |
+| `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 294 to 296 |
 
 Cell numbers count from 0. Line numbers are lines of the `.ipynb` file, so they move when a cell above them changes.
 
@@ -275,7 +275,7 @@ Key `0` is reserved for unknown, unmapped, or non-geographic records.
 | --- | --- | --- |
 | `dim_date` | `month_name = 'Unknown'` and a `NULL` date | A source date is missing |
 | `dim_region` | `Unknown or non-geographic` | The project is Central Office, unmatched, or ambiguous |
-| `dim_project_status` | `Missing or conflicting status` | The source status is missing or its rows disagree |
+| `dim_project_status` | `Missing or conflicting status` | The source status is missing or its rows disagree. A Silver status without its own active row stops the fact load instead. |
 | `dim_flood_susceptibility` | `Unknown` with `severity_rank = 0` | Silver published no single approved level |
 | `dim_project` | None | Never. Every fact row comes from a real Silver project. |
 
@@ -303,10 +303,10 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
-- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. This is the only published long-running flag. `silver_project` has none (D-44).
-- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. It is also `NULL` when the completion date is before the start date, because that span cannot be measured ([D-49](decisions.md)). A start date after the snapshot date gives `FALSE`. This is the only published long-running flag. `silver_project` has none (D-44).
+- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation).
 
-`zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
+`zero_progress_flag` comes unchanged from Silver. Gold has no stalled flag, because stalled is out of scope for the capstone (D-46). A zero-progress count must filter out `For Procurement` projects or say that it includes them.
 
 ## Load pattern
 
@@ -363,11 +363,13 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 
 ## Validation
 
-The analytical checks live in [Data model](data-model.md#required-analytical-validation-planned). Keep them there.
+The analytical checks live in [Data model](data-model.md#required-analytical-validation). Keep them there.
 
-The planned notebook `notebooks/04_validation/09_validation_gold.ipynb` runs them. It writes to `04-validation.gold_dq_results`. See the [Notebooks guide](../notebooks/README.md).
+`notebooks/04_validation/09_validation_gold.ipynb` runs them after step 8 of the build order. It writes to `04-validation.gold_dq_results` (D-47). See [Gold validation](validation.md#gold-validation) and the [Notebooks guide](../notebooks/README.md).
 
-`tests/test_gold_dimensions.py` checks each dimension notebook against this doc. It fails when a column name, type, or order differs from the tables above.
+`fact_region_population` and `fact_region_flood_exposure` have no current flag, and their `MERGE` never deletes. A new PSGC version, MGB snapshot, or boundary version leaves the old rows in place. The validator stops the run when Gold has more rows than Silver. Adding a current flag needs its own decision.
+
+`tests/test_gold_dimensions.py` checks each dimension notebook against this doc. It fails when a column name, type, or order differs from the tables above. `tests/test_validation_gold.py` checks the Gold validator notebook.
 
 Before you finish any Gold task, check that:
 
@@ -380,6 +382,41 @@ Before you finish any Gold task, check that:
 - [ ] Any doubt was raised with the team, not settled by guessing.
 
 ## Runtime evidence
+
+### Run on October 12, 2026 (issues #116 and #119)
+
+Gold `03`, `04`, and `07` ran on Databricks serverless compute in the team workspace, on commit `ff7cacc` of branch `feature/issues-116-117-118-119-120-121`. Before that, `05_silver_project` ran on `silver_project_v6`, and the project-dependent Silver notebooks reran. Every Silver validator passed every STOP check. Gold `00`, `01`, `02`, `05`, and `06` did not rerun, because they do not read project data.
+
+`07` ran twice. Times come from the Delta table history.
+
+| Run | Delta version | Time (UTC) | Rows inserted | Rows updated | Rows set not current |
+| --- | ---: | --- | ---: | ---: | ---: |
+| `07` run 1 | 33 | 11:55:04 | 0 | 265,656 | 0 |
+| `07` run 2 | 35 | 13:20:32 | 0 | 265,656 | 0 |
+
+Both runs used the single `MERGE` from #116. Neither run inserted or deleted a row. No row was set not current, because the fact holds one snapshot. Both runs wrote the same number of bytes and gave the same values:
+
+| Measure | Value |
+| --- | --- |
+| Fact rows | 265,656 |
+| Current rows | 265,656 |
+| Current reported budget (PHP) | 6,535,616,688,962.02, equal to Silver |
+| `delivery_rule_version` | `gold-delivery-v3\|long-running=start-to-completion-or-snapshot>24-months\|completion-before-start=null\|progress=silver-quality-VALID` |
+| Current `run_id` | `1dc106b9c825034bb2bf258a6145b8773ab2cb745f2d2e54eb515d4ec332cdd2` |
+
+Long-running after D-49, for current projects:
+
+| Result | Projects |
+| --- | ---: |
+| True | 15,209 |
+| False | 230,402 |
+| `NULL`, no start date | 20,039 |
+| `NULL`, completion before start (D-49) | 6 |
+| Start date after the snapshot date | 0 |
+
+The October 11 run had 230,408 false. The 6 projects with a completion before the start moved from false to `NULL`. The true count did not change.
+
+`09_validation_gold` then ran once. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing.
 
 ### Run on October 11, 2026 (issues #93, #97, #98)
 
@@ -462,4 +499,4 @@ Run IDs, the same in both runs:
 1. **How do we generate surrogate keys?** With deterministic hashes. See [Surrogate keys](#surrogate-keys) and D-33.
 2. **What date range does `dim_date` cover?** January 1, 2000 to December 31, 2035. Key `0` stands for a missing date.
 3. **Which dimensions get an unknown row?** `dim_date`, `dim_region`, `dim_project_status`, and `dim_flood_susceptibility`. `dim_project` does not need one. See [Unknown and non-geographic records](#unknown-and-non-geographic-records).
-4. **How do we refresh `is_current_snapshot`?** The project fact merges each snapshot by `project_key` and `source_snapshot_id`. Then it sets `is_current_snapshot` to true only for the newest DPWH snapshot. This is built with the fact.
+4. **How do we refresh `is_current_snapshot`?** The project fact merges each snapshot by `project_key` and `source_snapshot_id`. The same `MERGE` sets `is_current_snapshot` to false on every row outside the snapshot that Silver holds now. One `MERGE` is one commit, so a failed run cannot leave two current rows. Before it, the load stops when Silver holds an older snapshot than the fact, so the current snapshot is always the newest one. A rollback to an older snapshot needs its own decision (#116).

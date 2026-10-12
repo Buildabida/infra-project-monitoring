@@ -18,14 +18,15 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | --- | --- |
 | Five configuration tables | Implemented by the Silver config notebook |
 | Configuration validation | Implemented by the Silver config validator |
-| DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1`. Databricks rerun required. |
-| DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Databricks rerun required. |
+| DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1` (D-39). Runtime-validated in Databricks on Oct 9 and Oct 11. See [project runtime evidence](silver_project_cleaning.md#runtime-evidence). |
+| DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Runtime-validated in Databricks on Oct 11. See [Run on rule version 5](silver_project_cleaning.md#run-on-rule-version-5). |
 | DPWH region aliases | Implemented as approved alias version `dpwh-region-aliases-2026-10-v1` (D-41). Runtime-validated in Databricks on Oct 9. See [project-region runtime evidence](silver_project_region_mapping.md#runtime-evidence). |
-| Other place decisions | Pending human review |
+| Census Table C aliases | Implemented as approved alias version `census-table-c-aliases-2026-10-v1` (D-48). See [Census Table C aliases](#census-table-c-aliases). |
+| Manual geographic overrides | None approved. The table stays empty, which is valid. |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
-| Gold facts and dimensions | Planned |
+| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
 
 ## Run order
 
@@ -142,8 +143,10 @@ notebook how to use each one.
 
 A sheet alias must name the target's region. A heading alias must name a region or
 province, and its target must be a city, municipality, or district inside the sheet's
-place. Every other Table C alias applies to one barangay row and must name its city or
-municipality. The 15 barangay aliases came from a review of the rows still unmatched
+place. Every other Table C alias applies to one barangay row. It must name at least one
+of its region, province, or city or municipality, and each field it names must match the
+row's context. All 15 barangay aliases in this version name their city or municipality.
+The 15 barangay aliases came from a review of the rows still unmatched
 after the first run on 2026-10-09. Each target is the closest PSGC barangay name in
 that locality, confirmed by the team. The edit distance helped a person review them; it
 never assigns a code.
@@ -255,8 +258,9 @@ independently. A change to any rule needs a new `status_mapping_version`.
 `Delayed` is not a supported standardized status because the current sources
 lack a reliable target completion date.
 
-Long-running and stalled are future derived measures.
+Long-running and stalled are derived measures.
 They do not belong in this mapping table.
+Gold owns long-running (D-32 and D-44). Stalled is out of scope for the capstone (D-46).
 
 #### `For Procurement` in delivery measures
 
@@ -269,13 +273,14 @@ contractor, no start date, and a reported budget of PHP 0.
 
 So delivery measures must treat them this way:
 
-- **Stalled:** the future stalled rule must exclude `For Procurement`. Without
-  that, every one of these projects would count as stalled.
+- **Stalled:** out of scope for the capstone (D-46). Any future stalled rule
+  must exclude `For Procurement`. Without that, every one of these projects
+  would count as stalled.
 - **Long-running:** no exclusion is needed. D-32 needs a start date, so
   Gold `fact_project_snapshot.long_running_flag` is `NULL` for these projects.
 - **Zero progress:** `zero_progress_flag` is true for all of them. A dashboard
   count of zero-progress active projects must filter on `source_status` or say
-  that it includes projects still in procurement.
+  that it includes projects still in procurement (D-46).
 
 ### `config_mgb_susceptibility_mapping`
 

@@ -10,8 +10,8 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. Category, status, and place mapping decisions remain pending human review. |
-| Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. Gold validation remains planned. The [Gold model](gold_model.md) holds the exact table definitions. |
+| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. The category taxonomy (D-39), status mapping (D-40), DPWH region aliases (D-41), and Census Table C aliases (D-48) are approved. No manual geographic override is approved yet. |
+| Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
@@ -34,8 +34,10 @@ R2 source snapshots → Bronze → Silver matching and reconciliation → Gold f
 
 The Bronze result schema remains Bronze-only. Silver configuration checks use
 `04-validation.silver_config_dq_results`. Silver transformation checks use
-`04-validation.silver_dq_results`. Separate result tables avoid breaking fixed writers.
-Silver results retain their source layer, snapshots, and rule versions.
+`04-validation.silver_dq_results`. Gold checks use `04-validation.gold_dq_results`,
+with the same columns as `silver_dq_results` (D-47). Separate result tables avoid
+breaking fixed writers. Silver and Gold results retain their source layer,
+snapshots, and rule versions.
 
 Census Table C is the authoritative population source.
 PSGC population remains a cross-check.
@@ -100,7 +102,7 @@ The approved population path is:
                          ↓
               silver_region_population
                          ↓
-       03-gold.fact_region_population (planned)
+       03-gold.fact_region_population
 ```
 
 The earlier single population-reconciliation design is retired.
@@ -146,13 +148,13 @@ silver_project
         ├──→ silver_project_region_map
         ├──→ silver_project_flood_map ← silver_mgb_flood_area + config_mgb_susceptibility_mapping
         ↓
-future Gold dim_project and project facts
+03-gold.dim_project and fact_project_snapshot
 ```
 
 | Table | Grain | Primary key | Main columns |
 | --- | --- | --- | --- |
 | `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | `component_key`. Source-row identity is the snapshot, `source_row_hash`, and `source_row_ordinal`. | Raw evidence: DPWH category and normalized `componentCategories`.<br>Taxonomy: approved category sets, sector, mapping state, version, and flood flag.<br>Controls: parsed values, quality states, raw District Engineering Office (`deo`), run identity, and Bronze lineage. |
-| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Taxonomy: unioned sorted evidence, sector or `Multi-sector`, mapping state, version, and flood flag.<br>Project controls: component count, resolved attributes including `implementing_office`, budget, conflicts, source lineage, and deterministic identity. |
+| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Taxonomy: unioned sorted evidence, sector or `Multi-sector`, mapping state, version, and flood flag.<br>Project controls: component count, resolved attributes including `implementing_office` and `contractor` with their resolution statuses, budget, conflicts, source lineage, and deterministic identity. |
 | `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
 | `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
 | `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
@@ -177,8 +179,8 @@ complete precedence, boundary, lineage, and validation contracts.
 Table 15 retains the approved `flood_susceptibility_level` and `severity_rank`
 only when a project's map point falls inside polygons of exactly one approved
 MGB level. It does not create the Gold `flood_susceptibility_key`. Points inside
-polygons of several approved levels stay `AMBIGUOUS` with no level, because no
-severity precedence is approved. Projects without a usable point or without an
+polygons of several approved levels stay `AMBIGUOUS` with no level, because
+D-45 approves no severity precedence. Projects without a usable point or without an
 approved polygon stay `UNMATCHED`. That is never Low, zero, or `Unknown` risk.
 See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete coordinate, MGB, spatial, lineage, and validation contracts.
@@ -227,7 +229,7 @@ regional spatial intersection ← 01-bronze.boundaries ← silver_psgc_place
         ↓
 silver_region_flood_exposure
         ↓
-03-gold.fact_region_flood_exposure (planned)
+03-gold.fact_region_flood_exposure
 ```
 
 | Table | Grain | Primary key | Main columns |
@@ -377,11 +379,12 @@ Dimension uniqueness:
 - Population and flood-exposure facts join to `dim_region` through `region_key`.
 - Silver mapping tables retain the run, method, quality, and source version for every Gold key.
 - Key `0` is reserved for unknown, unmapped, or non-geographic records.
-  Central Office uses key `0` with `region_match_status = 'Non-geographic reporting unit'`.
+  Central Office uses key `0` with `region_match_status = 'NON_GEOGRAPHIC'`.
 
-## Required analytical validation (planned)
+## Required analytical validation
 
-Apply these checks when the corresponding Silver and Gold tables are implemented.
+`notebooks/04_validation/09_validation_gold.ipynb` runs these checks on Gold.
+See [Gold validation](validation.md#gold-validation).
 
 1. At most one `is_current_snapshot = true` row exists per `project_key`.
 2. Physical progress is between 0 and 100 or null.
@@ -393,6 +396,9 @@ Apply these checks when the corresponding Silver and Gold tables are implemented
 8. Severity rank is unique within each source system and version.
 9. `source_snapshot_id` is not null. All fact foreign keys resolve.
 10. Spatial areas use an appropriate projected CRS instead of square degrees.
+
+Check 6 covers the population fact today: no population row uses region key `0`.
+When the dashboard datasets exist, they need the same check for their ratios (#61).
 
 ## Business-question coverage (planned)
 
