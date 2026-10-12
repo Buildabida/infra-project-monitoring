@@ -383,6 +383,41 @@ Before you finish any Gold task, check that:
 
 ## Runtime evidence
 
+### Run on October 12, 2026 (issues #116 and #119)
+
+Gold `03`, `04`, and `07` ran on Databricks serverless compute in the team workspace, on commit `ff7cacc` of branch `feature/issues-116-117-118-119-120-121`. Before that, `05_silver_project` ran on `silver_project_v6`, and the project-dependent Silver notebooks reran. Every Silver validator passed every STOP check. Gold `00`, `01`, `02`, `05`, and `06` did not rerun, because they do not read project data.
+
+`07` ran twice. Times come from the Delta table history.
+
+| Run | Delta version | Time (UTC) | Rows inserted | Rows updated | Rows set not current |
+| --- | ---: | --- | ---: | ---: | ---: |
+| `07` run 1 | 33 | 11:55:04 | 0 | 265,656 | 0 |
+| `07` run 2 | 35 | 13:20:32 | 0 | 265,656 | 0 |
+
+Both runs used the single `MERGE` from #116. Neither run inserted or deleted a row. No row was set not current, because the fact holds one snapshot. Both runs wrote the same number of bytes and gave the same values:
+
+| Measure | Value |
+| --- | --- |
+| Fact rows | 265,656 |
+| Current rows | 265,656 |
+| Current reported budget (PHP) | 6,535,616,688,962.02, equal to Silver |
+| `delivery_rule_version` | `gold-delivery-v3\|long-running=start-to-completion-or-snapshot>24-months\|completion-before-start=null\|progress=silver-quality-VALID` |
+| Current `run_id` | `1dc106b9c825034bb2bf258a6145b8773ab2cb745f2d2e54eb515d4ec332cdd2` |
+
+Long-running after D-49, for current projects:
+
+| Result | Projects |
+| --- | ---: |
+| True | 15,209 |
+| False | 230,402 |
+| `NULL`, no start date | 20,039 |
+| `NULL`, completion before start (D-49) | 6 |
+| Start date after the snapshot date | 0 |
+
+The October 11 run had 230,408 false. The 6 projects with a completion before the start moved from false to `NULL`. The true count did not change.
+
+`09_validation_gold` then ran once. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing.
+
 ### Run on October 11, 2026 (issues #93, #97, #98)
 
 Gold `00` to `07` ran twice on Databricks serverless compute, on commit `3da7665` of branch `gold/issues-93-97-98`. Before that, the project-dependent Silver notebooks reran once on `silver_project_v5` and their validators passed every STOP check. Times come from the notebook run metadata.

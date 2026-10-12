@@ -228,6 +228,13 @@ not authorize a final business rule for combining overlapping source records.
 
 ## Current runtime validation
 
+### Rerun on October 12, 2026
+
+The flood-control component and source-match tables reran on the
+`silver_project_v6` run, on commit `ff7cacc`. The validator ran 23 checks. All 13
+STOP checks passed, and 6 FLAG checks had findings. See
+[Run on rule version 6](silver_project_cleaning.md#run-on-rule-version-6).
+
 ### Rerun on October 11, 2026
 
 The flood-control component and source-match tables reran on the

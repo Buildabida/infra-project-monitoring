@@ -50,11 +50,11 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_psgc_place` | Implemented |
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
-| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v5 on Oct 11. |
-| `silver_project` | Implemented on rule version v6 (#119). Databricks run required. v5 was runtime-validated on Oct 11. |
-| Silver project validation | Implemented with the contractor check (#119). Databricks run required. No STOP check failed on the v5 run on Oct 11. |
-| Flood-control component and source-match outputs | Implemented. Runtime-validated in Databricks on the v5 run on Oct 11. All 13 STOP checks passed. |
-| `silver_project_region_map` and its validator | Implemented. Runtime-validated in Databricks on the v5 run on Oct 11. All 18 STOP checks passed. |
+| `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v6 on Oct 12. |
+| `silver_project` | Implemented. Runtime-validated in Databricks on rule version v6 on Oct 12. |
+| Silver project validation | Implemented. All 25 STOP checks passed on the v6 run on Oct 12. |
+| Flood-control component and source-match outputs | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 13 STOP checks passed. |
+| `silver_project_region_map` and its validator | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 18 STOP checks passed. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
 | Gold dimensions and facts | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
 
@@ -370,6 +370,43 @@ Flag findings remain visible for review.
 
 ## Runtime evidence
 
+### Run on rule version 6
+
+The code with `contractor_resolution_status` (#119) ran on Databricks on
+October 12, 2026, on commit `ff7cacc`.
+
+| Input | Value |
+| --- | --- |
+| Project rule version | `silver_project_v6` |
+| Projects | 265,656 from 265,661 component rows |
+| Projects without a usable budget | 87 |
+| Resolved reported budget (PHP) | 6,535,616,688,962.02 |
+| Projects with an approved status mapping | 265,554 |
+
+Row accounting, budgets, and taxonomy coverage are the same as in the v5 run.
+
+The resolution split that #119 asked for:
+
+| Field | `MISSING` | `CONFLICT` |
+| --- | ---: | ---: |
+| Implementing office | 97 | 0 |
+| Contractor | 19,142 | 0 |
+
+All 97 projects without an office have no `deo` value at all. No project has
+conflicting offices or conflicting contractors.
+
+The validator and the project-dependent tables passed every STOP check:
+
+| Table | Checks | STOP passed | FLAG with findings |
+| --- | ---: | ---: | ---: |
+| `silver_dpwh_project_component` and `silver_project` | 40 | 25 of 25 | 13 |
+| `silver_project_source_match` and `silver_flood_control_component` | 23 | 13 of 13 | 6 |
+| `silver_project_region_map` (Table 13) | 37 | 18 of 18 | 13 |
+| `silver_project_flood_map` (Table 15) | 54 | 37 of 37 | 13 |
+
+The project validator has one more STOP check than in v5: "Contractor follows
+the resolution rule".
+
 ### Run on rule version 5
 
 The current code, without the long-running columns (D-44), ran on Databricks on
@@ -526,9 +563,9 @@ run above replaces those category counts.
 - Flood-control reconciliation is implemented separately. See [Silver source reconciliation](silver_source_reconciliation.md).
 - Long-running classification lives in Gold only (D-44). Moving it to Silver, as D-38 intends over time, needs the DPWH snapshot date in Silver.
 - Stalled is out of scope for the capstone (D-46). `stalled_flag` stays `NULL`, and `stalled_rule_status` is `STALLED_RULE_REQUIRED`, which means no rule is approved.
-- 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The v5 run does not split them by status. In v6, the summary query in `05_silver_project` splits them, and splits contractors the same way. Those counts wait for the v6 run.
+- 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The v6 run on October 12 shows all 97 are `MISSING` and none is `CONFLICT`.
 - Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
-- The v6 run changes the project `run_id`. After it, rerun the project validator, the source match, Tables 13 and 15 with their validators, and Gold `03`, `04`, and `07`.
+- The v6 run on October 12 changed the project `run_id`. The project validator, the source match, Tables 13 and 15 with their validators, and Gold `03`, `04`, and `07` reran after it, and every STOP check passed. See [Run on rule version 6](#run-on-rule-version-6).
 
 ## Open questions for the team
 
