@@ -52,10 +52,22 @@ sequence but is not a data dependency. Table 14 never rereads R2 directly.
 If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. After a Bronze MGB force reload, the parsed table must carry both the current MGB snapshot ID and the current Bronze MGB ingest run ID. A matching snapshot alone is not sufficient. Table 14 blocks stale parsed lineage before spatial processing.
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse
+   when the MGB snapshot, the Bronze ingest run, and the parse rule are unchanged.
 3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
 4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
 5. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+
+After a Bronze MGB force reload with the same snapshot ID, rerun `08a` and its
+validator before Table 14. The parsed table must carry both the current MGB
+snapshot ID and the current Bronze ingest run ID. A matching snapshot alone is
+not enough. Table 14 stops on stale parsed lineage before spatial processing,
+and validator 07 repeats the check.
+
+The expected ingest run comes from the `_ingest_run_id` of the current
+`01-bronze.flood_susceptibility` rows, not from `load_log.run_id`. A
+`SKIPPED_IDEMPOTENT` load writes a new `load_log` run ID but keeps the Bronze
+rows, so a `load_log` comparison would stop every routine Bronze rerun.
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.
@@ -545,14 +557,17 @@ All seven data-quality attributes have executable checks:
 - Validity: controlled statuses, zero versus no data, area and share ranges,
   and geometry findings
 - Uniqueness: keys, grain, and boundary lineage duplicates
-- Timeliness: newest loads and validation, current snapshots, current mapping version, one run, historical reference comparison, and parsed MGB snapshot and ingest lineage that match the current accepted Bronze MGB load
+- Timeliness: newest loads and validation, current snapshots, current mapping
+  version, one run, historical reference comparison, and parsed MGB lineage that
+  matches the current Bronze MGB rows
 
 ## STOP and FLAG
 
 STOP examples:
 
 - unsafe MGB, boundary, PSGC, or CONFIG upstream state
-- stale `silver_mgb_flood_area` lineage, including a parsed MGB snapshot or ingest run that does not match the current accepted Bronze MGB load
+- stale `silver_mgb_flood_area` lineage, where the parsed snapshot or ingest
+  run differs from the current Bronze MGB rows
 - source accounting that does not reconcile
 - ambiguous approved mapping
 - incomplete grid or duplicated grain

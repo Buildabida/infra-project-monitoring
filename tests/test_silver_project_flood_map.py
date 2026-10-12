@@ -797,11 +797,34 @@ def test_43_parsed_mgb_gate_requires_current_bronze_ingest():
 
 def test_44_validator_blocks_stale_parsed_mgb_lineage():
     validator = sql(VALIDATION_NOTEBOOK)
+    check = check_block("Parsed MGB lineage matches current accepted Bronze MGB ingest")
+    assert "'attribute', 'Timeliness'" in check
+    assert "'action', 'stop'" in check
+    assert "CAST(stale_parsed_mgb_lineage_rows AS BIGINT)" in check
 
-    assert "Parsed MGB lineage matches current accepted Bronze MGB ingest" in validator
+    # one run-level comparison, joined into the single metrics row
+    lineage = view_body(validator, "project_flood_validation_metrics")
+    assert "parsed_mgb.parsed_snapshot_id <=> context.latest_mgb_snapshot_id" in lineage
+    assert (
+        "parsed_mgb.parsed_ingest_run_id <=> context.bronze_mgb_ingest_run_id"
+        in lineage
+    )
+    assert "CROSS JOIN parsed_mgb_lineage;" in lineage
+    row_evidence = lineage[lineage.index("row_evidence AS (") :]
+    row_evidence = row_evidence[: row_evidence.index("output_metrics AS (")]
+    assert "stale_parsed_mgb_lineage_rows" not in row_evidence
 
-    assert "'action', 'stop'" in validator
 
-    assert "parsed_mgb.parsed_snapshot_id <=> latest_mgb_snapshot_id" in validator
-
-    assert "parsed_mgb.parsed_ingest_run_id <=> latest_mgb_ingest_run_id" in validator
+def test_45_parsed_mgb_ingest_is_compared_with_bronze_not_load_log():
+    # a SKIPPED_IDEMPOTENT load logs a new load_log run_id but keeps the Bronze
+    # _ingest_run_id, so the expected ingest run must come from the Bronze rows
+    context = squash(
+        view_body(sql(VALIDATION_NOTEBOOK), "project_flood_validation_context")
+    )
+    assert (
+        "MAX(_ingest_run_id) AS bronze_mgb_ingest_run_id "
+        "FROM `01-bronze`.flood_susceptibility" in context
+    )
+    assert "CROSS JOIN current_bronze_mgb;" in context
+    assert "THEN run_id END) AS latest_mgb_ingest_run_id" not in context
+    assert "latest_mgb_ingest_run_id" not in sql(VALIDATION_NOTEBOOK)

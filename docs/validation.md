@@ -623,6 +623,8 @@ Blocking checks protect:
 - safe newest MGB and boundary loads and Bronze validation
 - safe Silver CONFIG and selected PSGC validation
 - published snapshots, PSGC run, and mapping version that are current
+- a parsed `silver_mgb_flood_area` with the latest MGB snapshot and the
+  `_ingest_run_id` of the current Bronze MGB rows
 - one deterministic run
 - MGB source-row accounting against the audited row count
 - one-to-one approved mapping and approved-only published levels
@@ -722,6 +724,8 @@ Blocking checks protect:
 - safe Silver CONFIG and selected project validation
 - published MGB snapshot, project snapshot, project run, and mapping version
   that are current
+- a parsed `silver_mgb_flood_area` with the latest MGB snapshot and the
+  `_ingest_run_id` of the current Bronze MGB rows
 - one deterministic run and one published version set
 - MGB source-row accounting against the audited row count
 - one-to-one approved mapping and approved-only levels and ranks
