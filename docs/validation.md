@@ -2,8 +2,8 @@
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
-project-region, regional flood-exposure, and project-flood mapping validators, and
-the Gold validator.
+project-region, regional flood-exposure, and project-flood mapping validators, the
+Gold validator, and the analytics validator.
 
 ## Bronze validation
 
@@ -844,8 +844,8 @@ Every check names the columns it tested in `details`.
 ### Gold checks that wait for the marts
 
 Issue #61 also asks that a mart that uses region key `0` in a ratio fails.
-There are no marts yet. When the dashboard datasets exist, add a check that
-their per-person ratios leave key `0` out.
+The analytics validator now runs this check on `analytics_population_equity`.
+See [analytics validation](#analytics-validation).
 
 ### Gold validation runtime evidence
 
@@ -875,6 +875,94 @@ An earlier run that day, from commit `6770773`, used rule version
 `gold-validation-v1` and 76 checks. It found the same FLAG counts. After the
 review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
 population count is now part of a STOP check. So the rule version changed.
+
+## Analytics validation
+
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the six analytics
+views in `05-analytics` that the dashboard and Genie read (D-50, D-51). It covers
+issue #126. It only reads Gold, the views, and `gold_dq_results`, and it never
+changes them.
+
+Run it after the views:
+
+1. `notebooks/04_validation/09_validation_gold.ipynb`, which must pass
+2. `notebooks/05_analytics/01_business_questions.ipynb`
+3. `notebooks/04_validation/10_validation_analytics.ipynb`
+
+The validator rebuilds every view straight from Gold with its own SQL and
+compares it row by row. The expected values live in the validator, not in the
+analytics notebook, so the views never check themselves.
+
+### Analytics gates
+
+Two gates run before any check. Each stops the run with an error and saves no
+evidence:
+
+- **One current snapshot:** current `fact_project_snapshot` rows must hold
+  exactly one DPWH snapshot, with no empty snapshot ID. The analytics notebook
+  runs the same gate before it builds the views. Mixed snapshots would otherwise
+  add up under one snapshot ID.
+- **Gold passed:** the latest Gold validation of the current project fact has no
+  failed STOP check, and it covers the current population and exposure runs.
+
+### Analytics stop checks
+
+There are 74 STOP checks. They cover:
+
+- **Grain:** one row per documented key in each view, and every expected row is
+  there. Every official region keeps a row, even with no mapped project.
+- **Measures:** every count, budget, average, share, rank and rate equals the
+  value rebuilt from Gold. A `NULL` budget stays `NULL`.
+- **Totals:** the regional views, key `0`, and unknown keys add up to every
+  current Gold project and budget. Q2 adds up to all of them. Shares add up to
+  100 within 0.01.
+- **Key `0`:** no regional view has a key `0` row, and per-person ratios leave
+  it out.
+- **Coverage:** only `REPORTED` regions get a rank, a share, or a ratio. BARMM is
+  never ranked.
+- **Flood:** Q2's strict and broad flood shares match Gold (D-39). Q5 shows a
+  total area only when the levels may be added, and its five project-point
+  groups add up to the flood control count.
+- **Lineage:** every view carries the current DPWH snapshot ID, and Q5 also the
+  current MGB snapshot ID (D-29).
+
+### Analytics review flags
+
+There are 13 FLAG checks. They keep known data limits visible with their counts:
+
+- projects left out on region key `0`, by match status
+- projects without a budget, and projects with a budget of 0
+- regions with no or limited DPWH coverage, and regions left out of the equity
+  comparison
+- projects with no usable category, and Multi-sector projects counted whole in
+  the broad flood share
+- projects with no mapped status group, and projects without a long-running flag
+- regions without a primary population
+- flood control projects not placed in an MGB level, regions whose flood levels
+  overlap, and regions with no evaluated exposure
+
+A FLAG check that finds nothing is `PASS`. Every check names the columns it
+tested in `details`.
+
+### Analytics evidence and reruns
+
+The validator saves its results to `04-validation.analytics_dq_results` with
+`MERGE`, before its STOP gate runs (D-52). The table has the same columns as
+`gold_dq_results`, with `layer = 'analytics'`. The gate reads the saved rows, so
+a failed check stays visible after the run stops.
+
+The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot`,
+`dim_region`, `fact_region_population` and `fact_region_flood_exposure`, and the
+rule version `analytics-validation-v1`. The `MERGE` key is the validation run ID,
+the view, and the check name. So a rerun on the same Gold data updates the same
+rows instead of adding copies. New Gold runs give a new ID and a new set of rows.
+
+### Analytics validation runtime evidence
+
+On October 12, 2026, both notebooks ran twice on serverless compute. All 74 STOP
+checks passed, 11 FLAG checks found data limits, and the second run updated the
+same 87 rows. The run used Gold from before #125. See the
+[analytics evidence](evidence/analytics-views/README.md).
 
 ## Future validation documents
 
