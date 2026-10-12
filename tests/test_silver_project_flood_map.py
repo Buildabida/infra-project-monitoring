@@ -793,3 +793,15 @@ def test_43_parsed_mgb_gate_requires_current_bronze_ingest():
     assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in flood_map
 
     assert "silver_mgb_flood_area is stale" in flood_map
+
+
+def test_44_validator_blocks_stale_parsed_mgb_lineage():
+    validator = sql(VALIDATION_NOTEBOOK)
+
+    assert "Parsed MGB lineage matches current accepted Bronze MGB ingest" in validator
+
+    assert "'action', 'stop'" in validator
+
+    assert "parsed_mgb.parsed_snapshot_id <=> latest_mgb_snapshot_id" in validator
+
+    assert "parsed_mgb.parsed_ingest_run_id <=> latest_mgb_ingest_run_id" in validator

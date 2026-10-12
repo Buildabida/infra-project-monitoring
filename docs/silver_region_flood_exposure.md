@@ -33,7 +33,7 @@ flood-control spending is enough, fair, effective, or caused by any factor.
 | Input | Role in Table 14 |
 | --- | --- |
 | `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
-| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot and Bronze ingest run |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `02-silver.silver_psgc_place` | Current official region set and PSGC lineage |
 | `01-bronze.boundaries` | Region boundary geometry, boundary versions, and boundary lineage |
@@ -52,8 +52,7 @@ sequence but is not a data dependency. Table 14 never rereads R2 directly.
 If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse
-   when the MGB snapshot and parse rule are unchanged.
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. After a Bronze MGB force reload, the parsed table must carry both the current MGB snapshot ID and the current Bronze MGB ingest run ID. A matching snapshot alone is not sufficient. Table 14 blocks stale parsed lineage before spatial processing.
 3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
 4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
 5. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
@@ -546,14 +545,14 @@ All seven data-quality attributes have executable checks:
 - Validity: controlled statuses, zero versus no data, area and share ranges,
   and geometry findings
 - Uniqueness: keys, grain, and boundary lineage duplicates
-- Timeliness: newest loads and validation, current snapshots, current mapping
-  version, one run, and historical reference comparison
+- Timeliness: newest loads and validation, current snapshots, current mapping version, one run, historical reference comparison, and parsed MGB snapshot and ingest lineage that match the current accepted Bronze MGB load
 
 ## STOP and FLAG
 
 STOP examples:
 
 - unsafe MGB, boundary, PSGC, or CONFIG upstream state
+- stale `silver_mgb_flood_area` lineage, including a parsed MGB snapshot or ingest run that does not match the current accepted Bronze MGB load
 - source accounting that does not reconcile
 - ambiguous approved mapping
 - incomplete grid or duplicated grain

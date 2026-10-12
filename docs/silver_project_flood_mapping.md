@@ -49,7 +49,7 @@ contract. Neither table is derived from the other.
 | --- | --- |
 | `02-silver.silver_project` | Canonical project identity, parsed coordinates, and project lineage |
 | `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
-| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot and Bronze ingest run |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `01-bronze.load_log` | Newest terminal MGB and DPWH load state, audited row count, load time, and optional publisher versions |
 | `04-validation.dq_results` | Latest Bronze MGB and DPWH validation evidence |
@@ -69,9 +69,9 @@ mapping and project-flood mapping are separate relationships.
 If Bronze, CONFIG, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
-   `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless
-   they already ran for the current MGB snapshot.
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and `notebooks/04_validation/06a_validation_silver_mgb_flood_area`.ipynb, unless they already ran for the current MGB snapshot and Bronze ingest run.
+
+After a Bronze MGB force reload, the parsed table must carry both the current MGB snapshot ID and the current Bronze MGB ingest run ID. A matching snapshot alone is not sufficient. Table 15 blocks stale parsed lineage before project classification.
 3. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
 4. Run `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`.
 
@@ -375,13 +375,14 @@ All seven data-quality attributes have executable checks:
 - Uniqueness: keys, grain, and no project fan-out
 - Timeliness: newest safe loads and Bronze validation, current MGB and DPWH
   snapshots, current project run and validation, current mapping version, one
-  run, and historical reference comparison
+  run, and historical reference comparison, and parsed MGB snapshot and ingest lineage that match the current accepted Bronze MGB load
 
 ## STOP and FLAG
 
 STOP protects correctness. Examples:
 
 - unsafe or stale MGB, DPWH, project, or CONFIG upstream state
+- stale `silver_mgb_flood_area` lineage, including a parsed MGB snapshot or ingest run that does not match the current accepted Bronze MGB load
 - source accounting that does not reconcile
 - ambiguous approved mapping
 - a missing, extra, or duplicated project
