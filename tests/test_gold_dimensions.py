@@ -41,6 +41,11 @@ def code_without_comments(path):
     return "\n".join(line.split("--", 1)[0] for line in sql(path).splitlines())
 
 
+def squashed(path):
+    """Return the code without comments, with every run of whitespace as one space."""
+    return " ".join(code_without_comments(path).split())
+
+
 def ddl_columns(text, table):
     """Return (column, type) pairs from one CREATE TABLE statement, in order."""
     start = text.index(f"CREATE TABLE IF NOT EXISTS `03-gold`.{table} (\n")
@@ -132,35 +137,45 @@ def test_06_every_table_has_a_comment():
 
 
 def test_07_keys_are_deterministic_hashes():
-    expected = {
-        "00_gold_dim_date": "CAST(DATE_FORMAT(calendar.calendar_date, 'yyyyMMdd') AS INT) AS date_key",
-        "01_gold_dim_region": "AS region_key",
-        "02_gold_dim_flood_susceptibility": "AS flood_susceptibility_key",
-        "03_gold_dim_project_status": "AS status_key",
-        "04_gold_dim_project": "AS project_key",
+    # the full d-33 recipe of every key, so dropping any part of it fails (#121)
+    recipes = {
+        "00_gold_dim_date": [
+            "CAST(DATE_FORMAT(calendar.calendar_date, 'yyyyMMdd') AS INT) AS date_key",
+        ],
+        "01_gold_dim_region": [
+            (
+                "XXHASH64(CONCAT_WS( '|', 'PSGC_REGION', region.psgc_code, "
+                "COALESCE(region.psgc_version, region.source_snapshot_id) )) AS region_key"
+            ),
+            (
+                "XXHASH64(CONCAT_WS( '|', 'REGION_BOUNDARY', "
+                "CAST(region.region_key AS STRING), parsed.boundary_version )) AS boundary_key"
+            ),
+        ],
+        "02_gold_dim_flood_susceptibility": [
+            (
+                "HASH(CONCAT_WS( '|', 'FLOOD_SUSCEPTIBILITY', levels.source_system, "
+                "levels.flood_susceptibility_level, levels.source_version )) "
+                "AS flood_susceptibility_key"
+            ),
+        ],
+        "03_gold_dim_project_status": [
+            (
+                "HASH(CONCAT_WS( '|', 'PROJECT_STATUS', project_source_system, "
+                "status_values.source_status, selected.status_mapping_version )) AS status_key"
+            ),
+        ],
+        "04_gold_dim_project": [
+            (
+                "XXHASH64(CONCAT_WS('|', 'PROJECT', project_source_system, "
+                "project.contract_id)) AS project_key"
+            ),
+        ],
     }
-    hash_function = {
-        "01_gold_dim_region": "XXHASH64(",
-        "02_gold_dim_flood_susceptibility": "HASH(CONCAT_WS(",
-        "03_gold_dim_project_status": "HASH(CONCAT_WS(",
-        "04_gold_dim_project": "XXHASH64(",
-    }
-    for name, marker in expected.items():
-        text = sql(GOLD / f"{name}.ipynb")
-        assert marker in text, name
-        if name in hash_function:
-            assert hash_function[name] in text, name
-    region = sql(GOLD / "01_gold_dim_region.ipynb")
-    assert ")) AS boundary_key" in region
-    assert "XXHASH64(CONCAT_WS(\n        '|', 'REGION_BOUNDARY'" in region
-    labels = {
-        "01_gold_dim_region": "'|', 'PSGC_REGION',",
-        "02_gold_dim_flood_susceptibility": "'|', 'FLOOD_SUSCEPTIBILITY',",
-        "03_gold_dim_project_status": "'|', 'PROJECT_STATUS',",
-        "04_gold_dim_project": "'|', 'PROJECT',",
-    }
-    for name, label in labels.items():
-        assert label in sql(GOLD / f"{name}.ipynb"), (name, label)
+    for name, expected in recipes.items():
+        text = squashed(GOLD / f"{name}.ipynb")
+        for recipe in expected:
+            assert text.count(recipe) == 1, (name, recipe)
 
 
 def test_08_no_random_or_current_time_in_any_notebook():

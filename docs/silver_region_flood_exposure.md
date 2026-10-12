@@ -150,8 +150,9 @@ The Esri path first reads every ring as its own polygon. When that reading is
 OGC-invalid and the feature has rings in both directions, it reads the
 counterclockwise rings as holes and subtracts them from the clockwise rings
 with `ST_DIFFERENCE`. A valid first reading is never changed, so a separate
-island drawn counterclockwise keeps its area. This follows the Esri format; it
-is not a repair, and a geometry that is still invalid is excluded and flagged.
+island drawn counterclockwise keeps its area. This follows the Esri format. It
+is not a repair. A geometry that is still invalid goes to the D-43 repair, and
+it is excluded and flagged only when that repair fails its checks.
 
 The Esri path builds the first reading from the `rings` text with string
 functions. It reads the rings into arrays with `FROM_JSON` only when the first
@@ -504,6 +505,7 @@ whether a feature existed for that region.
 The run ID hashes these contracts:
 
 - MGB snapshot, ingest run, and publisher version or `NO_PUBLISHER_VERSION`
+- MGB parse run of `silver_mgb_flood_area` (`mgb_flood_area_run_id`)
 - mapping version and mapping source contract
 - boundary snapshot, ingest run, and boundary version
 - PSGC snapshot, Silver run, and PSGC version
@@ -518,12 +520,12 @@ ID and keys and never appends duplicates.
 - The spatial join is MGB rows × the small safe region set, broadcast.
 - It is never MGB rows × all boundary shapes, and never MGB rows × projects.
 - Only lineage columns are read for the upstream gates.
-- The transformation reads MGB geometry text three times: profile, accounting
-  gate, and publish. Only the gate and the publish step parse geometry.
+- The transformation reads parsed WKB from `silver_mgb_flood_area`. It never
+  parses MGB geometry text (D-42).
 - The dissolve and the cross-level union share one aggregation pass.
 - Intermediate geometry uses temporary views, not permanent tables.
 - No cache, repartition, `OPTIMIZE`, `ZORDER`, Python, UDF, or spatial library is used.
-- The validator parses MGB once and tests each row against one safe-region union.
+- The validator reads the same parsed WKB and tests each row against one safe-region union.
 
 ## Validation
 
@@ -587,7 +589,9 @@ A FLAG is a visible source limitation, not a failure.
 - These geographic findings are source-version limitations, not pipeline
   failures. Their exposure measures remain `NULL` until safe geography is
   available.
-- Invalid MGB geometry is excluded rather than repaired.
+- Invalid MGB geometry is repaired under D-43 when the repair passes its
+  checks. A polygon that fails them stays `INVALID_GEOMETRY` and is excluded.
+  After the October 11 run, no polygon stays invalid.
 - Blank and `No rating` MGB rows remain unresolved by design.
 - The optional MGB publisher version is unavailable for the selected snapshot.
 - Cross-level overlap means susceptibility-level areas must not automatically

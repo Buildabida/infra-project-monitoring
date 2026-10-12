@@ -39,6 +39,17 @@ def code_without_comments(path):
     return "\n".join(line.split("--", 1)[0] for line in sql(path).splitlines())
 
 
+def squashed(path):
+    """Return the code without comments, with every run of whitespace as one space."""
+    return " ".join(code_without_comments(path).split())
+
+
+def stop_check(text, message):
+    """Return one squashed ASSERT_TRUE statement, from its start to its STOP message."""
+    end = text.index(f"'{message}'")
+    return text[text.rindex("SELECT ASSERT_TRUE(", 0, end) : end]
+
+
 def ddl_columns(text, table):
     start = text.index(f"CREATE TABLE IF NOT EXISTS `03-gold`.{table} (\n")
     body = text[start:].split("\n", 1)[1].split("\n)\nUSING DELTA", 1)[0]
@@ -112,15 +123,24 @@ def test_04_tables_are_created_once_and_loaded_with_merge():
 
 
 def test_05_keys_are_deterministic_hashes_with_a_label():
-    labels = {
-        "05_gold_fact_region_population": "'REGION_POPULATION'",
-        "06_gold_fact_region_flood_exposure": "'REGION_FLOOD_EXPOSURE'",
-        "07_gold_fact_project_snapshot": "'PROJECT_SNAPSHOT'",
+    # the full d-33 recipe of every key, so dropping any part of it fails (#121)
+    recipes = {
+        "05_gold_fact_region_population": (
+            "XXHASH64(CONCAT_WS( '|', 'REGION_POPULATION', CAST(region_key AS STRING), "
+            "CAST(reference_year AS STRING), source_name )) AS region_population_fact_key"
+        ),
+        "06_gold_fact_region_flood_exposure": (
+            "XXHASH64(CONCAT_WS( '|', 'REGION_FLOOD_EXPOSURE', CAST(region_key AS STRING), "
+            "CAST(flood_susceptibility_key AS STRING), mgb_source_snapshot_id, "
+            "boundary_version )) AS region_flood_exposure_key"
+        ),
+        "07_gold_fact_project_snapshot": (
+            "XXHASH64(CONCAT_WS( '|', 'PROJECT_SNAPSHOT', CAST(project_key AS STRING), "
+            "source_snapshot_id )) AS project_snapshot_key"
+        ),
     }
-    for name, label in labels.items():
-        text = sql(GOLD / f"{name}.ipynb")
-        assert "XXHASH64(CONCAT_WS(" in text, name
-        assert label in text, name
+    for name, recipe in recipes.items():
+        assert squashed(GOLD / f"{name}.ipynb").count(recipe) == 1, name
 
 
 def test_06_no_random_current_time_backslash_or_spatial_work():
@@ -192,6 +212,22 @@ def test_09_long_running_follows_d32():
     assert "completion date" in decisions.split("| D-32 |", 1)[1].split("| D-33 |")[0]
 
 
+def test_09b_long_running_is_null_when_completion_is_before_start():
+    # d-49: a completion before the start cannot be measured (#116)
+    squashed_text = squashed(PROJECT)
+    assert (
+        "CASE WHEN project_rows.start_date IS NULL THEN NULL "
+        "WHEN project_rows.completion_date < project_rows.start_date THEN NULL "
+        "ELSE ADD_MONTHS(project_rows.start_date, long_running_months) < LEAST("
+        in squashed_text
+    )
+    assert "'gold-delivery-v3|long-running=start-to-completion-or-snapshot>'" in (
+        squashed_text
+    )
+    decisions = " ".join(DECISIONS.read_text(encoding="utf-8").split())
+    assert "| D-49 |" in decisions
+
+
 def test_10_progress_is_published_only_when_silver_marks_it_valid():
     text = code_without_comments(PROJECT)
     # silver checks the 0 to 100 range once, so gold copies its quality status
@@ -205,14 +241,67 @@ def test_10_progress_is_published_only_when_silver_marks_it_valid():
     )
     assert "BETWEEN 0 AND 100" not in text
     # the rule label is built from the same variable, so it cannot drift
-    assert "'-months|progress=silver-quality-', published_progress_quality" in text
+    assert (
+        "'-months|completion-before-start=null|progress=silver-quality-', "
+        "published_progress_quality" in text
+    )
 
 
 def test_11_current_snapshot_is_maintained_and_checked():
     text = sql(PROJECT)
     assert "TRUE AS is_current_snapshot" in text
-    assert "UPDATE `03-gold`.fact_project_snapshot\nSET is_current_snapshot = (" in text
     assert "'STOP: a project has more than one current snapshot row'" in text
+    # one merge is one commit, so a failure cannot leave two current rows (#116)
+    squashed_text = squashed(PROJECT)
+    assert "UPDATE `03-gold`.fact_project_snapshot" not in squashed_text
+    assert squashed_text.count("MERGE INTO `03-gold`.fact_project_snapshot ") == 1
+    assert (
+        "WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT * "
+        "WHEN NOT MATCHED BY SOURCE AND target.is_current_snapshot "
+        "THEN UPDATE SET is_current_snapshot = FALSE;" in squashed_text
+    )
+    # the current snapshot is also the newest one, checked before the merge
+    message = (
+        "STOP: Silver holds an older DPWH snapshot than fact_project_snapshot. "
+        "Load the newest snapshot first."
+    )
+    check = stop_check(squashed_text, message)
+    assert (
+        "COUNT_IF(fact.snapshot_date_key > "
+        "CAST(DATE_FORMAT(selected.snapshot_date, 'yyyyMMdd') AS INT)) = 0" in check
+    )
+    assert squashed_text.index(f"'{message}'") < squashed_text.index(
+        "MERGE INTO `03-gold`.fact_project_snapshot "
+    )
+
+
+def test_11b_a_silver_status_without_a_dimension_row_stops_the_load():
+    # key 0 is only for an empty silver status. a stale dimension stops the run (#116)
+    squashed_text = squashed(PROJECT)
+    message = (
+        "STOP: a Silver status has no active dim_project_status row. "
+        "Rerun 03_gold_dim_project_status first."
+    )
+    assert (
+        f"SELECT ASSERT_TRUE( COUNT(*) = 0, '{message}' ) "
+        "FROM `02-silver`.silver_project AS project "
+        "LEFT ANTI JOIN `03-gold`.dim_project_status AS status "
+        "ON status.source_system = project_source_system "
+        "AND status.source_status = project.status_raw "
+        "AND status.is_active AND status.status_key <> 0 "
+        "WHERE project.status_raw IS NOT NULL;" in squashed_text
+    )
+    # the stop uses the same join as the status lookup that falls back to key 0
+    assert (
+        "LEFT JOIN `03-gold`.dim_project_status AS status "
+        "ON status.source_system = project_source_system "
+        "AND status.source_status = project_rows.status_raw "
+        "AND status.is_active AND status.status_key <> 0" in squashed_text
+    )
+    assert "COALESCE(status.status_key, 0) AS status_key" in squashed_text
+    assert squashed_text.index(f"'{message}'") < squashed_text.index(
+        "MERGE INTO `03-gold`.fact_project_snapshot "
+    )
 
 
 def test_12_every_fact_resolves_keys_and_gates_on_silver_validation():
@@ -226,6 +315,72 @@ def test_12_every_fact_resolves_keys_and_gates_on_silver_validation():
     project = sql(PROJECT)
     assert "LEFT ANTI JOIN `03-gold`.dim_date AS calendar" in project
     assert "COUNT(*) = (SELECT COUNT(*) FROM `02-silver`.silver_project)" in project
+
+
+def test_12b_every_fact_stops_on_a_missing_key_before_its_merge():
+    # each fact stops before its MERGE when a key does not resolve (#121)
+    stops = {
+        "05_gold_fact_region_population": (
+            (
+                "STOP: every population row must resolve to one official region with a "
+                "unique key, a load time, and the Silver total"
+            ),
+            ["COUNT_IF(region_key IS NULL OR region_key = 0) = 0"],
+        ),
+        "06_gold_fact_region_flood_exposure": (
+            (
+                "STOP: every exposure row must resolve to a real region and flood level "
+                "with a unique key and the Silver areas"
+            ),
+            [
+                "COUNT_IF(region_key IS NULL OR region_key = 0) = 0",
+                (
+                    "COUNT_IF(flood_susceptibility_key IS NULL OR "
+                    "flood_susceptibility_key = 0) = 0"
+                ),
+            ],
+        ),
+        "07_gold_fact_project_snapshot": (
+            (
+                "STOP: every project needs one fact row with a project, region, and "
+                "flood key, and the Silver budget total"
+            ),
+            [
+                "COUNT_IF(project_key IS NULL) = 0",
+                "COUNT_IF(region_key IS NULL) = 0",
+                "COUNT_IF(flood_susceptibility_key IS NULL) = 0",
+            ],
+        ),
+    }
+    for name, (message, predicates) in stops.items():
+        text = squashed(GOLD / f"{name}.ipynb")
+        check = stop_check(text, message)
+        for predicate in predicates:
+            assert predicate in check, (name, predicate)
+        merge = text.index(f"MERGE INTO `03-gold`.{NOTEBOOK_TABLES[name]} ")
+        assert text.index(f"'{message}'") < merge, name
+
+
+def test_12c_region_joins_and_totals_are_null_safe():
+    # psgc_version can be NULL, and = drops every NULL match. <=> keeps it (#121)
+    predicates = {
+        "05_gold_fact_region_population": [
+            "AND population.psgc_version <=> region.psgc_version",
+            "AND SUM(population_count) <=> (SELECT SUM(silver.population_count)",
+        ],
+        "06_gold_fact_region_flood_exposure": [
+            "AND exposure.psgc_version <=> region.psgc_version",
+            "AND SUM(susceptible_area_sqkm) <=> ( SELECT SUM(silver.susceptible_area_sqkm)",
+        ],
+        "07_gold_fact_project_snapshot": [
+            "AND project_rows.psgc_version <=> region.psgc_version",
+            "AND SUM(reported_budget_pesos) <=> ( SELECT SUM(silver.reported_budget_pesos)",
+        ],
+    }
+    for name, expected in predicates.items():
+        text = squashed(GOLD / f"{name}.ipynb")
+        for predicate in expected:
+            assert predicate in text, (name, predicate)
 
 
 def test_13_facts_read_source_systems_from_the_dimensions():
