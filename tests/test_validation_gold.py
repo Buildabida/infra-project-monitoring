@@ -175,7 +175,8 @@ def test_07_evidence_is_saved_before_the_stop_gate():
         "population_fact.population_fact_run_id, exposure_fact.exposure_fact_run_id, "
         "validation_rule_version ), 256) AS validation_run_id"
     ) in squash(text)
-    assert "DEFAULT 'gold-validation-v1'" in text
+    # the rule version changes whenever a check changes, so old evidence keeps its own ID
+    assert "DEFAULT 'gold-validation-v2'" in text
 
 
 def test_08_every_check_names_its_columns():
@@ -361,6 +362,19 @@ def test_16_key_zero_rules_match_the_project_fact_notebook():
 def test_17_key_zero_and_current_row_rules_are_full_recipes():
     code = squash(code_without_comments(VALIDATION))
     for recipe in [
+        # an empty value never passes a STOP check
+        (
+            "COUNT_IF(is_primary_source AND (population_count IS NULL OR "
+            "population_count <= 0)) AS non_positive_rows"
+        ),
+        (
+            "COUNT_IF(region_match_method = non_geographic_method AND NOT ( region_key = 0 "
+            "AND region_match_status <=> non_geographic_match_status )) AS central_office_breaks"
+        ),
+        (
+            "COUNT_IF(region_key = 0 AND NOT (is_geographic_region <=> FALSE)) "
+            "AS region_key_zero_geographic_rows"
+        ),
         # key 0 exactly when the documented case applies, never more and never less
         (
             "COUNT_IF((region_key = 0) = COALESCE( ARRAY_CONTAINS(region_key_match_statuses, "
