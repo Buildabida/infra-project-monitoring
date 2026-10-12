@@ -129,7 +129,7 @@ Every `NULL` sector or status keeps its reason in `infra_type_mapping_status` or
 
 ![Gold gate ASSERT_TRUE returned null](images/02-gold-gate.png)
 
-### Validation flags
+### Saved FLAG rows
 
 ![The 11 FLAG rows saved to analytics_dq_results](images/03-validation-flags.png)
 
@@ -141,7 +141,7 @@ Every `NULL` sector or status keeps its reason in `infra_type_mapping_status` or
 
 ![One validation run ID with 87 rows](images/05-rerun-evidence-rows.png)
 
-### No placeholder text
+### Placeholder text query
 
 ![Zero Unknown or Unmapped values in Q2, Q3 and Q6](images/06-no-unknown-text.png)
 
