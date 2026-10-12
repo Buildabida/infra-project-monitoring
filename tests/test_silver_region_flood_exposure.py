@@ -665,8 +665,9 @@ def test_62_validation_blocks_unsafe_territory_status():
 def test_63_territory_check_catches_provinces_that_left_or_joined():
     exposure = code_without_comments(EXPOSURE_NOTEBOOK)
     territory = view_body(exposure, "region_boundary_territory_check")
-    # left: a boundary province the current PSGC moved or no longer lists
-    assert "current_place.region_code <> region.psgc_region_code" in territory
+    # left: a boundary province the current PSGC moved or no longer lists. The
+    # null-safe form also counts a listed province whose region is NULL (#114)
+    assert "NOT (current_place.region_code <=> region.psgc_region_code)" in territory
     assert "COALESCE(current_place.region_code, 'unlisted')" in territory
     # joined: a current PSGC province the boundary snapshot does not hold
     assert "LEFT ANTI JOIN boundary_province" in territory
@@ -765,3 +766,54 @@ def test_69_exposure_gate_reads_bronze_ingest_inside_the_assert():
     assertion = assertion[: assertion.index("silver_mgb_flood_area is stale")]
     assert "parsed_snapshot_id <> mgb_source_snapshot_id" in assertion
     assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in assertion
+
+
+def test_70_srid_checks_read_the_stored_srid():
+    # issue #114: ST_SETSRID sets source_geometry_srid, so ST_SRID of that geometry
+    # always equals it. The checks read silver_mgb_flood_area.geometry_srid instead
+    for path in (EXPOSURE_NOTEBOOK, VALIDATION_NOTEBOOK):
+        code = code_without_comments(path)
+        assert "area.geometry_srid" in code, path.name
+        assert "ST_SRID(mgb_geometry) <> source_geometry_srid" not in code, path.name
+        assert "ST_SRID(classified.mgb_geometry)" not in code, path.name
+    assert (
+        "AND NOT (geometry_srid <=> source_geometry_srid)) AS usable_wrong_srid_rows"
+        in (code_without_comments(EXPOSURE_NOTEBOOK))
+    )
+    assert "THEN NOT (classified.geometry_srid <=> source_geometry_srid)" in (
+        code_without_comments(VALIDATION_NOTEBOOK)
+    )
+
+
+def test_71_source_polygon_count_is_counted_apart_from_fragments():
+    # issue #114: source_polygon_count was a copy of intersection_fragment_count,
+    # so the validator compared a column with itself
+    exposure = code_without_comments(EXPOSURE_NOTEBOOK)
+    assert "intersection_fragment_count AS source_polygon_count" not in exposure
+    assert "COUNT(DISTINCT object_id) AS source_polygon_count" in exposure
+    assert "COUNT(*) AS intersection_fragment_count" in exposure
+    assert "        mgb.object_id,\n" in exposure
+    validation = sql(VALIDATION_NOTEBOOK)
+    assert (
+        "published.source_polygon_count <> published.intersection_fragment_count"
+        in validation
+    )
+
+
+def test_72_territory_left_count_uses_one_null_safe_predicate():
+    # issue #114: the notebook and the validator counted a NULL region differently
+    predicate = "NOT (current_place.region_code <=> region.psgc_region_code)"
+    exposure = code_without_comments(EXPOSURE_NOTEBOOK)
+    validation = code_without_comments(VALIDATION_NOTEBOOK)
+    assert exposure.count(predicate) == 2
+    assert validation.count(predicate) == 2
+    assert "current_place.psgc_code IS NULL" not in validation
+    assert "current_place.region_code IS NULL" not in exposure
+
+
+def test_73_blank_geometry_reference_matches_the_restored_bronze():
+    # issue #115: the October 10 Bronze reload restored the 1,815 blank polygons
+    text = sql(VALIDATION_NOTEBOOK)
+    assert "reference_blank_geometry_rows BIGINT DEFAULT 0;" in text
+    assert "DEFAULT 1815" not in text
+    assert "'silver-region-flood-exposure-validation-v2'" in text

@@ -118,7 +118,11 @@ are smaller than 0.001 sq km. In a sample of 50 unmatched projects, all 17 that
 sat inside an MGB polygon sat inside one of these 297.
 
 The tolerance values are part of `parse_rule_version`, so changing them forces
-a new parse.
+a new parse. The repair label in `parse_rule_version` is `buffer0`, which names
+the zero-distance buffer that D-43 uses. It was `makevalid` until #115.
+Databricks SQL has no `ST_MAKEVALID`, so the old label named a repair the code
+never ran. The rename changes the parse run ID and every `mgb_flood_area_key`.
+So `08a`, `09`, `10`, and validators `06a`, `07`, and `08` must all rerun.
 
 Change `parse_rule_version` whenever a parser change can change a geometry or a
 status. The new version makes the next run parse again.

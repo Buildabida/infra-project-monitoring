@@ -196,8 +196,10 @@ def test_18_only_invalid_polygons_are_repaired_within_the_d43_area_tolerance():
         "CASE WHEN is_repaired THEN 'REPAIRED_GEOMETRY' ELSE source_geometry_status END"
         in text
     )
-    # the rule version changes with the tolerance, so a new tolerance forces a new parse
-    assert "'|makevalid-invalid-within-ratio=', repair_area_tolerance_ratio," in text
+    # the rule version changes with the tolerance, so a new tolerance forces a new parse.
+    # The label names the zero-distance buffer repair that D-43 uses (#115).
+    assert "'|buffer0-invalid-within-ratio=', repair_area_tolerance_ratio," in text
+    assert "makevalid" not in text
 
 
 def test_19_readers_use_repaired_geometry_as_usable_and_keep_it_visible():
