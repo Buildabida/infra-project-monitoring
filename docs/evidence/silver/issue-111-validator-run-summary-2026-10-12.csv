@@ -1,0 +1,2 @@
+table_name,validation_run_id,pipeline_run_id,run_ts,checks,stop_checks,stop_passed,flag_findings,failed_checks
+silver_project_region_map,0e76a18a7cf429d0a2b50139bb04047e2ab8090b97f0b713a58d0668ca0752c3,1c133bd92a875720ccb7069114625b463e951ff0ca98e47d0a5b096f7f14fc6d,2026-10-12T15:31:26.870Z,37,18,18,13,0

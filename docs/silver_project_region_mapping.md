@@ -148,7 +148,8 @@ Only rows that normalize exactly to `Central Office` are excluded from spatial
 candidate generation. Projects with a blank, null, or otherwise unresolved
 reported region remain eligible for `COORDINATE_BOUNDARY` fallback when they
 have a valid coordinate and intersect exactly one selected region boundary, as
-required by D-31.
+required by D-31. The October 12, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-12-2026-coordinate-fallback-for-blank-regions-issue-111).
 
 ## Exact region-name standardization
 

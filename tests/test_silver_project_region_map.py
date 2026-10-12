@@ -478,3 +478,16 @@ def test_60_boundary_psgc_gaps_and_central_override_conflicts_are_checked():
     text = sql(VALIDATION_NOTEBOOK)
     assert "Unresolved boundary PSGC codes remain visible" in text
     assert "Central Office override conflicts remain visible" in text
+
+
+def test_61_validator_keeps_null_regions_in_precedence_and_boundary_checks():
+    # a NULL reported region is not Central Office, so the validator must still
+    # expect the coordinate fallback for it (#111)
+    text = sql(VALIDATION_NOTEBOOK)
+    squashed = " ".join(text.split())
+    null_safe = "NOT ( reported_region_standardized <=> 'CENTRAL OFFICE' )"
+    # four precedence branches plus the no-boundary-match count
+    assert squashed.count(null_safe) == 5
+    assert "reported_region_standardized <> 'CENTRAL OFFICE'" not in text
+    no_boundary = squashed[: squashed.index("AS no_boundary_match_rows")]
+    assert no_boundary.rstrip().endswith(f"{null_safe} )")

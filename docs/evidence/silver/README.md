@@ -85,3 +85,68 @@ Both rows also show parsed and latest snapshot `metadata-17bf5e65e1838a2f7be9`.
 The run had no force reload, so the failing path was not exercised on Databricks.
 Tests 44, 45, 46, 67, 68, and 69 check that the gates and validators compare
 with the Bronze ingest run and stop on a mismatch.
+
+## October 12, 2026 coordinate fallback for blank regions (issue #111)
+
+### What changed
+
+Table 13 excluded projects from candidate matching with
+`reported_region_standardized <> 'CENTRAL OFFICE'`. When the reported region is
+`NULL`, that test is `NULL`, so the project was dropped from the coordinate
+fallback. A project with no region but a valid point ended `UNMATCHED` instead of
+`COORDINATE_BOUNDARY`, which breaks [D-31](../../decisions.md).
+
+Notebook 08 and validator 06 now use
+`NOT (reported_region_standardized <=> 'CENTRAL OFFICE')`. Only rows that are
+exactly `Central Office` skip the candidate stages.
+
+### Run identity and outcome
+
+Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `5cf7fdd`,
+October 12, 2026.
+
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 | `08_silver_project_region_map` | Completed. Every gate passed. |
+| 2 | `06_validation_silver_project_region_map` | 37 checks. All 18 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+
+The run IDs and counts are in
+[`issue-111-validator-run-summary-2026-10-12.csv`](issue-111-validator-run-summary-2026-10-12.csv):
+
+| Table | Pipeline run ID | Validation run ID |
+| --- | --- | --- |
+| `silver_project_region_map` | `1c133bd92a875720ccb7069114625b463e951ff0ca98e47d0a5b096f7f14fc6d` | `0e76a18a7cf429d0a2b50139bb04047e2ab8090b97f0b713a58d0668ca0752c3` |
+
+### Projects affected
+
+The outcome query is in
+[`issue-111-region-map-outcomes-2026-10-12.csv`](issue-111-region-map-outcomes-2026-10-12.csv):
+
+| Method | Status | Projects | `NULL` region | `NULL` region with a valid point |
+| --- | --- | ---: | ---: | ---: |
+| `APPROVED_REGION_ALIAS` | `MATCHED` | 242,443 | 0 | 0 |
+| `APPROVED_REGION_ALIAS` | `MATCHED_WITH_CONFLICT` | 11,885 | 0 | 0 |
+| `EXACT_REGION_NAME` | `MATCHED` | 10,742 | 0 | 0 |
+| `NON_GEOGRAPHIC_RULE` | `NON_GEOGRAPHIC` | 306 | 0 | 0 |
+| `NONE` | `UNMATCHED` | 266 | 255 | 0 |
+| `EXACT_REGION_NAME` | `MATCHED_WITH_CONFLICT` | 14 | 0 | 0 |
+| **Total** | | **265,656** | **255** | **0** |
+
+All 265,656 canonical projects are present. The 255 projects with a `NULL`
+reported region are all `UNMATCHED`, and none of them has a valid coordinate
+pair. So no project could take the coordinate fallback in this snapshot, and the
+fix changes 0 rows today. This matches the issue's audit of the October 11 run.
+The fix protects later snapshots that hold a project with no region and a valid
+point.
+
+### What this run does not prove
+
+- No project in this snapshot uses the new path, so it ran only in tests.
+  Test 23 checks the notebook and test 61 checks the validator. Both fail on the
+  old `<>` form.
+- Table 13 keeps rule version `silver-project-region-map-v1`. The output is the
+  same for this snapshot, so the run ID did not change. This run updated the
+  earlier validation evidence in place.
+- Validator 06 reads `spatial_candidate_count` from Table 13. It cannot recount
+  spatial candidates on its own, so it would not catch a notebook that drops a
+  project before the spatial stage. Issue #114 covers checks like this.
