@@ -781,23 +781,15 @@ def test_42_summary_documents_contract_and_runtime_boundary():
     ]:
         assert phrase in summary
 
+
 def test_43_parsed_mgb_gate_requires_current_bronze_ingest():
     flood_map = sql(FLOOD_MAP_NOTEBOOK)
 
     assert "parsed_snapshot_id" in flood_map
     assert "parsed_ingest_run_id" in flood_map
 
-    assert (
-        "parsed_snapshot_id <> mgb_source_snapshot_id"
-        in flood_map
-    )
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in flood_map
 
-    assert (
-        "parsed_ingest_run_id <> mgb_source_ingest_run_id"
-        in flood_map
-    )
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in flood_map
 
-    assert (
-        "silver_mgb_flood_area is stale"
-        in flood_map
-    )
+    assert "silver_mgb_flood_area is stale" in flood_map

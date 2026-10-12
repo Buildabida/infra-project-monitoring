@@ -699,23 +699,15 @@ def test_65_region_exposure_reads_parsed_mgb_geometry_without_parsing():
     assert "mgb_flood_area_context.mgb_flood_area_run_id," in exposure
     assert "'STOP: Silver MGB flood-area validation is missing or unsafe'" in exposure
 
+
 def test_66_parsed_mgb_gate_requires_current_bronze_ingest():
     exposure = sql(EXPOSURE_NOTEBOOK)
 
     assert "parsed_snapshot_id" in exposure
     assert "parsed_ingest_run_id" in exposure
 
-    assert (
-        "parsed_snapshot_id <> mgb_source_snapshot_id"
-        in exposure
-    )
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in exposure
 
-    assert (
-        "parsed_ingest_run_id <> mgb_source_ingest_run_id"
-        in exposure
-    )
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in exposure
 
-    assert (
-        "silver_mgb_flood_area is stale"
-        in exposure
-    )
+    assert "silver_mgb_flood_area is stale" in exposure
