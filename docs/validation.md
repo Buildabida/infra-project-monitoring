@@ -780,7 +780,7 @@ STOP gate runs (D-47). The table has the same columns as `silver_dq_results`,
 with `layer = 'gold'`. The gate reads the saved rows.
 
 The validation run ID comes from the run IDs of the three Gold facts and the
-rule version `gold-validation-v1`. So an exact rerun updates the same evidence
+rule version `gold-validation-v2`. So an exact rerun updates the same evidence
 instead of adding copies.
 
 The expected values live in the validator, not in the Gold notebooks, so Gold
@@ -793,10 +793,10 @@ from issue #61.
 - **Project fact (#60):** at most one current row per project. Progress is 0
   to 100 or empty. Budget is zero or more, or empty. Every row has a source
   snapshot, and every key finds its dimension row.
-- **Population (#61):** primary population is above zero. Each official region
-  has exactly one primary source in each year. No population row uses region
-  key `0`, so per-person ratios leave it out. The check records the denominator
-  of those ratios.
+- **Population (#61):** primary population is filled and above zero. Each
+  official region has exactly one primary source in each year. No population
+  row uses region key `0`, so per-person ratios leave it out. The check records
+  the denominator of those ratios.
 - **Flood (#62):** flood area is zero or more, and its share of the region area
   is 0 to 100. Areas use the equal-area CRS `EPSG:6933`, and the check names the
   CRS it found. Levels are Unknown, Low, Moderate, High and Very High. Each
@@ -832,7 +832,6 @@ FLAG checks keep known data limits visible with their counts:
 - projects without a status
 - progress that Silver did not mark `VALID`
 - projects without a long-running flag because they have no start date
-- primary population rows with no count
 - region and level pairs with no area data
 - official regions without a boundary, and boundary shapes marked not valid
 - active statuses that look like numbers or map points, from DPWH rows split
@@ -851,10 +850,10 @@ their per-person ratios leave key `0` out.
 ### Gold validation runtime evidence
 
 On October 12, 2026, `09_validation_gold.ipynb` ran twice in the team workspace
-on serverless compute, from commit `6770773` of branch
-`validation/issues-60-64-gold-checks`. Both runs wrote the same 76 checks under
-one validation run ID, so the second run updated the rows instead of adding
-copies. All 65 STOP checks passed.
+on serverless compute. It ran from commit `dc2c516` of branch
+`validation/issues-60-64-gold-checks`, with rule version `gold-validation-v2`.
+Both runs wrote the same 75 checks under one validation run ID, so the second
+run updated the rows instead of adding copies. All 65 STOP checks passed.
 
 The FLAG checks found:
 
@@ -870,7 +869,12 @@ The FLAG checks found:
 | Active statuses that are shifted numbers: `0.00` and `121.0181138` | 2 | 18 |
 | Table C rows behind the 4,789-person gap to the 2024 census total | 2 | 43,750 |
 
-The other 2 FLAG checks found nothing.
+The other FLAG check found nothing.
+
+An earlier run that day, from commit `6770773`, used rule version
+`gold-validation-v1` and 76 checks. It found the same FLAG counts. After the
+review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
+population count is now part of a STOP check. So the rule version changed.
 
 ## Future validation documents
 
