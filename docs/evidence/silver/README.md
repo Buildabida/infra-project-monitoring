@@ -6,7 +6,7 @@ The CSV files are exports of the queries named in each section.
 
 ## October 12, 2026 parsed MGB lineage check (issue #109)
 
-### What changed
+### What changed (#109)
 
 Notebooks 09 and 10 and validators 07 and 08 now stop when
 `silver_mgb_flood_area` was parsed from an older Bronze MGB ingest run.
@@ -16,7 +16,7 @@ The expected ingest run is the `_ingest_run_id` of the current
 The first version of the validator check compared the parsed ingest run with
 `load_log.run_id`. That raised a false STOP, explained below.
 
-### Why the check reads Bronze rows, not `load_log`
+### Why the check reads Bronze rows, not `load_log` (#109)
 
 A `SKIPPED_IDEMPOTENT` Bronze load writes a new `load_log` run ID.
 It does not rewrite the Bronze rows, so their `_ingest_run_id` stays the same.
@@ -40,7 +40,7 @@ sources returned `SKIPPED_IDEMPOTENT`.
 The earlier validator 07 run on this branch stopped only because it compared
 `07bfbee8` with `eea999ed`.
 
-### Run identity and outcome
+### Run identity and outcome (#109)
 
 Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `6cf2b2d`,
 October 12, 2026. The run used the same code under its earlier hash `0d91766`.
@@ -67,7 +67,7 @@ The run IDs and counts are in
 FLAG findings stay visible for review and do not block the run.
 This run did not compare FLAG counts with earlier runs.
 
-### Parsed MGB lineage check
+### Parsed MGB lineage check (#109)
 
 The new STOP check `Parsed MGB lineage matches current accepted Bronze MGB ingest`
 passed in both validators. The export is in
@@ -80,7 +80,7 @@ passed in both validators. The export is in
 
 Both rows also show parsed and latest snapshot `metadata-17bf5e65e1838a2f7be9`.
 
-### What this run does not prove
+### What this run does not prove (#109)
 
 The run had no force reload, so the failing path was not exercised on Databricks.
 Tests 44, 45, 46, 67, 68, and 69 check that the gates and validators compare
@@ -88,7 +88,7 @@ with the Bronze ingest run and stop on a mismatch.
 
 ## October 12, 2026 coordinate fallback for blank regions (issue #111)
 
-### What changed
+### What changed (#111)
 
 Table 13 excluded projects from candidate matching with
 `reported_region_standardized <> 'CENTRAL OFFICE'`. When the reported region is
@@ -100,7 +100,7 @@ Notebook 08 and validator 06 now use
 `NOT (reported_region_standardized <=> 'CENTRAL OFFICE')`. Only rows that are
 exactly `Central Office` skip the candidate stages.
 
-### Run identity and outcome
+### Run identity and outcome (#111)
 
 Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `5cf7fdd`,
 October 12, 2026.
@@ -117,7 +117,7 @@ The run IDs and counts are in
 | --- | --- | --- |
 | `silver_project_region_map` | `1c133bd92a875720ccb7069114625b463e951ff0ca98e47d0a5b096f7f14fc6d` | `0e76a18a7cf429d0a2b50139bb04047e2ab8090b97f0b713a58d0668ca0752c3` |
 
-### Projects affected
+### Projects affected (#111)
 
 The outcome query is in
 [`issue-111-region-map-outcomes-2026-10-12.csv`](issue-111-region-map-outcomes-2026-10-12.csv):
@@ -139,7 +139,7 @@ fix changes 0 rows today. This matches the issue's audit of the October 11 run.
 The fix protects later snapshots that hold a project with no region and a valid
 point.
 
-### What this run does not prove
+### What this run does not prove (#111)
 
 - No project in this snapshot uses the new path, so it ran only in tests.
   Test 23 checks the notebook and test 61 checks the validator. Both fail on the
@@ -153,7 +153,7 @@ point.
 
 ## October 13, 2026 coordinate pairs and status resolution (issue #110)
 
-### What changed
+### What changed (#110)
 
 `silver_project` resolved `latitude_parsed` and `longitude_parsed` on their
 own. Components (14.5, `NULL`) and (`NULL`, 121.0) could publish (14.5, 121.0),
@@ -168,7 +168,7 @@ any difference. The rule version is `silver_project_v7` and the validation
 version is `silver_project_validation_v6`. The number is v7 because `main`
 already ran v6 for #119.
 
-### Run identity and outcome
+### Run identity and outcome (#110)
 
 Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `c0097a8`.
 The run started on October 12, 2026 at 16:15 UTC, which is October 13 in
@@ -190,7 +190,7 @@ The run IDs and counts are in
 The new project pipeline run is
 `c6317d2b45b2b3f9832e9dfccf130317fea4d1b06a18922d837d22d449b6a424`.
 
-### Projects affected
+### Projects affected (#110)
 
 The impact query compares the old and new rules on the component rows.
 It is in [`issue-110-impact-2026-10-13.csv`](issue-110-impact-2026-10-13.csv).
@@ -225,7 +225,7 @@ The published table agrees, in
 The 215,138 resolved pairs equal the 215,138 projects with a `VALID_PAIR`
 coordinate in Table 15.
 
-### New checks
+### New checks (#110)
 
 The three new checks are in
 [`issue-110-new-checks-2026-10-13.csv`](issue-110-new-checks-2026-10-13.csv):
@@ -238,13 +238,13 @@ The three new checks are in
 
 Both component recounts found 0 differences.
 
-### Downstream tables
+### Downstream tables (#110)
 
 Table 13 outcomes match the #111 run row for row, in
 [`issue-110-region-map-outcomes-2026-10-13.csv`](issue-110-region-map-outcomes-2026-10-13.csv).
 No project changed region.
 
-### What this run does not prove
+### What this run does not prove (#110)
 
 - No project in this snapshot uses the new paths, so they ran only in tests.
   Tests 34, 35, and 36 fail on the old notebooks.
