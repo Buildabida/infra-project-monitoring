@@ -877,8 +877,8 @@ An earlier run that day, from commit `6770773`, used rule version
 review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
 population count is now part of a STOP check. So the rule version changed.
 
-On October 12, 2026, `09_validation_gold.ipynb` ran again after the #116 and
-#119 changes, from commit `ff7cacc` of branch
+On October 12, 2026, `09_validation_gold.ipynb` ran again after the changes for
+issues #116 and #119, from commit `ff7cacc` of branch
 `feature/issues-116-117-118-119-120-121`. It wrote 75 checks. All 65 STOP checks
 passed. 9 FLAG checks had findings, and 1 found nothing. The long-running FLAG
 now counts 20,045 projects: 20,039 without a start date and 6 with a completion
