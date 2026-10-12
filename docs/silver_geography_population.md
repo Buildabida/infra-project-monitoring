@@ -230,6 +230,11 @@ one run publishes one run ID (#112). The rule version is `silver-population-plac
 `silver_region_population` stops when the reconciliation table holds more than one
 run ID.
 
+The October 13, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
+The run IDs went from two to one. The #113 heading rule changed 0 of 43,750 rows
+in that snapshot.
+
 The regional table retains the lineage of the accepted matched inputs plus the
 reconciliation run identity.
 

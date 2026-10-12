@@ -250,3 +250,223 @@ No project changed region.
   Tests 34, 35, and 36 fail on the old notebooks.
 - Gold `03`, `04`, and `07` and the Gold validator did not rerun on the v7
   project run. They still describe the v6 run.
+
+## October 13, 2026 Silver audit fixes (issues #112 to #115)
+
+This run covers the population part of
+[PR #128](https://github.com/Buildabida/infra-project-monitoring/pull/128) and
+validators 02, 03, 05, and 06. The MGB flood part has not run yet. See
+"Not run yet" below.
+
+### What changed (#112 to #115)
+
+- #112: the population reconciliation `run_id` now hashes the selected PSGC
+  snapshot, not each row's PSGC lineage. Unmatched rows had a `NULL` PSGC
+  snapshot, so one run published two run IDs. The rule version is
+  `silver-population-place-v3`.
+- #113: only the last heading row sets the locality context. An ambiguous or
+  unresolved heading clears it, so its barangays never inherit the previous
+  locality.
+- #114: checks that could not fail can now fail. This run covers validators 02,
+  03, 05, and 06. The SRID, polygon count, and territory checks in notebooks 09
+  and 10 and validators 07 and 08 have not run yet.
+- #115: the blank-geometry reference and the `buffer0` label have not run yet.
+
+### Run identity and outcome (#112 to #115)
+
+Databricks serverless, branch `fix/issue-112-115-silver-audit`, commit
+`da59e3c`. The runs took place on October 12, 2026 from 18:03 to 18:21 UTC,
+which is October 13 in Manila.
+
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 | `02_validation_silver_config` | 23 checks. All 19 STOP checks passed. 4 FLAG findings. 0 FAIL. |
+| 2 | `02_silver_population_place_reconciliation` | Completed. Rule version `silver-population-place-v3`. |
+| 3 | `03_silver_region_population` | Completed. Every gate passed, including the new one-run-ID gate. |
+| 4 | `03_validation_silver_geography_population` | 34 checks on three tables. All 22 STOP checks passed. 8 FLAG findings. 0 FAIL. |
+| 5 | `05_validation_silver_source_reconciliation` | 24 checks on two tables. All 14 STOP checks passed. 6 FLAG findings. 0 FAIL. |
+| 6 | `06_validation_silver_project_region_map` | 40 checks. All 21 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+
+The latest result for each table in `silver_dq_results`, read after step 6:
+
+| Table | Run time (UTC) | Checks | STOP checks | STOP passed | FLAG | FAIL | From this run |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| `silver_psgc_place` | 2026-10-12 18:13:55 | 8 | 5 | 5 | 3 | 0 | Yes |
+| `silver_population_place_reconciliation` | 2026-10-12 18:13:55 | 18 | 10 | 10 | 5 | 0 | Yes |
+| `silver_region_population` | 2026-10-12 18:13:55 | 8 | 7 | 7 | 0 | 0 | Yes |
+| `silver_flood_control_component` | 2026-10-12 18:19:17 | 11 | 5 | 5 | 4 | 0 | Yes |
+| `silver_project_source_match` | 2026-10-12 18:19:17 | 13 | 9 | 9 | 2 | 0 | Yes |
+| `silver_project_region_map` | 2026-10-12 18:21:17 | 40 | 21 | 21 | 13 | 0 | Yes |
+| `silver_mgb_flood_area` | 2026-10-12 14:08:33 | 23 | 18 | 18 | 3 | 0 | No |
+| `silver_region_flood_exposure` | 2026-10-12 14:29:30 | 60 | 38 | 38 | 14 | 0 | No |
+| `silver_project` | 2026-10-12 16:15:31 | 20 | 16 | 16 | 3 | 0 | No |
+| `silver_dpwh_project_component` | 2026-10-12 16:15:31 | 23 | 11 | 11 | 10 | 0 | No |
+| `silver_project_flood_map` | 2026-10-12 16:38:38 | 55 | 38 | 38 | 13 | 0 | No |
+
+The run IDs of the six tables from this run:
+
+| Table | Pipeline run ID | Validation run ID |
+| --- | --- | --- |
+| `silver_psgc_place` | `0b65c728d2436e0efe02825f2358c0eac765d5e76dc938518f519962a1f2aaa8` | `3fcf0491ef25e51a87e062e66c439c99589cfbfafc1d2a0388220fa719be830b` |
+| `silver_population_place_reconciliation` | `611988e7136e0eb42838ff69af3a4dec45737e34c4d10416263837ceeaea8a16` | `55c790e673f06ae4a5e167f5ea5cecc85c39149b84e1d265e9ed593734507f15` |
+| `silver_region_population` | `ec967198af156cb6ba8d8ad5e60a90648a1b60b036dbc34667a796a91e351668` | `cad8f9bede2582f9c8eae14875d87abccbafe094838b732771baf7086ab7bfb0` |
+| `silver_flood_control_component` | `b60b91752c0fde0f8f9e948c62724895d4ac30c38b11889e29a172d65bdbbefb` | `60b4e121cad0f1008728e854f0c4a390c3d0908a3ae61d21ccde8ea10fd9e6a2` |
+| `silver_project_source_match` | `b60b91752c0fde0f8f9e948c62724895d4ac30c38b11889e29a172d65bdbbefb` | `60b4e121cad0f1008728e854f0c4a390c3d0908a3ae61d21ccde8ea10fd9e6a2` |
+| `silver_project_region_map` | `54441fa48025a4a2c1fbf86b6bd69b93a116a490b832ff68e43abe6ec0290c0c` | `544a9e22ea74b07de8b7f767d70d786ff7019099b49dbea5052d8331fc5d210b` |
+
+### Checks before the run (#112 to #115)
+
+Validator 02's new STOP compares each DPWH region alias with the Bronze PSGC
+release. A read-only query ran first, so the STOP would not block Silver by
+surprise. All 17 approved aliases matched:
+
+| Alias | PSGC code | Alias version | Bronze release | Match |
+| --- | --- | --- | --- | --- |
+| Cordillera Administrative Region | `1400000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| National Capital Region | `1300000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Negros Island Region | `1800000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region I | `0100000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region II | `0200000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region III | `0300000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region IV-A | `0400000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region IV-B | `1700000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region IX | `0900000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region V | `0500000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region VI | `0600000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region VII | `0700000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region VIII | `0800000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region X | `1000000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region XI | `1100000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region XII | `1200000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+| Region XIII | `1600000000` | 2Q 2026 as of 2026-06-30 | 2Q 2026 as of 2026-06-30 | Yes |
+
+`silver_population_place_reconciliation` was at Delta version 4, written on
+October 9 with 43,750 rows. The #113 comparison below reads that version.
+
+The Table 14 and Table 15 outcomes were saved before the run. The MGB run
+compares with them. Blank cells were `NULL`.
+
+`silver_region_flood_exposure` before the run (Table 14):
+
+| Level | Spatial match status | Region rows | Susceptible area (sq km) | Source polygons | Fragments |
+| --- | --- | ---: | ---: | ---: | ---: |
+| High | `CALCULATED` | 13 | 16,615.1039 | 11,341 | 11,341 |
+| High | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Low | `CALCULATED` | 13 | 11,448.7952 | 14,915 | 14,915 |
+| Low | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Moderate | `CALCULATED` | 13 | 11,626.4386 | 21,620 | 21,620 |
+| Moderate | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Very High | `CALCULATED` | 12 | 4,528.3842 | 3,089 | 3,089 |
+| Very High | `NO_MAPPED_EXPOSURE` | 1 | 0.0000 | 0 | 0 |
+| Very High | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+
+`silver_project_flood_map` before the run (Table 15):
+
+| Match status | Level | Projects | Matched polygons |
+| --- | --- | ---: | ---: |
+| `AMBIGUOUS` | | 250 | 502 |
+| `MATCHED` | High | 35,672 | 35,781 |
+| `MATCHED` | Low | 35,146 | 35,227 |
+| `MATCHED` | Moderate | 27,467 | 27,526 |
+| `MATCHED` | Very High | 14,425 | 14,462 |
+| `UNMATCHED` | | 152,696 | 0 |
+
+### Population run ID (#112)
+
+| Measure | Before | After |
+| --- | ---: | ---: |
+| Distinct reconciliation `run_id` values | 2 | 1 |
+
+After the run, every row carries rule version `silver-population-place-v3`.
+
+`silver_region_population` was rebuilt from the new run:
+
+| Reconciliation run IDs | Region rows | Region run IDs | Linked reconciliation run IDs | Uses the new run | Regional population |
+| ---: | ---: | ---: | ---: | --- | ---: |
+| 1 | 18 | 1 | 1 | Yes | 112,722,987 |
+
+### Heading context (#113)
+
+Every reconciliation row was compared with Delta version 4:
+
+| Rows compared | Match changed | Locality changed | Disposition changed |
+| ---: | ---: | ---: | ---: |
+| 43,750 | 0 | 0 | 0 |
+
+The impact query, which lists each old and new match status pair, returned no
+rows because no match changed.
+
+Row dispositions before the run, from Delta version 4:
+
+| Disposition | Match status | Source rows | Population |
+| --- | --- | ---: | ---: |
+| `ACCEPTED_PRIMARY` | `MATCHED_ALIAS` | 15 | 46,612 |
+| `ACCEPTED_PRIMARY` | `MATCHED_EXACT_CONTEXT` | 41,902 | 111,627,666 |
+| `ACCEPTED_PRIMARY` | `MATCHED_NORMALIZED_CONTEXT` | 80 | 1,048,709 |
+| `INVALID_POPULATION` | `MATCHED_EXACT_CONTEXT` | 11 | 0 |
+| `INVALID_POPULATION` | `MATCHED_NORMALIZED_CONTEXT` | 1 | 0 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_ALIAS` | 2 | 37,766 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_EXACT_CONTEXT` | 1,730 | 196,723,997 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_NORMALIZED_CONTEXT` | 1 | 26,292 |
+| `UNMATCHED` | `UNMATCHED` | 8 | 6,437,703 |
+
+The three `ACCEPTED_PRIMARY` rows add up to 41,997 rows and 112,722,987
+people. The regional total after the run is the same. It is 4,789 below the
+national reference of 112,727,776. That gap equals the two known unmatched
+barangays, Sawata (4,152) and San Rafael (637). So no other population was
+missed or counted twice.
+
+A query for PSGC barangays accepted more than once returned 0 rows before the
+run. After the run, the new STOP check found 0 as well.
+
+The fix changes 0 rows in this snapshot. It protects later snapshots with an
+ambiguous or unresolved heading.
+
+### New checks (#114)
+
+The new and changed checks from this run:
+
+| Validator | Table | Check | Action | Status | Failed rows | Total rows | Details |
+| ---: | --- | --- | --- | --- | ---: | ---: | --- |
+| 02 | `config_place_name_alias` | approved DPWH region aliases name the Bronze PSGC version | STOP | PASS | 0 | 17 | Each approved DPWH region alias must carry the PSGC release that Bronze holds for its target code |
+| 03 | `silver_population_place_reconciliation` | One reconciliation run ID reproduces from its lineage | STOP | PASS | 0 | 43,750 | Distinct run IDs=1, rows whose run ID does not reproduce=0 |
+| 03 | `silver_population_place_reconciliation` | Each PSGC barangay is accepted at most once | STOP | PASS | 0 | 41,997 | Accepted rows beyond distinct PSGC barangays=0 |
+| 03 | `silver_population_place_reconciliation` | Every active approved alias produced an accepted match | FLAG | PASS | 0 | 19 | Active approved aliases with no accepted match=0 of 19 |
+| 05 | `silver_project_source_match` | Match targets the current silver_project run | STOP | PASS | 0 | 9,704 | Match rows with an older target_project_run_id=0 |
+| 06 | `silver_project_region_map` | Coordinate statuses use the controlled contract | STOP | PASS | 0 | 265,656 | Invalid coordinate statuses=0 |
+| 06 | `silver_project_region_map` | Mapping uses the current silver_project run | STOP | PASS | 0 | 265,656 | Rows with an older project_run_id=0 |
+| 06 | `silver_project_region_map` | Mapping uses the current PSGC run | STOP | PASS | 0 | 265,656 | Rows with an older psgc_run_id=0 |
+| 06 | `silver_project_region_map` | Partial and outside-screening coordinates remain visible | FLAG | PASS | 0 | 265,656 | Coordinate exceptions=0, denominator=265656 |
+
+The validator 06 coordinate FLAG now counts `OUT_OF_RANGE`. It found 0 because
+the 215,138 usable pairs and the 50,518 missing pairs make up all 265,656
+projects.
+
+### Not run yet (#114 and #115)
+
+The MGB flood part of PR #128 has not run on Databricks. Bri plans to run it
+after she merges PR #128 into `fix/issue-109-stale-mgb-gate`. The steps and
+queries are in the PR description.
+
+| Step | Notebook | What to check |
+| ---: | --- | --- |
+| 7 | `08a_silver_mgb_flood_area` | A full parse, because the `buffer0` label changes the parse run ID. 63,684 rows, 0 blank geometries, every row with SRID 4326. |
+| 8 | `06a_validation_silver_mgb_flood_area` | Every STOP check passes. |
+| 9 | `09_silver_region_flood_exposure` | Every gate passes. |
+| 10 | `07_validation_silver_region_flood_exposure` | The SRID, polygon count, reference count, and parsed lineage checks pass. |
+| 11 | `10_silver_project_flood_map` | Every gate passes. |
+| 12 | `08_validation_silver_project_flood_map` | The SRID, reference count, and parsed lineage checks pass. |
+
+The Table 14 and Table 15 outcomes should equal the "before" tables above,
+because issues #114 and #115 change checks and a label, not results.
+
+### What this run does not prove (#112 to #115)
+
+- No heading in this snapshot was ambiguous or unresolved in a way that affects
+  its barangays, so the #113 path ran only in tests.
+- None of the new STOP checks failed, so their failure paths ran only in tests.
+  The 19 new or changed tests fail on the #124 head `80d58a0`.
+- This run did not repeat any notebook, so it does not show a second run
+  writing the same results.
+- Gold `01`, `02`, `05`, `06`, and `07` and the Gold validator did not rerun.
+  They still describe the earlier Silver runs.

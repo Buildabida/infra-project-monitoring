@@ -333,7 +333,8 @@ Blocking checks protect:
 The validation version is `silver-project-region-map-validation-v2`. Before
 issue #114, the coordinate-exception FLAG looked for `OUTSIDE_SCREENING_RANGE`,
 a value Table 13 never emits. So it counted partial pairs but never out-of-range
-ones.
+ones. The October 13, 2026 run of the new checks is in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
 
 Nonblocking checks retain:
 
