@@ -5,8 +5,8 @@ This folder builds the views that the dashboard (#20) and Genie (#21) read. Each
 ## Run order
 
 1. `09_validation_gold` must pass first.
-2. Run `01_business_questions.ipynb`. It creates `05-analytics` if it does not exist, then the six views with `CREATE OR REPLACE VIEW`.
-3. Run `04_validation/10_validation_analytics.ipynb`. It rebuilds every view from Gold and saves its checks to `04-validation.analytics_dq_results`. It stops the run if any STOP check fails.
+2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, and the six views with `CREATE OR REPLACE VIEW` (D-50).
+3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and the Gold validation again, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` (D-52). It stops the run if any STOP check fails. See [analytics validation](../../docs/validation.md#analytics-validation).
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice.
 
