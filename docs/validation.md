@@ -284,6 +284,8 @@ Blocking `stop` checks protect:
 - one project taxonomy version
 - project reported budgets that reconcile to the component resolution rule
 - zero-progress flags that agree with resolved progress
+- coordinates that publish as one complete pair, equal to a pair recounted from the components
+- a standardized status, status group, and mapping version only for a resolved and mapped raw status
 - a mapping version on every mapped row
 - populated, reproducible keys, run IDs, and lineage
 - one component snapshot that equals the latest Bronze DPWH load
@@ -298,6 +300,7 @@ Non-blocking `flag` checks report, each with its denominator:
 - missing or unparseable `componentCategories`
 - unapproved category tokens and statuses with no approved rule
 - missing, partial, or unparseable coordinate pairs
+- projects whose components report more than one valid coordinate pair
 - repeated identical source rows, kept and counted
 - unparseable budgets
 - negative budgets
@@ -314,7 +317,9 @@ check is `FAIL`, and a failed `flag` check is `FLAG`. The validator reports
 mapped and unmapped project and budget coverage, single-sector and multi-sector
 counts, missing categories, and DPWH flood-related projects. A second grouped
 component scan independently reconstructs the no-double-count project-budget
-control total.
+control total. The same scan recounts each project's coordinate pair from the
+rows that hold both values, and the project scan compares it with the published
+pair.
 
 ### Row reconciliation
 
@@ -369,7 +374,7 @@ the project validator consistent with the geography/population and source-reconc
 validation contracts.
 
 The validation run identity uses the Silver project run, the component run, and
-the validation-rule version `silver_project_validation_v4`. Exact reruns update the same logical evidence
+the validation-rule version `silver_project_validation_v5`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.

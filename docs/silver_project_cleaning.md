@@ -51,8 +51,8 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
 | `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v4. |
-| `silver_project` | Implemented. Runtime-validated in Databricks on rule version v4. |
-| Silver project validation | Implemented. All 24 v4 STOP checks passed in Databricks. |
+| `silver_project` | Implemented. Rule version `silver_project_v6` (#110). The Databricks rerun on v6 is pending. Earlier runs were validated on v4 and v5. |
+| Silver project validation | Implemented. Validation version `silver_project_validation_v5` has 42 checks, 26 of them STOP. The Databricks rerun is pending. All 24 v4 STOP checks passed in Databricks. |
 | Flood-control component and source-match outputs | Implemented in the follow-up source-reconciliation milestone. Databricks execution required. |
 | `silver_project_region_map` and its validator | Implemented in the follow-up project-region milestone. Databricks execution required. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
@@ -238,6 +238,41 @@ Resolution rules are:
 
 Conflicting values remain visible rather than being silently resolved.
 
+### Coordinates resolve as one pair
+
+Latitude and longitude resolve together, as one pair, from `VALID_PAIR`
+component rows only. Both values publish, or neither does. Rows with a missing,
+partial, or unparseable pair do not take part.
+
+| Distinct valid pairs | `coordinate_resolution_status` | Published values |
+| --- | --- | --- |
+| 0 | `MISSING_OR_INVALID` | Both `NULL` |
+| 1 | `RESOLVED` | That pair |
+| More than 1 | `CONFLICT` | Both `NULL` |
+
+`distinct_coordinate_pair_count` holds the number of distinct valid pairs.
+
+Before issue #110, each value resolved on its own. Components (14.5, `NULL`)
+and (`NULL`, 121.0) published (14.5, 121.0), a point that no source row
+reported. Tables 13 and 15 then treated it as a valid pair. When the components
+agreed on latitude but not longitude, the project published half a pair.
+
+### Status publishes only when the raw status resolves
+
+`standardized_status`, `status_group`, and `status_mapping_version` come only
+from rows that report a raw status. They publish only when both are true:
+
+- `status_resolution_status` is `RESOLVED`
+- every row with that raw status carries the same approved mapping
+
+Then `status_mapping_state` is `MAPPED`. Otherwise it is `UNMAPPED`, and the
+three values are `NULL`.
+
+Before issue #110, these values resolved on their own, and unmapped rows added
+`NULL`, which a distinct count ignores. One `Completed` row and one malformed
+row gave a `CONFLICT` raw status but still published `Completed`.
+`status_mapping_state` could also be `NULL`, which is not a controlled value.
+
 ### Budget double-count protection
 
 Repeated component rows must not inflate project investment values.
@@ -292,10 +327,10 @@ The table retains:
 - source ingest identity
 - deterministic project key
 - deterministic run identity
-- transformation rule version, now `silver_project_v5`
+- transformation rule version, now `silver_project_v6`
 - the component run it was built from
 
-The rule version changed, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
+The rule version moved to `silver_project_v6` for issue #110, so `run_id` changed. Tables 13 and 15 check that they were built from the current project run. Rerun them and their validators after this notebook.
 
 ## Idempotency and cost
 
@@ -348,6 +383,8 @@ Stop conditions include:
 - category arrays or classification states that disagree
 - project reported-budget totals that differ from the component resolution rule
 - zero-progress flags that disagree with progress
+- coordinates that are not one complete pair, or that differ from a component recount
+- a standardized status published for an unresolved or unmapped raw status
 - mapped rows without a mapping version
 - missing or non-reproducible keys, run IDs, and lineage
 - more than one snapshot or run, or a snapshot that differs from the latest Bronze load
@@ -358,6 +395,7 @@ Flag conditions include:
 
 - missing or unapproved component categories and unmapped statuses
 - coordinate exceptions
+- projects whose components report more than one valid coordinate pair
 - repeated identical source rows, kept and counted
 - unparseable or negative budgets
 - unparseable or out-of-range progress
@@ -525,7 +563,7 @@ run above replaces those category counts.
 - Long-running classification lives in Gold only (D-44). Moving it to Silver, as D-38 intends over time, needs the DPWH snapshot date in Silver.
 - Stalled classification remains unresolved. The status mapping is approved, but the stalled rule itself is not. `stalled_rule_status` is `STALLED_RULE_REQUIRED`.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The run does not split them by status.
-- Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
+- Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5). They must rerun on the `silver_project_v6` run (#110).
 
 ## Open questions for the team
 
