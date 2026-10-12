@@ -1,0 +1,4 @@
+table_name,data_quality_check,status,action,failed_rows,total_rows,details,run_ts
+silver_project,Project coordinates publish as one pair from one component pair,PASS,stop,0,265656,"Invalid coordinate resolutions=0, pairs that differ from the component recount=0",2026-10-12T16:15:31.840Z
+silver_project,Standardized status publishes only for a resolved and mapped raw status,PASS,stop,0,265656,"Invalid status resolutions=0, statuses that differ from the component recount=0",2026-10-12T16:15:31.840Z
+silver_project,Conflicting coordinate pairs remain visible,PASS,flag,0,265656,Projects whose components report more than one valid pair=0 of 265656,2026-10-12T16:15:31.840Z

@@ -150,3 +150,103 @@ point.
 - Validator 06 reads `spatial_candidate_count` from Table 13. It cannot recount
   spatial candidates on its own, so it would not catch a notebook that drops a
   project before the spatial stage. Issue #114 covers checks like this.
+
+## October 13, 2026 coordinate pairs and status resolution (issue #110)
+
+### What changed
+
+`silver_project` resolved `latitude_parsed` and `longitude_parsed` on their
+own. Components (14.5, `NULL`) and (`NULL`, 121.0) could publish (14.5, 121.0),
+a point that no row reported. Status values also resolved on their own, so a
+`CONFLICT` raw status could still publish a standardized status, and
+`status_mapping_state` could be `NULL`.
+
+Notebook 05 now resolves the coordinates as one pair from `VALID_PAIR` rows,
+and publishes status values only for a resolved raw status with one complete
+approved mapping. Validator 04 recounts both from the components and stops on
+any difference. The rule version is `silver_project_v7` and the validation
+version is `silver_project_validation_v6`. The number is v7 because `main`
+already ran v6 for #119.
+
+### Run identity and outcome
+
+Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `c0097a8`.
+The run started on October 12, 2026 at 16:15 UTC, which is October 13 in
+Manila.
+
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 | `05_silver_project` | Completed. Rule version `silver_project_v7`. |
+| 2 | `04_validation_silver_projects` | 43 checks. All 27 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+| 3 | `07_silver_project_source_match` | Completed. |
+| 4 | `05_validation_silver_source_reconciliation` | 23 checks. All 13 STOP checks passed. 6 FLAG findings. 0 FAIL. |
+| 5 | `08_silver_project_region_map` | Completed. |
+| 6 | `06_validation_silver_project_region_map` | 37 checks. All 18 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+| 7 | `10_silver_project_flood_map` | Completed. |
+| 8 | `08_validation_silver_project_flood_map` | 55 checks. All 38 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+
+The run IDs and counts are in
+[`issue-110-validator-run-summary-2026-10-13.csv`](issue-110-validator-run-summary-2026-10-13.csv).
+The new project pipeline run is
+`c6317d2b45b2b3f9832e9dfccf130317fea4d1b06a18922d837d22d449b6a424`.
+
+### Projects affected
+
+The impact query compares the old and new rules on the component rows.
+It is in [`issue-110-impact-2026-10-13.csv`](issue-110-impact-2026-10-13.csv).
+
+| Finding | Projects |
+| --- | ---: |
+| Old rule published a pair that the new rule does not | 0 |
+| Old and new rules publish different pairs | 0 |
+| Old rule published half a pair | 0 |
+| New rule publishes a pair that the old rule did not | 0 |
+| Components report more than one valid pair | 0 |
+| Old rule published a status for an unresolved raw status | 0 |
+| Old rule left `status_mapping_state` `NULL` | 0 |
+
+The fix changes 0 projects in this snapshot. It protects later snapshots.
+
+The published table agrees, in
+[`issue-110-project-state-2026-10-13.csv`](issue-110-project-state-2026-10-13.csv):
+
+| Measure | Projects |
+| --- | ---: |
+| All projects | 265,656 |
+| `coordinate_resolution_status = RESOLVED` | 215,138 |
+| `coordinate_resolution_status = MISSING_OR_INVALID` | 50,518 |
+| `coordinate_resolution_status = CONFLICT` | 0 |
+| Half pairs | 0 |
+| `status_mapping_state = MAPPED` | 265,554 |
+| `status_mapping_state = UNMAPPED` | 102 |
+| `status_mapping_state` is `NULL` | 0 |
+| Standardized status on an unresolved raw status | 0 |
+
+The 215,138 resolved pairs equal the 215,138 projects with a `VALID_PAIR`
+coordinate in Table 15.
+
+### New checks
+
+The three new checks are in
+[`issue-110-new-checks-2026-10-13.csv`](issue-110-new-checks-2026-10-13.csv):
+
+| Check | Action | Status | Failed rows |
+| --- | --- | --- | ---: |
+| Project coordinates publish as one pair from one component pair | STOP | PASS | 0 |
+| Standardized status publishes only for a resolved and mapped raw status | STOP | PASS | 0 |
+| Conflicting coordinate pairs remain visible | FLAG | PASS | 0 |
+
+Both component recounts found 0 differences.
+
+### Downstream tables
+
+Table 13 outcomes match the #111 run row for row, in
+[`issue-110-region-map-outcomes-2026-10-13.csv`](issue-110-region-map-outcomes-2026-10-13.csv).
+No project changed region.
+
+### What this run does not prove
+
+- No project in this snapshot uses the new paths, so they ran only in tests.
+  Tests 34, 35, and 36 fail on the old notebooks.
+- Gold `03`, `04`, and `07` and the Gold validator did not rerun on the v7
+  project run. They still describe the v6 run.

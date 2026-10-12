@@ -51,8 +51,8 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
 | `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v6 on Oct 12. |
-| `silver_project` | Implemented. Rule version `silver_project_v7` (#110). The Databricks rerun on v7 is pending. Runtime-validated in Databricks on rule version v6 on Oct 12. |
-| Silver project validation | Implemented. Validation version `silver_project_validation_v6` adds the #110 checks, for 43 checks, 27 of them STOP. The Databricks rerun is pending. All 25 STOP checks passed on the v6 run on Oct 12. |
+| `silver_project` | Implemented. Runtime-validated in Databricks on rule version `silver_project_v7` (#110). See the [#110 evidence](evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). |
+| Silver project validation | Implemented. Validation version `silver_project_validation_v6` adds the #110 checks, for 43 checks, 27 of them STOP. All 27 STOP checks passed on the v7 run. All 25 STOP checks passed on the v6 run on Oct 12. |
 | Flood-control component and source-match outputs | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 13 STOP checks passed. |
 | `silver_project_region_map` and its validator | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 18 STOP checks passed. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
@@ -604,7 +604,7 @@ run above replaces those category counts.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The v6 run on October 12 shows all 97 are `MISSING` and none is `CONFLICT`.
 - Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
 - The v6 run on October 12 changed the project `run_id`. The project validator, the source match, Tables 13 and 15 with their validators, and Gold `03`, `04`, and `07` reran after it, and every STOP check passed. See [Run on rule version 6](#run-on-rule-version-6).
-- `silver_project_v7` (#110) changes the project `run_id` again. The same dependent notebooks must rerun after it.
+- `silver_project_v7` (#110) changed the project `run_id` again. The project validator, the source match, and Tables 13 and 15 with their validators reran on it, and every STOP check passed. See the [#110 evidence](evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). Gold `03`, `04`, and `07` have not rerun on v7.
 
 ## Open questions for the team
 
