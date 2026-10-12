@@ -144,6 +144,12 @@ manual evidence is still inspected so a conflicting Central Office override is
 visible, but the non-geographic rule remains authoritative. Gold may later
 represent these records with its governed non-geographic dimension member.
 
+Only rows that normalize exactly to `Central Office` are excluded from spatial
+candidate generation. Projects with a blank, null, or otherwise unresolved
+reported region remain eligible for `COORDINATE_BOUNDARY` fallback when they
+have a valid coordinate and intersect exactly one selected region boundary, as
+required by D-31.
+
 ## Exact region-name standardization
 
 The project and PSGC names use only:
