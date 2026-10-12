@@ -123,6 +123,7 @@ The run ID hashes these contracts:
 - project run, project snapshot, and project ingest run
 - MGB snapshot, MGB ingest run, and MGB publisher version or
   `NO_PUBLISHER_VERSION`
+- MGB parse run of `silver_mgb_flood_area` (`mgb_flood_area_run_id`)
 - MGB mapping version and mapping source contract
 - `classification_rule` and `classification_rule_version`
 
@@ -196,8 +197,9 @@ validator flags matched projects that depend on a repaired polygon. Geometry
 that stays `INVALID_GEOMETRY` is excluded and flagged. Table 15 applies no
 repair, buffer, or other hidden rule of its own.
 
-The MGB extract has no stable polygon business key. Table 15 does not invent
-one. It keeps snapshot and run lineage plus candidate counts per project.
+`silver_mgb_flood_area` identifies each polygon by its MGB `object_id` within one
+snapshot (D-42). Table 15 does not publish polygon IDs. It keeps snapshot and run
+lineage plus candidate counts per project.
 
 ## Spatial predicate
 
@@ -265,7 +267,8 @@ The order never implies precedence.
 
 Decision governance: the Buildabida team owns any future severity-precedence
 decision. D-29 and D-30 establish the project's traceability and versioned
-mapping pattern. No severity-precedence rule is approved for v1.
+mapping pattern. D-45 keeps this rule for the capstone: ambiguous projects
+stay `AMBIGUOUS`, and the dashboard shows them as their own group.
 
 Any future precedence must receive a new decision ID in `docs/decisions.md`
 and a new `silver-project-flood-map` rule version before implementation.
@@ -332,14 +335,9 @@ place on an exact rerun.
 - Expensive intermediate views are each consumed once in the publish path.
 - Intermediate results use temporary views, not permanent staging tables.
 - No cache, repartition, collect, Python, UDF, or spatial library is used.
-- The transformation parses MGB geometry twice. One parse feeds the accounting
-  gate before publication, and one feeds the spatial join. This matches the
-  accepted Table 14 pattern.
-
-A shared persisted layer of parsed MGB polygons could remove repeated parsing
-across Tables 14 and 15 and their validators. It would also add a new governed
-table and a new dependency. It is not created until runtime evidence shows the
-repeated parse is a material cost.
+- The transformation reads parsed WKB from `silver_mgb_flood_area`. It never
+  parses MGB geometry text. Since D-42, Tables 14 and 15 and their validators
+  share that one parsed table.
 
 ## Validation
 
@@ -668,12 +666,14 @@ spatial match, Table 15 is incomplete.
 - A usable point without an approved polygon is `UNMATCHED`. The selected MGB
   extract may not cover every area, and unrated MGB rows never drive a level.
 - Points inside overlapping polygons of different approved levels stay
-  `AMBIGUOUS` until the team approves a precedence rule.
+  `AMBIGUOUS` (D-45). A precedence rule needs a new decision.
 - Esri holes are read as holes only when the first reading is invalid. A
-  geometry that is still invalid after that is excluded rather than repaired,
-  so a point inside an excluded polygon cannot match it.
-- The MGB extract has no stable polygon key, so per-polygon evidence is kept as
-  counts and levels rather than polygon identifiers.
+  geometry that is still invalid after that is repaired under D-43 when the
+  repair passes its checks. Otherwise it stays `INVALID_GEOMETRY` and is
+  excluded, so a point inside it cannot match it. After the October 11 run, no
+  polygon stays invalid.
+- Table 15 keeps per-polygon evidence as counts and levels, not polygon IDs.
+  `silver_mgb_flood_area` keys each polygon by its MGB `object_id` (D-42).
 - The optional MGB and DPWH publisher versions may be unavailable.
 - The spatial join is the most expensive step. Its runtime cost must be
   monitored when future MGB or DPWH snapshots grow.

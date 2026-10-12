@@ -228,6 +228,15 @@ not authorize a final business rule for combining overlapping source records.
 
 ## Current runtime validation
 
+### Rerun on October 11, 2026
+
+The flood-control component and source-match tables reran on the
+`silver_project_v5` run, on commit `3da7665`. The validator ran 23 checks. All 13
+STOP checks passed, and 6 FLAG checks had findings. See
+[Run on rule version 5](silver_project_cleaning.md#run-on-rule-version-5).
+
+### Earlier run
+
 The current selected snapshots were executed successfully in Databricks.
 
 Runtime results:

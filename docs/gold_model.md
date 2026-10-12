@@ -256,8 +256,8 @@ Gold keys are deterministic. The same Silver inputs always give the same key, so
 | `region_key` | BIGINT | `PSGC_REGION` | `XXHASH64(CONCAT_WS('\|', 'PSGC_REGION', psgc_region_code, COALESCE(psgc_version, source_snapshot_id)))` | `01_gold_dim_region.ipynb`, cell 8, lines 506 to 509, and the gate in cell 2, line 121 |
 | `boundary_key` | BIGINT | `REGION_BOUNDARY` | `XXHASH64(CONCAT_WS('\|', 'REGION_BOUNDARY', CAST(region_key AS STRING), boundary_version))` | `01_gold_dim_region.ipynb`, cell 10, lines 620 to 622 |
 | `project_key` | BIGINT | `PROJECT` | `XXHASH64(CONCAT_WS('\|', 'PROJECT', source_system, contract_id))` | `04_gold_dim_project.ipynb`, cell 8, line 380 |
-| `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 340 to 342 |
-| `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 293 to 295 |
+| `status_key` | INT | `PROJECT_STATUS` | `HASH(CONCAT_WS('\|', 'PROJECT_STATUS', source_system, source_status, status_mapping_version))` | `03_gold_dim_project_status.ipynb`, cell 6, lines 342 to 344 |
+| `flood_susceptibility_key` | INT | `FLOOD_SUSCEPTIBILITY` | `HASH(CONCAT_WS('\|', 'FLOOD_SUSCEPTIBILITY', source_system, flood_susceptibility_level, source_version))` | `02_gold_dim_flood_susceptibility.ipynb`, cell 6, lines 294 to 296 |
 
 Cell numbers count from 0. Line numbers are lines of the `.ipynb` file, so they move when a cell above them changes.
 
@@ -275,7 +275,7 @@ Key `0` is reserved for unknown, unmapped, or non-geographic records.
 | --- | --- | --- |
 | `dim_date` | `month_name = 'Unknown'` and a `NULL` date | A source date is missing |
 | `dim_region` | `Unknown or non-geographic` | The project is Central Office, unmatched, or ambiguous |
-| `dim_project_status` | `Missing or conflicting status` | The source status is missing or its rows disagree |
+| `dim_project_status` | `Missing or conflicting status` | The source status is missing or its rows disagree. A Silver status without its own active row stops the fact load instead. |
 | `dim_flood_susceptibility` | `Unknown` with `severity_rank = 0` | Silver published no single approved level |
 | `dim_project` | None | Never. Every fact row comes from a real Silver project. |
 
@@ -303,10 +303,10 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
-- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. This is the only published long-running flag. `silver_project` has none (D-44).
+- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. It is also `NULL` when the completion date is before the start date, because that span cannot be measured ([D-49](decisions.md)). A start date after the snapshot date gives `FALSE`. This is the only published long-running flag. `silver_project` has none (D-44).
 - **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation).
 
-`zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
+`zero_progress_flag` comes unchanged from Silver. Gold has no stalled flag, because stalled is out of scope for the capstone (D-46). A zero-progress count must filter out `For Procurement` projects or say that it includes them.
 
 ## Load pattern
 
@@ -464,4 +464,4 @@ Run IDs, the same in both runs:
 1. **How do we generate surrogate keys?** With deterministic hashes. See [Surrogate keys](#surrogate-keys) and D-33.
 2. **What date range does `dim_date` cover?** January 1, 2000 to December 31, 2035. Key `0` stands for a missing date.
 3. **Which dimensions get an unknown row?** `dim_date`, `dim_region`, `dim_project_status`, and `dim_flood_susceptibility`. `dim_project` does not need one. See [Unknown and non-geographic records](#unknown-and-non-geographic-records).
-4. **How do we refresh `is_current_snapshot`?** The project fact merges each snapshot by `project_key` and `source_snapshot_id`. Then it sets `is_current_snapshot` to true only for the newest DPWH snapshot. This is built with the fact.
+4. **How do we refresh `is_current_snapshot`?** The project fact merges each snapshot by `project_key` and `source_snapshot_id`. The same `MERGE` sets `is_current_snapshot` to false on every row outside the snapshot that Silver holds now. One `MERGE` is one commit, so a failed run cannot leave two current rows. Before it, the load stops when Silver holds an older snapshot than the fact, so the current snapshot is always the newest one. A rollback to an older snapshot needs its own decision (#116).

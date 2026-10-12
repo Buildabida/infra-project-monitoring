@@ -26,7 +26,7 @@ but the notebooks do not depend on a developer file path.
 | `silver_region_population` | Implemented. Databricks execution is required. |
 | Silver geography and population validation | Implemented. Databricks execution is required. |
 | Project and flood Silver outputs | Implemented in later milestones. Databricks execution is required. |
-| Gold facts and dimensions | Planned |
+| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
 
 ## Dependency order
 
@@ -211,7 +211,7 @@ The reconciliation table retains Table C source lineage for every source row.
 
 Successfully matched rows also retain the matched PSGC snapshot and ingest run.
 PSGC target lineage is required only when `match_status` is
-`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+`MATCHED_EXACT_CONTEXT`, `MATCHED_ALIAS`, or `MATCHED_NORMALIZED_CONTEXT`.
 
 Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
 have null matched-target PSGC lineage because no single PSGC target was accepted.

@@ -831,7 +831,8 @@ FLAG checks keep known data limits visible with their counts:
 - projects without a flood level, by match status and coordinate status
 - projects without a status
 - progress that Silver did not mark `VALID`
-- projects without a long-running flag because they have no start date
+- projects without a long-running flag because they have no start date, or their
+  completion date is before the start date (D-49)
 - region and level pairs with no area data
 - official regions without a boundary, and boundary shapes marked not valid
 - active statuses that look like numbers or map points, from DPWH rows split

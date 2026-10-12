@@ -27,10 +27,24 @@ These tests protect the low-cost Bronze contract without requiring Spark:
 It is not part of the current R2 CSV loaders. Its tests cover exact text preservation,
 empty cells, numbers, saved formula results, and complete row classification.
 
+## Gold notebook tests
+
+`test_gold_dimensions.py` and `test_gold_facts.py` read the Gold notebooks as text.
+They never run SQL or touch Databricks. Each test strips SQL comments and squeezes
+whitespace, then looks for whole statements, not single words. So a test fails when
+a notebook drops one of these:
+
+- any part of a key recipe, such as `COALESCE(psgc_version, source_snapshot_id)` in `region_key` (D-33)
+- a key column in the STOP check that runs before each fact's `MERGE`
+- a NULL-safe `<=>` in the region joins and the Silver total checks
+
+These tests cannot prove that the SQL runs or that the data is right. The Gold
+validator checks the tables after a run.
+
 ## Boundary between tests and data quality
 
 Unit tests verify deterministic helper behavior. Layer validators evaluate Delta
-tables and record results in `04-validation.dq_results`.
+tables and record results in the `04-validation` results tables.
 
 Bronze, Silver, and Gold each own checks that match their responsibilities. Bronze
 checks source preservation and ingestion safety. Silver checks cleaning and matching.
