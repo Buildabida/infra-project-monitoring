@@ -831,7 +831,8 @@ FLAG checks keep known data limits visible with their counts:
 - projects without a flood level, by match status and coordinate status
 - projects without a status
 - progress that Silver did not mark `VALID`
-- projects without a long-running flag because they have no start date
+- projects without a long-running flag because they have no start date, or their
+  completion date is before the start date (D-49)
 - region and level pairs with no area data
 - official regions without a boundary, and boundary shapes marked not valid
 - active statuses that look like numbers or map points, from DPWH rows split
@@ -875,6 +876,13 @@ An earlier run that day, from commit `6770773`, used rule version
 `gold-validation-v1` and 76 checks. It found the same FLAG counts. After the
 review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
 population count is now part of a STOP check. So the rule version changed.
+
+On October 12, 2026, `09_validation_gold.ipynb` ran again after the changes for
+issues #116 and #119, from commit `ff7cacc` of branch
+`feature/issues-116-117-118-119-120-121`. It wrote 75 checks. All 65 STOP checks
+passed. 9 FLAG checks had findings, and 1 found nothing. The long-running FLAG
+now counts 20,045 projects: 20,039 without a start date and 6 with a completion
+before the start (D-49).
 
 ## Future validation documents
 
