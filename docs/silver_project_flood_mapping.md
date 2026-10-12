@@ -399,6 +399,9 @@ routine Bronze rerun even when nothing changed. Only a load that rewrites Bronze
 such as a force reload, changes `_ingest_run_id`. That change makes the next
 `08a` run parse again, because its run ID hashes the ingest run.
 
+The October 12, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
+
 ## STOP and FLAG
 
 STOP protects correctness. Examples:

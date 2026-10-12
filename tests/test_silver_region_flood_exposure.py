@@ -749,3 +749,19 @@ def test_68_parsed_mgb_ingest_is_compared_with_bronze_not_load_log():
     )
     assert "CROSS JOIN current_bronze_mgb;" in context
     assert "latest_mgb_ingest_run_id" not in validator
+
+
+def test_69_exposure_gate_reads_bronze_ingest_inside_the_assert():
+    gate = " ".join(
+        view_body(sql(EXPOSURE_NOTEBOOK), "selected_flood_exposure_versions").split()
+    )
+    mgb_context = gate[
+        gate.index("mgb_context AS (") : gate.index("mgb_publisher AS (")
+    ]
+    assert "MAX(_ingest_run_id) AS mgb_source_ingest_run_id" in mgb_context
+    assert "FROM `01-bronze`.flood_susceptibility" in mgb_context
+    assert "load_log" not in mgb_context
+    assertion = gate[gate.index("SELECT ASSERT_TRUE(") :]
+    assertion = assertion[: assertion.index("silver_mgb_flood_area is stale")]
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in assertion
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in assertion

@@ -68,6 +68,8 @@ The expected ingest run comes from the `_ingest_run_id` of the current
 `01-bronze.flood_susceptibility` rows, not from `load_log.run_id`. A
 `SKIPPED_IDEMPOTENT` load writes a new `load_log` run ID but keeps the Bronze
 rows, so a `load_log` comparison would stop every routine Bronze rerun.
+The October 12, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.

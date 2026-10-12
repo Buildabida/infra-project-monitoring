@@ -828,3 +828,17 @@ def test_45_parsed_mgb_ingest_is_compared_with_bronze_not_load_log():
     assert "CROSS JOIN current_bronze_mgb;" in context
     assert "THEN run_id END) AS latest_mgb_ingest_run_id" not in context
     assert "latest_mgb_ingest_run_id" not in sql(VALIDATION_NOTEBOOK)
+
+
+def test_46_flood_map_gate_reads_bronze_ingest_inside_the_assert():
+    gate = squash(view_body(sql(FLOOD_MAP_NOTEBOOK), "selected_project_flood_versions"))
+    mgb_context = gate[
+        gate.index("mgb_context AS (") : gate.index("mgb_publisher AS (")
+    ]
+    assert "MAX(_ingest_run_id) AS mgb_source_ingest_run_id" in mgb_context
+    assert "FROM `01-bronze`.flood_susceptibility" in mgb_context
+    assert "load_log" not in mgb_context
+    assertion = gate[gate.index("SELECT ASSERT_TRUE(") :]
+    assertion = assertion[: assertion.index("silver_mgb_flood_area is stale")]
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in assertion
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in assertion
