@@ -2,8 +2,8 @@
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
-project-region, regional flood-exposure, and project-flood mapping validators. Gold
-checks remain planned.
+project-region, regional flood-exposure, and project-flood mapping validators, and
+the Gold validator.
 
 ## Bronze validation
 
@@ -761,6 +761,120 @@ See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
 handoff contracts. The first Databricks run passed every STOP check. Its results
 are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
+
+## Gold validation
+
+`notebooks/04_validation/09_validation_gold.ipynb` checks the six Gold
+dimensions and three Gold facts. It covers issues #60 to #64. It only reads Gold
+and Silver, and it never changes them.
+
+Run it after the last Gold fact:
+
+1. `notebooks/03_gold/00_gold_dim_date.ipynb` to
+   `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`, in the
+   [Gold build order](gold_model.md#build-order)
+2. `notebooks/04_validation/09_validation_gold.ipynb`
+
+The validator saves its results to `04-validation.gold_dq_results` before its
+STOP gate runs (D-47). The table has the same columns as `silver_dq_results`,
+with `layer = 'gold'`. The gate reads the saved rows.
+
+The validation run ID comes from the run IDs of the three Gold facts and the
+rule version `gold-validation-v2`. So an exact rerun updates the same evidence
+instead of adding copies.
+
+The expected values live in the validator, not in the Gold notebooks, so Gold
+never checks itself. They are the key `0` match rules, the five flood levels,
+and the area CRS `EPSG:6933`. The 2024 census total of 112,727,776 people comes
+from issue #61.
+
+### Gold stop checks
+
+- **Project fact (#60):** at most one current row per project. Progress is 0
+  to 100 or empty. Budget is zero or more, or empty. Every row has a source
+  snapshot, and every key finds its dimension row.
+- **Population (#61):** primary population is filled and above zero. Each
+  official region has exactly one primary source in each year. No population
+  row uses region key `0`, so per-person ratios leave it out. The check records
+  the denominator of those ratios.
+- **Flood (#62):** flood area is zero or more, and its share of the region area
+  is 0 to 100. Areas use the equal-area CRS `EPSG:6933`, and the check names the
+  CRS it found. Levels are Unknown, Low, Moderate, High and Very High. Each
+  source system and version has one severity rank per level.
+- **Grain and keys (#63):** every fact and dimension passes its uniqueness rule
+  from the [data model](data-model.md#required-analytical-validation). The
+  date, region, flood and status dimensions each have one key `0` row. Key `0`
+  appears only in the documented cases. Central Office uses region key `0` with
+  the `NON_GEOGRAPHIC` match status.
+- **Lineage (#63):** lineage columns are filled in every table that has them.
+  `dim_date` is built from a date range, so it has none.
+- **Totals (#64):** Gold rows, budgets, population and flood areas equal Silver.
+  Project counts and budgets also match Silver region by region. Current
+  project rows must use the DPWH snapshot that Silver holds now. The details
+  record the Gold and Silver runs and the snapshot.
+
+Two more STOP checks come from the review of #60. Every
+`silver_project_flood_map` row needs an MGB load time, because a count of
+distinct load times skips empty ones. Also, every current Gold project row must
+still be in Silver.
+
+The population and flood facts have no current flag, and their `MERGE` never
+deletes. A new PSGC version, MGB snapshot, or boundary version would leave the
+old rows in place. The row checks stop the run when Gold has more rows than
+Silver, so old rows can't double a total unnoticed.
+
+### Gold review flags
+
+FLAG checks keep known data limits visible with their counts:
+
+- projects without a region, by match status
+- projects without a flood level, by match status and coordinate status
+- projects without a status
+- progress that Silver did not mark `VALID`
+- projects without a long-running flag because they have no start date
+- region and level pairs with no area data
+- official regions without a boundary, and boundary shapes marked not valid
+- active statuses that look like numbers or map points, from DPWH rows split
+  by a line break
+- the gap between the Gold population and the 2024 census total, with the
+  unmatched Table C rows behind it
+
+Every check names the columns it tested in `details`.
+
+### Gold checks that wait for the marts
+
+Issue #61 also asks that a mart that uses region key `0` in a ratio fails.
+There are no marts yet. When the dashboard datasets exist, add a check that
+their per-person ratios leave key `0` out.
+
+### Gold validation runtime evidence
+
+On October 12, 2026, `09_validation_gold.ipynb` ran twice in the team workspace
+on serverless compute. It ran from commit `dc2c516` of branch
+`validation/issues-60-64-gold-checks`, with rule version `gold-validation-v2`.
+Both runs wrote the same 75 checks under one validation run ID, so the second
+run updated the rows instead of adding copies. All 65 STOP checks passed.
+
+The FLAG checks found:
+
+| Check | Rows | Out of |
+| --- | ---: | ---: |
+| Projects without a region (key `0`): 306 Central Office, 266 unmatched | 572 | 265,656 |
+| Projects without a flood level (key `0`): 250 ambiguous, 50,518 with no map point, 102,178 unmatched | 152,946 | 265,656 |
+| Projects without a status (key `0`) | 76 | 265,656 |
+| Progress not published because Silver did not mark it `VALID` | 98 | 265,656 |
+| Long-running flag is empty because there is no start date | 20,039 | 265,656 |
+| Region and level pairs with no area data | 20 | 72 |
+| Official regions without a boundary | 1 | 18 |
+| Active statuses that are shifted numbers: `0.00` and `121.0181138` | 2 | 18 |
+| Table C rows behind the 4,789-person gap to the 2024 census total | 2 | 43,750 |
+
+The other FLAG check found nothing.
+
+An earlier run that day, from commit `6770773`, used rule version
+`gold-validation-v1` and 76 checks. It found the same FLAG counts. After the
+review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
+population count is now part of a STOP check. So the rule version changed.
 
 ## Future validation documents
 

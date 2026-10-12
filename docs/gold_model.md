@@ -304,7 +304,7 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
 - **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. This is the only published long-running flag. `silver_project` has none (D-44).
-- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation-planned).
+- **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation).
 
 `zero_progress_flag` comes unchanged from Silver. A stalled flag waits for an approved status mapping, because it needs to know which projects are ongoing.
 
@@ -363,11 +363,13 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 
 ## Validation
 
-The analytical checks live in [Data model](data-model.md#required-analytical-validation-planned). Keep them there.
+The analytical checks live in [Data model](data-model.md#required-analytical-validation). Keep them there.
 
-The planned notebook `notebooks/04_validation/09_validation_gold.ipynb` runs them. It writes to `04-validation.gold_dq_results`. See the [Notebooks guide](../notebooks/README.md).
+`notebooks/04_validation/09_validation_gold.ipynb` runs them after step 8 of the build order. It writes to `04-validation.gold_dq_results` (D-47). See [Gold validation](validation.md#gold-validation) and the [Notebooks guide](../notebooks/README.md).
 
-`tests/test_gold_dimensions.py` checks each dimension notebook against this doc. It fails when a column name, type, or order differs from the tables above.
+`fact_region_population` and `fact_region_flood_exposure` have no current flag, and their `MERGE` never deletes. A new PSGC version, MGB snapshot, or boundary version leaves the old rows in place. The validator stops the run when Gold has more rows than Silver. Adding a current flag needs its own decision.
+
+`tests/test_gold_dimensions.py` checks each dimension notebook against this doc. It fails when a column name, type, or order differs from the tables above. `tests/test_validation_gold.py` checks the Gold validator notebook.
 
 Before you finish any Gold task, check that:
 

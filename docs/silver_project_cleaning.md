@@ -162,7 +162,7 @@ Each parsed field has a status, so a reader can tell why a value is `NULL` or su
 | `progress_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE`, `OUT_OF_RANGE` |
 | `infra_year_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE` |
 
-The progress range is 0 to 100, from the required analytical validation in [Data model](data-model.md#required-analytical-validation-planned). It is declared once in the notebook's parameter view.
+The progress range is 0 to 100, from the required analytical validation in [Data model](data-model.md#required-analytical-validation). It is declared once in the notebook's parameter view.
 
 `infra_year` keeps the raw string. `infra_year_parsed` adds the integer, so Gold does not need to cast it.
 
