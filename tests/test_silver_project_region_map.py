@@ -184,10 +184,7 @@ def test_23_central_office_is_excluded_before_spatial_assignment():
     text = sql(MAP_NOTEBOOK)
     spatial = text[text.index("spatial_region_candidates") :]
 
-    assert (
-        "reported_region_standardized <=> 'CENTRAL OFFICE'"
-        in spatial
-    )
+    assert "reported_region_standardized <=> 'CENTRAL OFFICE'" in spatial
 
 
 def test_24_exact_region_name_matching_is_conservative():
