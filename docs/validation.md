@@ -1068,10 +1068,12 @@ historical comparison only. See the
 
 That evidence is from rule version v1 and covers the six official views only.
 
-The first run under `analytics-validation-v2` covers all eleven views. It saved
-152 checks under validation run `388660ef…a7995`. All 132 STOP checks passed. 18
-FLAG checks found data limits, and 2 found nothing. The 87 Q1 to Q6 checks match
-the October 12 evidence row for row. See the
+The latest run under `analytics-validation-v2` covers all eleven views. It saved
+152 checks under validation run `b74f14bb…95a37c`. All 132 STOP checks passed. 18
+FLAG checks found data limits, and 2 found nothing. All 87 Q1 to Q6 checks keep
+the same status, failed rows, and total rows as the October 12 evidence. One Q4
+details value changed after the final Issue #113 population refresh, while the
+check remained within tolerance and `PASS`. See the
 [exploratory analytics evidence](evidence/exploratory-analytics-views/README.md).
 
 ### Known gap: dimension runs in the Gold gate

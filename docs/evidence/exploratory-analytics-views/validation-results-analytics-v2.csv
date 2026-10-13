@@ -90,7 +90,7 @@ analytics_infrastructure_year_trend,PASS,stop,0,1,0.0,"Years, including NULL, ad
 analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Zero-progress count and its evaluated denominator match Gold,"Columns: zero_progress_evaluated_count, zero_progress_count. The denominator counts projects whose flag is not NULL"
 analytics_population_equity,PASS,stop,0,18,0.0,"A region outside the comparable set shows no share, gap, or per-capita value","Columns: investment_share_pct, comparable_population_share_pct, equity_gap_pp, investment_per_capita_pesos"
 analytics_population_equity,PASS,stop,0,18,0.0,Budget and coverage status match Q1,"Columns: total_reported_budget_pesos, source_coverage_status"
-analytics_population_equity,PASS,stop,0,3,0.0,Each share adds up to 100 percent,"Columns: investment_share_pct, population_share_pct, comparable_population_share_pct. Totals=100.0000, 99.9998, 100.0000"
+analytics_population_equity,PASS,stop,0,3,0.0,Each share adds up to 100 percent,"Columns: investment_share_pct, population_share_pct, comparable_population_share_pct. Totals=100.0000, 100.0002, 100.0000"
 analytics_population_equity,PASS,stop,0,18,0.0,Equity gap is investment share minus comparable population share,Columns: equity_gap_pp
 analytics_population_equity,PASS,stop,0,18,0.0,Every Q1 region has exactly one row,Columns: region_key
 analytics_population_equity,PASS,stop,0,18,0.0,Investment per capita divides comparable budget by comparable population,Columns: investment_per_capita_pesos

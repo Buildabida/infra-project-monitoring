@@ -692,3 +692,67 @@ October 12 run for #116 and #119 in [`docs/gold_model.md`](../../gold_model.md).
 - The FLAG counts match the October 12 run, but this run does not compare
   row-level values against it.
 - The Power BI report was not refreshed in this run.
+
+## October 13, 2026 final Issue #113 fail-closed rerun
+
+This section supersedes the earlier Issue #113 follow-up above. The earlier run
+did not exercise the fail-closed path on the selected snapshot. The final
+implementation decides row role before barangay matching and clears locality
+context after an unresolved heading-like row.
+
+No uppercase-barangay exception is approved. The selected exception version is
+the explicit sentinel `NO_APPROVED_ROW_ROLE_EXCEPTION`.
+
+### Reconciliation outcome
+
+The final rerun preserved all 43,750 Table C source rows:
+
+| Result | Rows |
+| --- | ---: |
+| Accepted primary barangays | 41,951 |
+| Matched non-primary levels | 1,733 |
+| Invalid population | 12 |
+| Unmatched | 54 |
+| **Total** | **43,750** |
+
+Five rows are `UNRESOLVED_HEADING_LIKE`. Another 41 rows remain unmatched
+because they follow an unresolved heading-like row before the next resolved
+heading. These rows do not publish an accepted PSGC target and do not inherit a
+trusted locality.
+
+The complete source-row summary is in
+[`issue-113-final-reconciliation-summary-2026-10-13.csv`](issue-113-final-reconciliation-summary-2026-10-13.csv).
+
+`03_silver_region_population` then published all 18 official regions. The
+41,951 accepted primary rows contribute 112,348,732 people, and the regional
+total reconciles exactly to that accepted population. The one-row result is in
+[`issue-113-final-region-population-summary-2026-10-13.csv`](issue-113-final-region-population-summary-2026-10-13.csv).
+
+### Silver validation outcome
+
+`03_validation_silver_geography_population` saved 40 checks:
+
+| Result | Checks |
+| --- | ---: |
+| STOP checks passed | 25 of 25 |
+| FLAG checks with findings | 10 |
+| FLAG checks with no finding | 5 |
+| FAIL | 0 |
+
+The final validation results are in
+[`issue-113-final-validation-results-2026-10-13.csv`](issue-113-final-validation-results-2026-10-13.csv).
+
+### Gold population refresh
+
+`05_gold_fact_region_population` updated 18 existing rows and inserted or
+deleted none. Gold and Silver both total 112,348,732. No official region is
+missing population, and no population fact uses region key `0`.
+
+Gold population run ID:
+`acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3`.
+
+`09_validation_gold` saved 75 checks under validation run
+`4ec99da18177c198b1d9441a8ae74e5c8a3fc648d114ad9d26d14462e84245dc`.
+All 65 STOP checks passed, 9 FLAG checks had findings, 1 FLAG check found
+nothing, and no check failed. The current results are in
+[`issue-113-final-gold-validation-results-2026-10-13.csv`](issue-113-final-gold-validation-results-2026-10-13.csv).

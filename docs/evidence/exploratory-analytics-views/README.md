@@ -14,20 +14,20 @@ The evidence covers:
 
 The evidence comes from the executed notebooks `05_analytics/01_business_questions` and `04_validation/10_validation_analytics`, exported from Databricks.
 The SQL in both exported notebooks was the same, cell for cell, as the SQL on the feature branch at the time of the run.
-After the run, the team approved D-54 on October 13, 2026. The five exploratory view comments then changed from `(D-54, proposed)` to `(D-54)`. No logic changed. A rerun of `01_business_questions` refreshes the comments that Genie reads.
-The exported notebooks carry no run timestamp. The run read the Gold built on October 13, 2026, after the Silver audit fixes for #109 to #115. See the run IDs below and the [Gold model](../../gold_model.md#runtime-evidence).
+After the first run, the team approved D-54 on October 13, 2026. The five exploratory view comments then changed from `(D-54, proposed)` to `(D-54)`. No logic changed. `01_business_questions` was rerun, so the comments that Genie reads are current.
+The exported notebooks carry no run timestamp. The latest run read Gold after `fact_region_population` was rebuilt from the final Issue #113 Silver output. See the run IDs below and the [Gold model](../../gold_model.md#runtime-evidence).
 
 ## Run identity
 
 | Item | Value |
 | --- | --- |
-| Validation run ID | `388660efc9c6034b28e5cfbc2c5ba8ff7d6b4e350da9964667b0167186f7a995` |
+| Validation run ID | `b74f14bbe72bbf4c805a600868bc7eb9c6be1f0ec0495a0e0e8f21dcca95a37c` |
 | Rule version | `analytics-validation-v2` |
 | DPWH snapshot ID | `metadata-6321c7aa6f2a14e12f4c` |
 | MGB snapshot ID | `metadata-17bf5e65e1838a2f7be9` |
 | Gold `fact_project_snapshot` run ID | `def31215c60484374b1bbe3c284d60cff77d2f0728753bde48c74cb1064d6286` |
 | Gold `dim_region` run ID | `ebbacae44fad379b5ea2488e0bb38294fb5d816cb5d2d543f01e3cd3fa4e6b95` |
-| Gold `fact_region_population` run ID | `63284e351aad12e62ccde0d27b719fa4a1e089cde22203238ba3db65a017b253` |
+| Gold `fact_region_population` run ID | `acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3` |
 | Gold `fact_region_flood_exposure` run ID | `26416088e406d1a4d959dc069cd65bab019880815bbe763d3a66e2125f892e48` |
 
 The validation run ID uses the D-52 recipe unchanged. It differs from the October 12 ID because the Gold runs and the rule version are new.
@@ -51,8 +51,8 @@ The complete results are in [`validation-results-analytics-v2.csv`](validation-r
 
 ## Q1 to Q6 regression
 
-The 87 Q1 to Q6 checks in this run match the [October 12 evidence](../analytics-views/validation-results-2026-10-12-after-125.csv) row for row. Each has the same status, failed rows, total rows, and details.
-This holds although the run read a newer Gold `fact_project_snapshot` run.
+All 87 Q1 to Q6 checks keep the same status, failed rows, and total rows as the [October 12 evidence](../analytics-views/validation-results-2026-10-12-after-125.csv). Of these, 86 also keep the same details text. The population-share total in the Q4 details changed from `99.9998` to `100.0002` after the final Issue #113 population refresh. It remains within tolerance and the check remains `PASS`.
+The current run reads the same Gold project fact run and a newer Gold population fact run.
 The six view definitions are byte-for-byte the same as on `main`, and `tests/test_analytics.py` pins them.
 
 | View | Rows on October 12 | Rows in this run |
