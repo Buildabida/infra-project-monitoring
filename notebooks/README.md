@@ -33,10 +33,10 @@ Governed mappings remain separate from geography and population transformations.
 | 8 | `01_bronze/06_bronze_flood_susceptibility` | Preserve the approved trimmed MGB extract with low-compute mechanics. |
 | 9 | `04_validation/01_validation_bronze` | Record grouped STOP and FLAG checks without changing Bronze. |
 | 10 | `04_validation/02_bronze_acceptance_evidence` | Summarize the latest load and validation evidence without rescanning data. |
-| 11 | `02_silver/00_config_mappings` | Create five versioned configuration tables and report mapping coverage. |
+| 11 | `02_silver/00_config_mappings` | Create six versioned configuration tables and report mapping coverage. |
 | 12 | `04_validation/02_validation_silver_config` | Validate Silver configuration structure, governance, and Bronze coverage. |
 | 13 | `02_silver/01_silver_psgc_place` | Standardize the selected official PSGC hierarchy without dropping source rows. |
-| 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through contextual PSGC matching and approved aliases. |
+| 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through fail-closed row roles, contextual PSGC matching, and approved aliases. |
 | 15 | `02_silver/03_silver_region_population` | Aggregate only accepted matched barangay population to official PSGC regions. |
 | 16 | `04_validation/03_validation_silver_geography_population` | Validate row accounting, matches, lineage, region coverage, and population totals. |
 | 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH row, extract `componentCategories`, and apply the governed atomic taxonomy without row multiplication. |
@@ -124,7 +124,7 @@ Review the stored results here:
 
 Silver currently implements:
 
-- five configuration tables
+- six configuration tables
 - three geography and population outputs
 - silver_dpwh_project_component
 - silver_project

@@ -66,7 +66,7 @@ Only the minimum column-name substitutions required by Delta are permitted.
 
 ## Silver configuration tables (implemented)
 
-These five small Delta tables govern mappings used by later Silver transformations.
+These six small Delta tables govern mappings used by later Silver transformations.
 Only active `APPROVED` rows may drive downstream standardization or matching.
 
 | Table | Grain | Natural key |
@@ -76,6 +76,7 @@ Only active `APPROVED` rows may drive downstream standardization or matching.
 | `02-silver.config_project_status_mapping` | One source status per mapping version | Source system, source status, status mapping version |
 | `02-silver.config_mgb_susceptibility_mapping` | One raw MGB code per source-contract and mapping version | Source system, raw code, source version, mapping version |
 | `02-silver.config_manual_geographic_match` | One source-record override per mapping version | Source system, record type, source record ID, mapping version |
+| `02-silver.config_table_c_row_role_exception` | One approved uppercase Table C barangay exception per source-file and sheet | Source system, source file, sheet name, standardized raw place name, mapping version |
 
 Every table records an approval status, version, active flag, and review evidence.
 The category table also records `is_flood_related` for each approved atomic
@@ -96,7 +97,7 @@ The approved population path is:
 ```text
 01-bronze.psgc → silver_psgc_place
                          ↓
-01-bronze.census_2024_table_c + config_place_name_alias
+01-bronze.census_2024_table_c + config_place_name_alias + config_table_c_row_role_exception
                          ↓
        silver_population_place_reconciliation
                          ↓
@@ -111,7 +112,7 @@ It combined source-row reconciliation and region aggregation into one unclear co
 | Table | Grain | Natural key | Main columns |
 | --- | --- | --- | --- |
 | `02-silver.silver_psgc_place` | One official PSGC place per selected PSGC version or snapshot | `psgc_code`, then `psgc_version` or `source_snapshot_id` | Raw and standardized name, place type, official hierarchy, PSGC population cross-check, snapshots, ingest run, Silver run, hierarchy status, rule version |
-| `02-silver.silver_population_place_reconciliation` | One current Table C source-row result per Silver run | `source_file`, `sheet_name`, `source_row_number`, `run_id` | Raw and parsed population, matched PSGC place, method, status, quality, candidate count, final disposition, cross-check, snapshots, versions, lineage |
+| `02-silver.silver_population_place_reconciliation` | One current Table C source-row result per Silver run | `source_file`, `sheet_name`, `source_row_number`, `run_id` | Raw and parsed population, row role, unresolved-heading follow flag, matched PSGC place, method, status, quality, candidate count, final disposition, cross-check, snapshots, versions, lineage |
 | `02-silver.silver_region_population` | One official PSGC region per reference year, source, and selected snapshots | `psgc_region_code`, `reference_year`, `source_name`, Table C snapshot, PSGC snapshot | Table C population, contributing rows, reference date, primary-source status, snapshots, ingest runs, alias and rule versions |
 
 Only positive `ACCEPTED_PRIMARY` matched barangay rows contribute to region population.

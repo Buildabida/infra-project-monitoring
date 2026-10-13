@@ -693,66 +693,81 @@ October 12 run for #116 and #119 in [`docs/gold_model.md`](../../gold_model.md).
   row-level values against it.
 - The Power BI report was not refreshed in this run.
 
-## October 13, 2026 final Issue #113 fail-closed rerun
+## October 13, 2026 pre-match Table C row-role guard (issue #113, PR #130)
 
-This section supersedes the earlier Issue #113 follow-up above. The earlier run
-did not exercise the fail-closed path on the selected snapshot. The final
-implementation decides row role before barangay matching and clears locality
-context after an unresolved heading-like row.
+### Runtime source
 
-No uppercase-barangay exception is approved. The selected exception version is
-the explicit sentinel `NO_APPROVED_ROW_ROLE_EXCEPTION`.
+The five supplied Databricks notebook exports contain executed results for the
+new row-role contract. The exports show notebook names and results, but they do
+not retain a Git commit identifier. This evidence therefore does not assert an
+exact executing commit.
 
-### Reconciliation outcome
+No uppercase barangay exception was approved or seeded. The active exception
+version remained `NO_APPROVED_ROW_ROLE_EXCEPTION`.
 
-The final rerun preserved all 43,750 Table C source rows:
+### Run identity and outcome
 
-| Result | Rows |
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 | `00_config_mappings` | Completed. The row-role exception table exists with 0 rows and 0 active approved exceptions. |
+| 2 | `02_validation_silver_config` | 26 checks. All 22 STOP checks passed. 4 FLAG checks reported governed review findings. 0 FAIL. |
+| 3 | `02_silver_population_place_reconciliation` | Completed. All 43,750 Table C rows were published once under rule version `silver-population-place-v5`. |
+| 4 | `03_silver_region_population` | Completed. All 18 official regions were published and the population reconciliation difference was 0. |
+| 5 | `03_validation_silver_geography_population` | 40 checks. All 25 STOP checks passed. 10 FLAG checks reported findings, 5 FLAG checks had no finding, and 0 checks failed. |
+
+The selected Table C snapshot was
+`metadata-afa2fa4c580930b7c10a`. The selected PSGC snapshot was
+`metadata-9f97e93e082df80535d6`. The alias version was
+`census-table-c-aliases-2026-10-v1`.
+
+### Row-role and matching results
+
+The executed results are in
+[`issue-113-row-role-outcomes-2026-10-13.csv`](issue-113-row-role-outcomes-2026-10-13.csv).
+
+| Measure | Rows |
 | --- | ---: |
+| Table C source rows | 43,750 |
+| Silver reconciliation rows | 43,750 |
 | Accepted primary barangays | 41,951 |
-| Matched non-primary levels | 1,733 |
-| Invalid population | 12 |
-| Unmatched | 54 |
-| **Total** | **43,750** |
+| Matched non-primary rows | 1,733 |
+| Invalid or non-positive population rows | 12 |
+| Unmatched rows | 54 |
+| Unresolved heading-like rows | 5 |
+| Rows forced unmatched after an unresolved heading-like row | 41 |
+| Ambiguous rows | 0 |
 
-Five rows are `UNRESOLVED_HEADING_LIKE`. Another 41 rows remain unmatched
-because they follow an unresolved heading-like row before the next resolved
-heading. These rows do not publish an accepted PSGC target and do not inherit a
-trusted locality.
+The fail-closed checks are in
+[`issue-113-row-role-validation-2026-10-13.csv`](issue-113-row-role-validation-2026-10-13.csv).
 
-The complete source-row summary is in
-[`issue-113-final-reconciliation-summary-2026-10-13.csv`](issue-113-final-reconciliation-summary-2026-10-13.csv).
+- unresolved heading-like rows produced 0 trusted matches or localities
+- rows after unresolved headings inherited 0 trusted localities
+- every Table C row produced exactly one reconciliation row
+- accepted PSGC barangay targets remained unique
+- the deterministic reconciliation run ID reproduced for all 43,750 rows
+- no active approved row-role exception existed
 
-`03_silver_region_population` then published all 18 official regions. The
-41,951 accepted primary rows contribute 112,348,732 people, and the regional
-total reconciles exactly to that accepted population. The one-row result is in
-[`issue-113-final-region-population-summary-2026-10-13.csv`](issue-113-final-region-population-summary-2026-10-13.csv).
+### Regional population result
 
-### Silver validation outcome
+The 41,951 accepted primary barangays contributed to all 18 official regions.
+Accepted and regional population both equal 112,348,732, for a reconciliation
+difference of 0.
 
-`03_validation_silver_geography_population` saved 40 checks:
+### Non-blocking follow-up
 
-| Result | Checks |
-| --- | ---: |
-| STOP checks passed | 25 of 25 |
-| FLAG checks with findings | 10 |
-| FLAG checks with no finding | 5 |
-| FAIL | 0 |
+The five `UNRESOLVED_HEADING_LIKE` rows may use the read-only profiling query in
+[`docs/silver_geography_population.md`](../../silver_geography_population.md).
+No exception may be approved from the aggregate counts alone. Human review must
+confirm the exact source file, sheet, and raw standardized name.
 
-The final validation results are in
-[`issue-113-final-validation-results-2026-10-13.csv`](issue-113-final-validation-results-2026-10-13.csv).
+The supplied evidence does not include these operational follow-ups:
 
-### Gold population refresh
+- the five-row uppercase candidate profile
+- an identical second run proving rerun behavior
+- the dependent Gold population fact and Gold validator rerun
+- analytics and analytics validation after any Gold change
 
-`05_gold_fact_region_population` updated 18 existing rows and inserted or
-deleted none. Gold and Silver both total 112,348,732. No official region is
-missing population, and no population fact uses region key `0`.
-
-Gold population run ID:
-`acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3`.
-
-`09_validation_gold` saved 75 checks under validation run
-`4ec99da18177c198b1d9441a8ae74e5c8a3fc648d114ad9d26d14462e84245dc`.
-All 65 STOP checks passed, 9 FLAG checks had findings, 1 FLAG check found
-nothing, and no check failed. The current results are in
-[`issue-113-final-gold-validation-results-2026-10-13.csv`](issue-113-final-gold-validation-results-2026-10-13.csv).
+These items do not block Issue #113. The issue's unsafe locality inheritance is
+closed by the fail-closed row role, and the independent duplicate-target STOP
+passed with 0 failures. The five candidates remain visible and unmatched rather
+than receiving an inferred PSGC assignment.

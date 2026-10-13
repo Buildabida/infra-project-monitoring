@@ -8,6 +8,7 @@ VALIDATION_NOTEBOOK = (
     REPO_ROOT
     / "notebooks/04_validation/03_validation_silver_geography_population.ipynb"
 )
+GEOGRAPHY_DOC = REPO_ROOT / "docs/silver_geography_population.md"
 NOTEBOOKS = (
     SILVER_DIR / "01_silver_psgc_place.ipynb",
     SILVER_DIR / "02_silver_population_place_reconciliation.ipynb",
@@ -294,8 +295,8 @@ def test_fallback_ranks_run_only_after_exact_and_alias_find_nothing():
 def test_all_caps_barangays_cannot_absorb_unresolved_subtotals():
     sql = notebook_code(NOTEBOOKS[1])
     assert "AS is_barangay_candidate_row" in sql
-    assert "WHERE place_type <> 'BARANGAY'" in sql
-    assert "higher_level_name.name_standardized IS NULL" in sql
+    assert "WHEN is_uppercase_heading" in sql
+    assert "'UNRESOLVED_HEADING_LIKE'" in sql
     assert "source.is_barangay_candidate_row AND source.place_name_standardized" in sql
 
 
@@ -322,7 +323,7 @@ def test_reconciliation_run_id_hashes_the_selected_psgc_snapshot():
         "CONCAT_WS('|', source_snapshot_id, psgc_source_snapshot_id, alias_version"
         not in sql
     )
-    assert "'silver-population-place-v4' AS transformation_rule_version" in sql
+    assert "'silver-population-place-v5' AS transformation_rule_version" in sql
 
 
 def test_region_population_and_validator_require_one_reconciliation_run_id():
@@ -340,20 +341,16 @@ def test_region_population_and_validator_require_one_reconciliation_run_id():
         "'One reconciliation run ID reproduces from its lineage',\n"
         "        unreproduced_run_id_rows, silver_rows_1, 'stop'" in sql
     )
-    assert "'silver-geography-population-validation-v3'" in sql
+    assert "'silver-geography-population-validation-v4'" in sql
 
 
 def test_unresolved_heading_clears_the_locality_context():
-    # issue #113: LAST_VALUE(..., TRUE) skipped an unresolved heading, so its
-    # barangays inherited the previous locality
+    # issue #113: a non-null struct carrying a null locality code resets the
+    # LAST_VALUE context instead of allowing the preceding locality to survive.
     sql = notebook_code(NOTEBOOKS[1])
-    assert (
-        "CASE WHEN heading.candidate_count = 1 THEN heading.candidate_psgc_code END,\n            TRUE"
-        not in sql
-    )
-    assert "THEN NAMED_STRUCT(\n                    'locality_code'," in sql
-    assert "higher_level_name.name_standardized IS NOT NULL" in sql
-    assert "LAST_VALUE(heading_context, TRUE) OVER (" in sql
+    assert "WHEN row_role = 'UNRESOLVED_HEADING_LIKE'" in sql
+    assert "NAMED_STRUCT('locality_code', CAST(NULL AS STRING))" in sql
+    assert "LAST_VALUE(CASE" in sql
     assert (
         "WHEN last_heading_context IS NOT NULL THEN last_heading_context.locality_code"
         in sql
@@ -378,14 +375,111 @@ def test_validation_flags_aliases_that_produced_no_accepted_match():
     )
 
 
-def test_unresolved_heading_like_row_fails_closed():
-    # issue #113 review: an all-caps row tried as a barangay that matches nothing is an
-    # unresolved heading, so every later row up to the next heading fails closed
+def test_unresolved_heading_like_row_fails_closed_before_matching():
+    # issue #113: an uppercase misspelled locality heading can exact-match a barangay
+    # in the preceding locality. It must become unresolved before any candidate stage.
     sql = notebook_code(NOTEBOOKS[1])
-    assert "heading_context IS NOT NULL AS is_heading_row," in sql
+    assert "'UNRESOLVED_HEADING_LIKE'" in sql
+    assert "'APPROVED_UPPERCASE_BARANGAY'" in sql
+    assert "'NORMAL_BARANGAY_CANDIDATE'" in sql
+    assert "row_role = 'UNRESOLVED_HEADING_LIKE' AS is_unresolved_heading_like" in sql
     assert (
-        "is_uppercase_heading\n            AND is_barangay_candidate_row\n"
-        "            AND match_status IN ('UNMATCHED', 'AMBIGUOUS') AS is_unresolved_heading_like"
+        "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN CAST(NULL AS STRING)"
+        in sql
+    )
+    assert "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN 'UNMATCHED'" in sql
+    assert (
+        "Unresolved uppercase heading-like row; locality context cleared before barangay matching"
+        in sql
+    )
+    assert sql.index("role_classified AS (") < sql.index("table_c_match_candidates")
+    assert (
+        "source.row_role IN ('APPROVED_UPPERCASE_BARANGAY', 'NORMAL_BARANGAY_CANDIDATE')"
+        in sql
+    )
+    assert "row_role_exception_version" in sql
+    assert "NO_APPROVED_ROW_ROLE_EXCEPTION" in sql
+    assert "heading.candidate_psgc_code AS heading_candidate_psgc_code" in sql
+    assert "NAMED_STRUCT('locality_code', heading_candidate_psgc_code)" in sql
+
+
+def test_misspelled_uppercase_heading_cannot_match_a_barangay_in_previous_locality():
+    # Regression fixture for #113:
+    # Municipality A is the trusted locality. An all-caps misspelled heading for
+    # Municipality B happens to exactly equal a real barangay in Municipality A.
+    # There is no approved source-file and sheet exception. The SQL must classify
+    # before candidates, clear locality, and keep later rows unmatched until a new
+    # resolved heading.
+    fixture = {
+        "trusted_locality": "MUNICIPALITY_A",
+        "heading_text": "BARANGAY_IN_MUNICIPALITY_A",
+        "is_uppercase_heading": True,
+        "is_nonfirst_sheet_row": True,
+        "has_approved_exception": False,
+    }
+    assert fixture["is_uppercase_heading"]
+    assert fixture["is_nonfirst_sheet_row"]
+    assert not fixture["has_approved_exception"]
+
+    sql = notebook_code(NOTEBOOKS[1])
+    assert sql.index("role_classified AS (") < sql.index("table_c_alias_candidates")
+    assert sql.index("role_classified AS (") < sql.index("table_c_match_candidates")
+    assert (
+        "WHEN is_uppercase_heading\n                AND TRY_CAST(source_row_number AS BIGINT) <> sheet_first_row_number\n                THEN 'UNRESOLVED_HEADING_LIKE'"
+        in sql
+    )
+    assert "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN 'UNMATCHED'" in sql
+    assert (
+        "WHEN row_role = 'UNRESOLVED_HEADING_LIKE' OR follows_unresolved_heading THEN CAST(NULL AS STRING)"
+        in sql
+    )
+    assert "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING" in sql
+
+
+def test_uppercase_exception_permits_matching_without_assigning_a_target():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "config_table_c_row_role_exception AS exception" in sql
+    assert "exception.source_file = source.source_file" in sql
+    assert "exception.sheet_name = source.sheet_name" in sql
+    assert "exception.approved_row_role = 'BARANGAY'" in sql
+    assert "exception.approval_status = 'APPROVED'" in sql
+    assert "exception.is_active = TRUE" in sql
+    assert "exception.canonical_psgc_code" not in sql
+
+
+def test_uppercase_candidate_profile_is_source_scoped_and_read_only():
+    documentation = GEOGRAPHY_DOC.read_text(encoding="utf-8")
+
+    for field in (
+        "source_file",
+        "sheet_name",
+        "place_name_raw",
+        "place_name_standardized",
+        "source_row_number",
+        "locality_context_code",
+        "matched_psgc_code",
+        "matched_place_name",
+        "matched_place_type",
+        "candidate_match_count",
+        "match_method",
+        "match_status",
+        "population_count",
+        "is_higher_level_psgc_name",
+        "standardized_value_occurrences",
+        "proposed_row_role",
+    ):
+        assert field in documentation
+
+    assert "`source_row_number` is diagnostic" in documentation
+    assert "INSERT INTO" not in documentation
+    assert "MERGE INTO" not in documentation
+
+
+def test_unresolved_heading_like_row_clears_later_context_and_matching():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert (
+        "WHEN row_role = 'UNRESOLVED_HEADING_LIKE'\n"
+        "                THEN NAMED_STRUCT('locality_code', CAST(NULL AS STRING))"
         in sql
     )
     squashed = " ".join(sql.split())
@@ -395,10 +489,7 @@ def test_unresolved_heading_like_row_fails_closed():
     )
     assert "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING" in sql
     assert ") AS follows_unresolved_heading" in sql
-    assert (
-        "CASE WHEN NOT follows_unresolved_heading THEN matched_psgc_code END AS matched_psgc_code"
-        in sql
-    )
+    assert "row_role = 'UNRESOLVED_HEADING_LIKE' OR follows_unresolved_heading" in sql
     assert (
         "WHEN follows_unresolved_heading AND match_status <> 'INVALID_SOURCE' THEN 'UNMATCHED'"
         in sql
@@ -411,4 +502,12 @@ def test_unresolved_heading_like_row_fails_closed():
     assert (
         "'Rows under an unresolved heading-like row remain visible',\n"
         "        rows_after_unresolved_heading, silver_rows_1, 'flag'" in validator
+    )
+    assert (
+        "'Unresolved heading-like rows cannot produce a trusted match or locality'"
+        in validator
+    )
+    assert (
+        "'Rows after unresolved headings cannot inherit a trusted locality'"
+        in validator
     )
