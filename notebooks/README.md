@@ -39,16 +39,18 @@ Governed mappings remain separate from geography and population transformations.
 | 14 | `02_silver/02_silver_population_place_reconciliation` | Reconcile every current Table C row through contextual PSGC matching and approved aliases. |
 | 15 | `02_silver/03_silver_region_population` | Aggregate only accepted matched barangay population to official PSGC regions. |
 | 16 | `04_validation/03_validation_silver_geography_population` | Validate row accounting, matches, lineage, region coverage, and population totals. |
-| 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH project source row and safely parse supported fields. |
-| 18 | `02_silver/05_silver_project` | Consolidate project evidence without unsupported budget summation. |
-| 19 | `04_validation/04_validation_silver_projects` | Validate project row accounting, grain, budget protection, and lineage. |
+| 17 | `02_silver/04_silver_dpwh_project_component` | Preserve every selected DPWH row, extract `componentCategories`, and apply the governed atomic taxonomy without row multiplication. |
+| 18 | `02_silver/05_silver_project` | Consolidate one project, classify approved category sets, and protect reported budgets. |
+| 19 | `04_validation/04_validation_silver_projects` | Validate row accounting, taxonomy coverage, grain, budget protection, and lineage. |
 | 20 | `02_silver/06_silver_flood_control_component` | Preserve every selected flood-control source feature using its real Object ID. |
 | 21 | `02_silver/07_silver_project_source_match` | Record exact Contract-ID reconciliation evidence without changing projects. |
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
 | 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
-| 25 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
-| 26 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
+| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`; skip the parse when the snapshot and parse rule are unchanged. |
+| 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
+| 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
+| 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
@@ -132,12 +134,14 @@ Silver currently implements:
 - Silver source-reconciliation validation
 - silver_project_region_map
 - Silver project-region mapping validation
+- silver_mgb_flood_area
+- Silver MGB flood-area validation
 - silver_region_flood_exposure
 - Silver regional flood-exposure validation
 - silver_project_flood_map
 - Silver project flood-mapping validation
 
-Gold remains planned.
+Gold dimensions and facts are in [Load Gold](#load-gold).
 
 Run these notebooks after Bronze has passed its blocking checks:
 
@@ -152,8 +156,9 @@ The configuration notebook creates these Delta tables:
 - `02-silver.config_mgb_susceptibility_mapping`
 - `02-silver.config_manual_geographic_match`
 
-Only the four documented MGB code mappings are seeded.
-The other tables stay empty until a reviewer approves their rules.
+The notebook seeds the seven approved DPWH component-category rules and the four
+documented MGB code mappings. Other rule sets stay empty until a reviewer
+approves them.
 
 Review the coverage output before running the validator.
 The validator saves evidence in `04-validation.silver_config_dq_results`.
@@ -194,9 +199,15 @@ After Silver configuration validation passes, run:
 2. `02_silver/05_silver_project.ipynb`
 3. `04_validation/04_validation_silver_projects.ipynb`
 
-The component notebook preserves every selected Bronze DPWH source row while safely parsing supported project fields.
+The component notebook preserves every selected Bronze DPWH source row. It
+extracts `componentCategories` from `source_record_json`, normalizes the
+comma-separated category set, and maps atomic values with the governed config.
+It aggregates immediately back to the source-row grain.
 
-The project notebook consolidates component-level evidence into one canonical project-level record.
+The project notebook consolidates component-level evidence into one canonical
+project-level record. One approved category keeps its sector. More than one
+approved category becomes `Multi-sector`. Missing or unapproved categories stay
+unmapped with a `NULL` sector.
 
 The validator confirms:
 
@@ -204,8 +215,26 @@ The validator confirms:
 - component-to-project accounting
 - project uniqueness
 - budget double-count protection
+- mapped and unmapped project and reported-budget coverage
+- single-sector, multi-sector, missing-category, and DPWH flood-related counts
 - source lineage completeness
 - retained source-quality findings
+
+The taxonomy changes the component and project run identities. After the
+foundation validator passes, rerun these dependent outputs in order:
+
+1. `02_silver/07_silver_project_source_match.ipynb`
+2. `04_validation/05_validation_silver_source_reconciliation.ipynb`
+3. `02_silver/08_silver_project_region_map.ipynb`
+4. `04_validation/06_validation_silver_project_region_map.ipynb`
+5. `02_silver/10_silver_project_flood_map.ipynb`
+6. `04_validation/08_validation_silver_project_flood_map.ipynb`
+
+Table 15 also needs a current `silver_mgb_flood_area` and its `06a` evidence.
+They do not depend on the taxonomy, so they need no rerun here.
+
+Skip `06_silver_flood_control_component.ipynb` when its selected source and
+rule identity are unchanged.
 
 Run all notebooks in Databricks.
 
@@ -276,15 +305,18 @@ controls, and Gold handoff.
 
 ### Regional flood exposure
 
-Table 14 depends only on MGB and boundary Bronze, Silver configuration, Silver
-PSGC, and their validators. It does not depend on project foundation,
+Table 14 depends only on MGB and boundary Bronze, `silver_mgb_flood_area`,
+Silver configuration, Silver PSGC, and their validators. It does not depend on project foundation,
 flood-control reconciliation, or Table 13.
 
 If Bronze, configuration, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `02_silver/09_silver_region_flood_exposure.ipynb`.
-3. Run `04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+2. Run `02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse when the
+   MGB snapshot and parse rule are unchanged.
+3. Run `04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
+4. Run `02_silver/09_silver_region_flood_exposure.ipynb`.
+5. Run `04_validation/07_validation_silver_region_flood_exposure.ipynb`.
 
 When upstream inputs changed, use this dependency-aware order:
 
@@ -293,8 +325,10 @@ When upstream inputs changed, use this dependency-aware order:
 3. `04_validation/02_validation_silver_config.ipynb`, after step 2
 4. `02_silver/01_silver_psgc_place.ipynb`, when PSGC changed
 5. `04_validation/03_validation_silver_geography_population.ipynb`, after step 4
-6. `02_silver/09_silver_region_flood_exposure.ipynb`
-7. `04_validation/07_validation_silver_region_flood_exposure.ipynb`
+6. `02_silver/08a_silver_mgb_flood_area.ipynb`
+7. `04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+8. `02_silver/09_silver_region_flood_exposure.ipynb`
+9. `04_validation/07_validation_silver_region_flood_exposure.ipynb`
 
 The exposure notebook uses only the selected region boundaries, active approved
 MGB mappings, and native Databricks SQL spatial functions. Area is calculated in
@@ -312,15 +346,18 @@ handoff.
 
 ### Project flood mapping
 
-Table 15 depends on the project foundation, MGB Bronze, Silver configuration,
-and their validators. It does not depend on flood-control reconciliation,
+Table 15 depends on the project foundation, MGB Bronze, `silver_mgb_flood_area`,
+Silver configuration, and their validators. It does not depend on flood-control reconciliation,
 Table 13, or Table 14.
 
 If Bronze, configuration, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `02_silver/10_silver_project_flood_map.ipynb`.
-3. Run `04_validation/08_validation_silver_project_flood_map.ipynb`.
+2. Run `02_silver/08a_silver_mgb_flood_area.ipynb` and
+   `04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless they
+   already ran for the current MGB snapshot.
+3. Run `02_silver/10_silver_project_flood_map.ipynb`.
+4. Run `04_validation/08_validation_silver_project_flood_map.ipynb`.
 
 When upstream inputs changed, use this dependency-aware order:
 
@@ -330,14 +367,16 @@ When upstream inputs changed, use this dependency-aware order:
 4. `02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
 5. `02_silver/05_silver_project.ipynb`, after step 4
 6. `04_validation/04_validation_silver_projects.ipynb`, after step 5
-7. `02_silver/10_silver_project_flood_map.ipynb`
-8. `04_validation/08_validation_silver_project_flood_map.ipynb`
+7. `02_silver/08a_silver_mgb_flood_area.ipynb`, when MGB changed
+8. `04_validation/06a_validation_silver_mgb_flood_area.ipynb`, after step 7
+9. `02_silver/10_silver_project_flood_map.ipynb`
+10. `04_validation/08_validation_silver_project_flood_map.ipynb`
 
 The notebook keeps every canonical project. A project receives a flood level
 only when its usable map point falls inside polygons of exactly one approved MGB
 level. Points inside several approved levels stay `AMBIGUOUS` because no
 severity precedence is approved. Execution requires Databricks Runtime 17.1 or
-later, because the governed MGB parser uses `ST_TRANSFORM`.
+later, because the governed MGB parser in `08a` uses `ST_TRANSFORM`.
 
 The validator writes all seven quality attributes to
 `04-validation.silver_dq_results` before enforcing its STOP gate. Review
@@ -349,6 +388,38 @@ See [Silver project flood mapping](../docs/silver_project_flood_mapping.md) for
 the Table 15 grain, classification rule, lineage, cost controls, and Gold
 handoff.
 
+## Load Gold
+
+Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/gold_model.md).
+Each notebook first checks that its Silver inputs passed Silver validation. Then it loads rows with `MERGE` on deterministic keys, so a rerun changes nothing.
+
+After every Silver validator passes, run the dimensions in this order:
+
+1. `03_gold/00_gold_dim_date.ipynb`
+2. `03_gold/01_gold_dim_region.ipynb` builds `dim_region` and `dim_region_boundary`
+3. `03_gold/02_gold_dim_flood_susceptibility.ipynb`
+4. `03_gold/03_gold_dim_project_status.ipynb`
+5. `03_gold/04_gold_dim_project.ipynb`
+
+Then run the facts, which need every dimension key:
+
+1. `03_gold/05_gold_fact_region_population.ipynb`
+2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
+3. `03_gold/07_gold_fact_project_snapshot.ipynb`
+
+Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation.md#gold-validation).
+
+Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
+
+## Build the analytics views
+
+Analytics notebooks live in `05_analytics`. After `09_validation_gold` passes, run:
+
+1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and six persisted views, one per business question. The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. Then it rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+
+The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -357,9 +428,12 @@ Each layer records checks that match its responsibility.
 - Bronze validates source preservation, lineage, snapshot identity, and ingestion safety.
 - Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
 - Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
+- Analytics validates that every dashboard view matches Gold exactly.
 
-This sequence produces Bronze, Silver configuration, and Silver geography and population
-results. They live in `04-validation` using separate result tables during this milestone.
+This sequence produces Bronze, Silver, Gold, and analytics results. They live in `04-validation`
+in separate result tables: `dq_results` for Bronze, `silver_config_dq_results` and
+`silver_dq_results` for Silver, `gold_dq_results` for Gold, and `analytics_dq_results`
+for the analytics views.
 Promotion requires the current layer to pass its blocking checks.
 
 ## Future layer organization
@@ -384,10 +458,12 @@ Keep validation notebooks separate too:
 ├── 04_validation_silver_projects.ipynb
 ├── 05_validation_silver_source_reconciliation.ipynb
 ├── 06_validation_silver_project_region_map.ipynb
+├── 06a_validation_silver_mgb_flood_area.ipynb
 ├── 07_validation_silver_region_flood_exposure.ipynb
 ├── 08_validation_silver_project_flood_map.ipynb
 ├── 09_validation_gold.ipynb
-└── 10_publish_acceptance_evidence.sql
+├── 10_validation_analytics.ipynb
+└── 11_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based

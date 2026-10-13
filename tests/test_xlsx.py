@@ -1,4 +1,4 @@
-"""Tests for src/xlsx.py, the Excel reader behind the PSGC and Table C loads."""
+"""Tests for src/xlsx.py, the legacy PSA workbook reader. No Bronze load uses it now."""
 
 import json
 import zipfile

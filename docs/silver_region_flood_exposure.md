@@ -32,7 +32,8 @@ flood-control spending is enough, fair, effective, or caused by any factor.
 
 | Input | Role in Table 14 |
 | --- | --- |
-| `01-bronze.flood_susceptibility` | Selected MGB flood-area rows, raw `flood_susceptibility_code`, and `geometry_json` |
+| `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `02-silver.silver_psgc_place` | Current official region set and PSGC lineage |
 | `01-bronze.boundaries` | Region boundary geometry, boundary versions, and boundary lineage |
@@ -51,8 +52,11 @@ sequence but is not a data dependency. Table 14 never rereads R2 directly.
 If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
-3. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse
+   when the MGB snapshot and parse rule are unchanged.
+3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
+4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
+5. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.
@@ -127,7 +131,12 @@ are reference findings only. Runtime counts decide the actual values.
 
 ## Geometry parsing
 
-The parser tries the geometry through three controlled paths:
+Table 14 reads parsed geometry from `02-silver.silver_mgb_flood_area`. It never
+parses `geometry_json` itself. See [Silver MGB flood areas](silver_mgb_flood_area.md)
+for that table and its validation.
+
+The parser in `08a_silver_mgb_flood_area` tries the geometry through three
+controlled paths:
 
 1. parse the geometry as published
 2. apply the targeted quoted-number normalization
@@ -136,11 +145,92 @@ The parser tries the geometry through three controlled paths:
 The targeted normalization removes quotes only around numeric tokens and
 bracketed coordinate strings. It never strips JSON quotes globally.
 
+An Esri polygon lists its outer rings clockwise and its holes counterclockwise.
+The Esri path first reads every ring as its own polygon. When that reading is
+OGC-invalid and the feature has rings in both directions, it reads the
+counterclockwise rings as holes and subtracts them from the clockwise rings
+with `ST_DIFFERENCE`. A valid first reading is never changed, so a separate
+island drawn counterclockwise keeps its area. This follows the Esri format. It
+is not a repair. A geometry that is still invalid goes to the D-43 repair, and
+it is excluded and flagged only when that repair fails its checks.
+
+The Esri path builds the first reading from the `rings` text with string
+functions. It reads the rings into arrays with `FROM_JSON` only when the first
+reading is invalid. A row with a `rings` key skips the two GeoJSON paths, since
+Esri JSON is never GeoJSON.
+
+Parsing used to run inside Table 14. After the October 10 Bronze reload, the
+largest geometry field has 34,352,521 characters, and parsing it in the same
+query as the clip-and-dissolve stage ran out of executor memory. Parsing once in
+`silver_mgb_flood_area` keeps each stage within memory.
+
+Before issue #92 every ring became its own polygon, so a hole lay inside its
+outer ring and the whole feature was invalid. A diagnostic run on 2026-10-09
+found 2,232 of the 2,340 invalid MGB polygons had holes. Reading the holes
+correctly made 2,200 of them valid and recovered about 4,472 sq km of
+susceptibility area.
+
 Runtime execution confirmed that Esri `rings` is the dominant encoding in the
-selected MGB snapshot. A total of 61,855 rows were converted through the Esri
-path. The final validation reports 59,501 usable geometries, with zero usable
-rows carrying an unexpected SRID and zero usable rows outside the configured
-longitude-latitude screen.
+selected MGB snapshot. In the 2026-10-09 rerun with rule version
+`silver-region-flood-exposure-v2`, 140 MGB rows stayed OGC-invalid, down from
+2,340, and 61,701 geometries were usable, up from 59,501. Zero usable rows
+carried an unexpected SRID and zero usable rows fell outside the configured
+longitude-latitude screen. Inside safe regions, the four level totals sum to
+12,720.3 sq km, up from 9,439.1 sq km. Levels can overlap, so this sum compares
+runs but is not one exposed area.
+
+The October 9 run still missed 1,815 MGB polygons that the October 4 Bronze load
+had replaced with all-null rows. After the October 10 Bronze reload, Table 14
+was rerun on 2026-10-11 with run ID
+`4a38c7a28621994a890dded1988ea04426de5e4d11e8f3809636af0376d473ca`. It read
+parsed geometry from `silver_mgb_flood_area`.
+
+| Measure | 2026-10-09 | 2026-10-11 |
+| --- | ---: | ---: |
+| Usable MGB geometries | 61,701 | 63,358 |
+| OGC-invalid MGB geometries | 140 | 297 |
+| Blank MGB geometries | 1,815 | 0 |
+| Mapped usable rows intersecting a safe region | not recorded | 50,327 |
+| Mapped usable rows outside every safe region | not recorded | 13,008 |
+
+| Level | Area inside safe regions, 2026-10-11 |
+| --- | ---: |
+| Low | 8,963.9 sq km |
+| Moderate | 6,584.9 sq km |
+| High | 8,074.1 sq km |
+| Very High | 2,880.2 sq km |
+| Sum of levels | 26,503.1 sq km |
+
+The sum of levels is up from 12,720.3 sq km on October 9. Levels can overlap,
+so the sum compares runs but is not one exposed area. Cross-level overlap
+totals 17.6 sq km across 8 regions, and the dissolve removed 202.1 sq km of
+within-level overlap.
+
+The validator wrote 58 checks: all 37 STOP checks passed, with 14 FLAG and 7
+PASS review checks. The 13,008 mapped usable rows outside every safe region
+contain the polygons in the five regions with no safe boundary. The split of
+that count by region was not measured.
+
+Decision D-43 then repaired the 297 OGC-invalid MGB polygons in
+`silver_mgb_flood_area`. Table 14 was rerun on 2026-10-11 with MGB parse run
+`12765b9cc50d7f107298ab18de2f6bafd8ab10f04bc2a9bee06800c9d984969c`.
+
+| Level | Area inside safe regions, before D-43 | After D-43 |
+| --- | ---: | ---: |
+| Low | 8,963.9 sq km | 11,448.8 sq km |
+| Moderate | 6,584.9 sq km | 11,626.4 sq km |
+| High | 8,074.1 sq km | 16,615.1 sq km |
+| Very High | 2,880.2 sq km | 4,528.4 sq km |
+| Sum of levels | 26,503.1 sq km | 44,218.7 sq km |
+
+- 63,632 mapped rows were usable, including 297 repaired; none stayed invalid.
+- 50,596 mapped usable rows intersect a safe region and 13,036 do not.
+- Cross-level overlap totals 72.2 sq km across 10 regions, and the dissolve
+  removed 221.7 sq km of within-level overlap.
+- The validator wrote 59 checks: all 37 STOP checks passed, with 14 FLAG and 8
+  PASS review checks.
+- The clip-and-dissolve table took about 21 minutes on Databricks Free Edition
+  serverless compute.
 
 Each row records the parse path that succeeded. The run stops if mapped rows
 have geometry text but none parse.
@@ -156,11 +246,16 @@ Each row receives one geometry status:
 - `EMPTY_GEOMETRY`
 - `UNSUPPORTED_GEOMETRY_TYPE`
 - `INVALID_GEOMETRY`
+- `REPAIRED_GEOMETRY`
 - `USABLE_GEOMETRY`
 
-Only a nonempty, OGC-valid Polygon or MultiPolygon is usable. Invalid geometry
-is excluded and flagged. It is not repaired with `ST_BUFFER` or any other hidden
-rule. A future repair rule would need its own version and documentation.
+A nonempty, OGC-valid Polygon or MultiPolygon is usable. `REPAIRED_GEOMETRY` is
+an invalid polygon repaired under D-43 in `silver_mgb_flood_area`, kept only
+when its area stays within 1% or 0.01 sq km of the MGB `Shape__Area`. Table 14
+uses it as usable geometry, and the validator reports how many repaired polygons
+it used. Geometry that stays `INVALID_GEOMETRY` is excluded and flagged. Table 14
+applies no repair or buffer of its own. See
+[Silver MGB flood areas](silver_mgb_flood_area.md#repair-of-invalid-polygons-d-43).
 
 ## Region boundary strategy
 
@@ -201,34 +296,50 @@ version separate from PSGC lineage. `boundary_version_status` publishes
 
 ## Boundary territory limitations
 
-The selected boundary snapshot predates the current PSGC release. Runtime
-comparison against the current PSGC hierarchy identified four regions that
-cannot safely use the selected region-boundary snapshot:
+The selected boundary snapshot predates the current PSGC release. The territory
+check compares province-level evidence with the current PSGC hierarchy in both
+directions:
 
-| Region | Boundary status |
-| --- | --- |
-| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
-| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` |
-| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` |
-| BARMM | `BOUNDARY_TERRITORY_MISMATCH` |
+- A province the boundary places in a region, by its code prefix, must still
+  belong to that region in the current PSGC. This catches a province that left
+  the region.
+- Every current PSGC province of a region must appear in the boundary
+  snapshot. This catches a province that joined the region after the boundary
+  was published. Independent cities are not checked in this direction.
 
-Negros Island Region has no region-level boundary feature in the selected
-boundary snapshot.
+A difference in either direction makes a region with a usable polygon
+`BOUNDARY_TERRITORY_MISMATCH`. Missing, ambiguous, and invalid boundary
+statuses take precedence.
 
-Regions VI, VII, and BARMM have region polygons, but province-level evidence
-does not agree with current PSGC membership. Their geometries are therefore not
-treated as safe geography.
+The Oct 9 run found five regions that cannot safely use the selected
+region-boundary snapshot:
+
+| Region | Boundary status | Evidence |
+| --- | --- | --- |
+| Region VI (Western Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0604500000` (Negros Occidental) and `0630200000` are no longer listed |
+| Region VII (Central Visayas) | `BOUNDARY_TERRITORY_MISMATCH` | `0704600000` (Negros Oriental) and `0706100000` (Siquijor) are no longer listed |
+| Region IX (Zamboanga Peninsula) | `BOUNDARY_TERRITORY_MISMATCH` | Sulu joined; its current code `0906600000` is not in the boundary |
+| Negros Island Region | `NO_SAFE_REGION_BOUNDARY` | No region-level boundary feature; `1804500000`, `1804600000`, and `1806100000` are missing |
+| BARMM | `BOUNDARY_TERRITORY_MISMATCH` | Sulu left; its old code `1906600000` is no longer in the PSGC |
+
+Sulu left BARMM in 2024 and is now under Region IX (issue #91). The 2023 Region
+IX polygon has no Sulu, so before the two-direction check its exposure was
+calculated on the wrong territory.
+
+Regions VI, VII, IX, and BARMM have region polygons, but province-level
+evidence does not agree with current PSGC membership. Their geometries are
+therefore not treated as safe geography.
 
 These are source-version and boundary-coverage limitations, not pipeline
 failures.
 
-Table 14 protects downstream analysis by excluding these four regions from safe
+Table 14 protects downstream analysis by excluding these five regions from safe
 exposure calculation and publishing `NULL` measures instead of false zero
 exposure.
 
 The pipeline does not hardcode a Negros polygon, split Regions VI or VII,
-rewrite BARMM territory, use nearest geography, or perform any hidden spatial
-repair.
+add Sulu to Region IX, rewrite BARMM territory, use nearest geography, or
+perform any hidden spatial repair.
 
 The table can recover naturally when a newer approved boundary snapshot aligns
 with the current PSGC hierarchy.
@@ -394,6 +505,7 @@ whether a feature existed for that region.
 The run ID hashes these contracts:
 
 - MGB snapshot, ingest run, and publisher version or `NO_PUBLISHER_VERSION`
+- MGB parse run of `silver_mgb_flood_area` (`mgb_flood_area_run_id`)
 - mapping version and mapping source contract
 - boundary snapshot, ingest run, and boundary version
 - PSGC snapshot, Silver run, and PSGC version
@@ -408,12 +520,12 @@ ID and keys and never appends duplicates.
 - The spatial join is MGB rows × the small safe region set, broadcast.
 - It is never MGB rows × all boundary shapes, and never MGB rows × projects.
 - Only lineage columns are read for the upstream gates.
-- The transformation reads MGB geometry text three times: profile, accounting
-  gate, and publish. Only the gate and the publish step parse geometry.
+- The transformation reads parsed WKB from `silver_mgb_flood_area`. It never
+  parses MGB geometry text (D-42).
 - The dissolve and the cross-level union share one aggregation pass.
 - Intermediate geometry uses temporary views, not permanent tables.
 - No cache, repartition, `OPTIMIZE`, `ZORDER`, Python, UDF, or spatial library is used.
-- The validator parses MGB once and tests each row against one safe-region union.
+- The validator reads the same parsed WKB and tests each row against one safe-region union.
 
 ## Validation
 
@@ -471,12 +583,15 @@ A FLAG is a visible source limitation, not a failure.
 - The selected boundary snapshot predates the current PSGC release.
 - Region VI is `BOUNDARY_TERRITORY_MISMATCH`.
 - Region VII is `BOUNDARY_TERRITORY_MISMATCH`.
+- Region IX is `BOUNDARY_TERRITORY_MISMATCH`.
 - Negros Island Region is `NO_SAFE_REGION_BOUNDARY`.
 - BARMM is `BOUNDARY_TERRITORY_MISMATCH`.
 - These geographic findings are source-version limitations, not pipeline
   failures. Their exposure measures remain `NULL` until safe geography is
   available.
-- Invalid MGB geometry is excluded rather than repaired.
+- Invalid MGB geometry is repaired under D-43 when the repair passes its
+  checks. A polygon that fails them stays `INVALID_GEOMETRY` and is excluded.
+  After the October 11 run, no polygon stays invalid.
 - Blank and `No rating` MGB rows remain unresolved by design.
 - The optional MGB publisher version is unavailable for the selected snapshot.
 - Cross-level overlap means susceptibility-level areas must not automatically

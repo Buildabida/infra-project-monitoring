@@ -16,7 +16,10 @@ These tests protect the low-cost Bronze contract without requiring Spark:
 - exact current-table artifact matching
 - rejection of historical snapshots as the current selected snapshot
 - strict quoted-record parsing and wrong-width rejection
-- canonical snapshot identity after a rejected conflict
+- one record per text line, a first line that is the header, and one header line (#106)
+- file, parser, and table row counts that must agree, with restore or drop on a mismatch (#107)
+- canonical snapshot identity after a rejected conflict, and no claim from a failed attempt (#107)
+- acceptance-evidence check names that match the Bronze validator (#108)
 
 ## `test_xlsx.py`
 
@@ -24,10 +27,24 @@ These tests protect the low-cost Bronze contract without requiring Spark:
 It is not part of the current R2 CSV loaders. Its tests cover exact text preservation,
 empty cells, numbers, saved formula results, and complete row classification.
 
+## Gold notebook tests
+
+`test_gold_dimensions.py` and `test_gold_facts.py` read the Gold notebooks as text.
+They never run SQL or touch Databricks. Each test strips SQL comments and squeezes
+whitespace, then looks for whole statements, not single words. So a test fails when
+a notebook drops one of these:
+
+- any part of a key recipe, such as `COALESCE(psgc_version, source_snapshot_id)` in `region_key` (D-33)
+- a key column in the STOP check that runs before each fact's `MERGE`
+- a NULL-safe `<=>` in the region joins and the Silver total checks
+
+These tests cannot prove that the SQL runs or that the data is right. The Gold
+validator checks the tables after a run.
+
 ## Boundary between tests and data quality
 
 Unit tests verify deterministic helper behavior. Layer validators evaluate Delta
-tables and record results in `04-validation.dq_results`.
+tables and record results in the `04-validation` results tables.
 
 Bronze, Silver, and Gold each own checks that match their responsibilities. Bronze
 checks source preservation and ingestion safety. Silver checks cleaning and matching.

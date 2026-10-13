@@ -7,7 +7,7 @@ It assigns canonical DPWH projects to official PSGC regions for regional
 investment analysis. It also preserves projects that cannot safely receive a
 region. Gold can consume the result without repeating geographic matching.
 
-Requires Databricks execution.
+Runtime-validated in Databricks for the selected snapshots. See [runtime evidence](#runtime-evidence).
 
 ## Business purpose
 
@@ -159,7 +159,9 @@ punctuation, or directional words. It does not embed a `Region IV-B` to
 ## Alias behavior
 
 Aliases are optional governed data. Only active `APPROVED` DPWH region aliases
-from one selected version may participate. Each canonical target must exist in
+from one selected version may participate. The notebook reads them with the
+config key `source_system = 'dpwh_projects'`. Its own output rows keep the
+Silver label `DPWH`. Each canonical target must exist in
 the selected official PSGC region set.
 
 No alias is manufactured from observed values inside the notebook. When the
@@ -344,8 +346,106 @@ region polygons. The current PSGC file contained 18 official region rows.
 
 These observations guided defensive code. They are not Databricks execution
 evidence and do not prove that the selected Bronze snapshots have the same row
-counts. Runtime mapping coverage, unresolved counts, ambiguous counts, and
-conflict counts require Databricks execution.
+counts. The Databricks results are in [runtime evidence](#runtime-evidence).
+
+## Runtime evidence
+
+### Run with approved region aliases (D-41, Oct 9)
+
+This run used alias version `dpwh-region-aliases-2026-10-v1`, with 17 approved
+rows, and no manual overrides. Validation run ID:
+`2bd57fa9ea7023e9980d6d8c4514924a6aaa437473af1afe2a0ae4aba0a276b7`. All 18
+STOP checks passed.
+
+| Method | Status | Projects | Share of all projects |
+| --- | --- | ---: | ---: |
+| `APPROVED_REGION_ALIAS` | `MATCHED` | 242,443 | 91.26% |
+| `APPROVED_REGION_ALIAS` | `MATCHED_WITH_CONFLICT` | 11,885 | 4.47% |
+| `EXACT_REGION_NAME` | `MATCHED` | 10,742 | 4.04% |
+| `NON_GEOGRAPHIC_RULE` | `NON_GEOGRAPHIC` | 306 | 0.12% |
+| `NONE` | `UNMATCHED` | 266 | 0.10% |
+| `EXACT_REGION_NAME` | `MATCHED_WITH_CONFLICT` | 14 | 0.01% |
+| Total | | 265,656 | 100% |
+
+- 265,084 projects have a region, 99.78% of all projects, up from 212,367.
+- Unmatched projects fell from 52,951 to 266, and ambiguous projects from 32 to
+  0.
+- The 266 unmatched projects are 255 with no reported region, 10 with a
+  district engineering office name, and 1 with `2026`. Their reported budget is
+  PHP 15.02 in total.
+- No project now uses the coordinate fallback. Every project with a usable
+  region name matches by exact name or approved alias first.
+- In Gold, `fact_project_snapshot` has 572 projects on `region_key = 0`, down
+  from 53,289: 266 unmatched and 306 `Central Office`.
+
+#### Name-versus-coordinate conflicts
+
+11,899 projects have a name region that differs from their coordinate region.
+The name region is kept, as D-31 requires.
+
+| Group | Projects | Reason |
+| --- | ---: | --- |
+| Negros Island Region named, point in Region VI or VII | 8,893 | The boundary file has no Negros Island Region polygon. |
+| Region IX, X, or XII named, point in BARMM | 2,084 | Likely border areas that moved to BARMM. Not yet confirmed. |
+| Other nearby regions | 922 | Points near region borders or slightly off. |
+
+Within the last group, 88 Region XI projects have points in the National
+Capital Region. That distance suggests wrong source coordinates.
+
+### First run without aliases
+
+The first documented Databricks run used the hardened project foundation:
+
+| Input | Value |
+| --- | --- |
+| Project run | `add5661e4e762ac48a270a437356933bc499a130186cc1f664561364face3449` (`silver_project_v2`) |
+| DPWH snapshot | `metadata-6321c7aa6f2a14e12f4c` |
+| Validation run ID | `aeac08e3306e8cf33d5dd2cc1ef472ee2dc87a41fa45923998300a52f0f24934` |
+| Approved region aliases and manual overrides | 0 and 0 |
+| Publisher versions | DPWH not available, so it stays `NULL`. Boundary version is present on every row. |
+
+The validator wrote 37 checks to `04-validation.silver_dq_results`. All 18
+STOP checks passed. Of the 19 FLAG checks, 15 reported findings and 4 found
+none.
+
+#### Mapping outcome
+
+| Method | Status | Projects | Share of all projects |
+| --- | --- | ---: | ---: |
+| `COORDINATE_BOUNDARY` | `MATCHED` | 201,611 | 75.89% |
+| `NONE` | `UNMATCHED` | 52,951 | 19.93% |
+| `EXACT_REGION_NAME` | `MATCHED` | 10,742 | 4.04% |
+| `NON_GEOGRAPHIC_RULE` | `NON_GEOGRAPHIC` | 306 | 0.12% |
+| `COORDINATE_BOUNDARY` | `AMBIGUOUS` | 32 | 0.01% |
+| `EXACT_REGION_NAME` | `MATCHED_WITH_CONFLICT` | 14 | 0.01% |
+| Total | | 265,656 | 100% |
+
+- 212,367 projects have a region, 79.94% of all projects. That includes the 14
+  name-versus-coordinate conflicts.
+- 306 `Central Office` projects stay non-geographic with no PSGC region.
+- 52,983 projects have no region: 52,951 unmatched and 32 ambiguous.
+
+#### Coverage detail
+
+- **Reported region text.** 265,401 projects have a reported region. Only
+  10,756 of them match an official PSGC region name exactly. The other 254,645
+  have no exact or approved alias match, because no region alias is approved.
+  255 projects have no reported region.
+- **Coordinates.** 215,138 projects have a usable pair. 50,518 have no pair. No
+  project has a partial or out-of-range pair.
+- **Coordinate fallback.** 210,314 usable points fall inside exactly one region
+  boundary. 4,539 fall inside none, and 32 fall inside more than one.
+- **Name versus coordinate.** 210,300 projects agree, 14 conflict, and 55,036
+  cannot be compared.
+- **Boundaries.** 17 boundary regions cover 18 official PSGC regions. Every row
+  shows a boundary-versus-PSGC version difference. The full boundary file has
+  232 duplicate source-file and feature rows out of 43,760.
+
+### Interpretation note
+
+In the first run, most regions came from the coordinate fallback, because the
+DPWH `reported_region` labels rarely equal the official PSGC names. The D-41
+aliases moved 254,328 projects to the higher-priority alias stage.
 
 ## Cost and scalability
 

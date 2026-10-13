@@ -64,12 +64,13 @@ def test_02_creates_silver_region_flood_exposure_as_delta_with_replace():
     assert "INSERT INTO" not in text.upper()
 
 
-def test_03_reads_bronze_mgb_for_selected_snapshot():
+def test_03_reads_parsed_mgb_for_selected_snapshot():
     text = sql(EXPOSURE_NOTEBOOK)
-    assert "FROM `01-bronze`.flood_susceptibility AS mgb" in text
-    assert "mgb._source_snapshot_id = selected.mgb_source_snapshot_id" in text
-    assert "mgb.flood_susceptibility_code" in text
-    assert "mgb.geometry_json" in text
+    assert "FROM `02-silver`.silver_mgb_flood_area AS area" in text
+    assert "area.mgb_source_snapshot_id = selected.mgb_source_snapshot_id" in text
+    assert "area.raw_susceptibility_code" in text
+    # Bronze MGB is read for lineage only; the large geometry field is never read here
+    assert "mgb.geometry_json" not in code_without_comments(EXPOSURE_NOTEBOOK)
 
 
 def test_04_reads_bronze_boundaries_for_selected_snapshot():
@@ -367,6 +368,7 @@ def test_37_cross_level_overlap_is_measured_without_severity_precedence():
     )
     assert "'NON_ADDITIVE_CROSS_LEVEL_OVERLAP'" in exposure
     assert not re.search(r"ORDER BY\s+severity_rank\s+DESC", exposure)
+    # no level is ever subtracted from another
     assert "ST_DIFFERENCE" not in exposure
     validation = sql(VALIDATION_NOTEBOOK)
     assert "Cross-level overlap between approved levels remains visible" in validation
@@ -480,7 +482,7 @@ def test_45_every_major_code_section_has_markdown_before_it():
         "## 4. Prepare active approved susceptibility mapping",
         "## 5. Prepare official PSGC region set",
         "## 6. Prepare safe region boundary geometry",
-        "## 7. Parse and validate MGB geometry",
+        "## 7. Map and reconcile MGB geometry",
         "## 8. Perform region × MGB spatial intersection",
         "## 9. Dissolve exposure geometry by region and level",
         "## 10. Calculate projected area measures",
@@ -537,20 +539,11 @@ def test_48_multiple_active_mapping_versions_stop_the_run():
 def test_49_invalid_geometry_is_excluded_not_repaired():
     for path in (EXPOSURE_NOTEBOOK, VALIDATION_NOTEBOOK):
         code = code_without_comments(path)
-        assert "ST_ISVALID" in code
         assert "ST_BUFFER" not in code
         assert "ST_MAKEVALID" not in code.upper()
-    assert "WHEN NOT ST_ISVALID(parsed.mgb_geometry) THEN 'INVALID_GEOMETRY'" in sql(
-        EXPOSURE_NOTEBOOK
-    )
-
-
-def test_50_geometry_parser_is_targeted_not_global_quote_stripping():
-    code = sql(EXPOSURE_NOTEBOOK)
-    assert "TRY_TO_GEOMETRY(geometry_text) AS published_geometry" in code
-    assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in code
-    assert "REPLACE(mgb.geometry_json, '\"'" not in code
-    assert "REPLACE(geometry_text, '\"'" not in code
+    # geometry status comes from silver_mgb_flood_area, so only usable rows are clipped
+    assert "area.source_geometry_status" in sql(EXPOSURE_NOTEBOOK)
+    assert "mgb.source_geometry_status = 'USABLE_GEOMETRY'" in sql(EXPOSURE_NOTEBOOK)
 
 
 def test_51_published_types_match_fact_constellation_target():
@@ -586,7 +579,8 @@ def test_54_unrated_and_invalid_source_findings_are_flags_not_failures():
     for name in [
         "Unmapped or unrated MGB rows remain visible",
         "Blank MGB geometry remains visible",
-        "Invalid MGB geometry is excluded without repair",
+        "Invalid MGB geometry that D-43 cannot repair is excluded",
+        "Repaired MGB geometry used in area remains visible",
         "Official regions without a safe boundary remain no data",
         "Full boundary source lineage duplicates remain visible",
     ]:
@@ -666,3 +660,41 @@ def test_62_validation_blocks_unsafe_territory_status():
     check = validation.split(check_name, 1)[1].split("NAMED_STRUCT", 1)[0]
     assert "territory_status_mismatches" in check
     assert "'action', 'stop'" in check
+
+
+def test_63_territory_check_catches_provinces_that_left_or_joined():
+    exposure = code_without_comments(EXPOSURE_NOTEBOOK)
+    territory = view_body(exposure, "region_boundary_territory_check")
+    # left: a boundary province the current PSGC moved or no longer lists
+    assert "current_place.region_code <> region.psgc_region_code" in territory
+    assert "COALESCE(current_place.region_code, 'unlisted')" in territory
+    # joined: a current PSGC province the boundary snapshot does not hold
+    assert "LEFT ANTI JOIN boundary_province" in territory
+    assert "current_place.region_code = region.psgc_region_code" in territory
+    assert "current_place.psgc_code = current_place.province_code" in territory
+    assert "FULL OUTER JOIN province_joined" in territory
+
+
+def test_64_validation_repeats_both_territory_directions():
+    validation = code_without_comments(VALIDATION_NOTEBOOK)
+    evidence = validation.split("territory_joined AS (", 1)[1].split(
+        "territory_detail AS (", 1
+    )[0]
+    assert "LEFT ANTI JOIN territory_boundary_province" in evidence
+    assert "current_place.psgc_code = current_place.province_code" in evidence
+    assert "' lacks '" in evidence
+    metrics = validation.split("territory_metrics AS (", 1)[1]
+    assert "published.published_boundary_status = 'VALID_REGION_BOUNDARY'" in metrics
+
+
+def test_65_region_exposure_reads_parsed_mgb_geometry_without_parsing():
+    for path in (EXPOSURE_NOTEBOOK, VALIDATION_NOTEBOOK):
+        code = code_without_comments(path)
+        assert "silver_mgb_flood_area AS area" in code
+        assert "ST_GEOMFROMWKB(area.geometry_wkb)" in code
+        for parser_part in ["direct_parse", "esri_rings", "FROM_JSON(", "TO_JSON("]:
+            assert parser_part not in code
+    exposure = sql(EXPOSURE_NOTEBOOK)
+    assert "AND area.run_id = selected.mgb_flood_area_run_id;" in exposure
+    assert "mgb_flood_area_context.mgb_flood_area_run_id," in exposure
+    assert "'STOP: Silver MGB flood-area validation is missing or unsafe'" in exposure

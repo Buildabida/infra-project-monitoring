@@ -375,3 +375,74 @@ The machine-readable sample is in
 
 This review is evidence only. It does not modify Bronze values, MGB mappings,
 geometry parsing, or downstream flood classifications.
+
+## October 11, 2026 loader hardening
+
+Issues #105 to #108 changed the Bronze loader and the acceptance evidence query.
+The run used commit `0c1ccdb` on Databricks serverless.
+No Bronze table was reloaded, so Silver and Gold did not need a rerun.
+
+### Row-count safety check before the change
+
+The new loader compares nonempty file lines, minus the header, with the parsed and written rows.
+Before the run, the same count was taken from the five Spark-read files to rule out a false failure.
+
+| Source | File data lines | Bronze rows |
+| --- | ---: | ---: |
+| `dpwh_projects` | 265,661 | 265,661 |
+| `flood_control_projects` | 9,861 | 9,861 |
+| `psgc` | 43,768 | 43,768 |
+| `census_2024_table_c` | 43,750 | 43,750 |
+| `boundaries` | 43,760 | 43,760 |
+
+All five pairs are equal.
+
+### October 11 run identity and outcome
+
+`run_all.py` ran from 15:37 to 15:43 UTC.
+All six sources returned `SKIPPED_IDEMPOTENT` with their selected snapshot IDs and row counts unchanged.
+The grouped Bronze validation then ran at 15:42 UTC.
+
+| Table | `PASS` | `FLAG` |
+| --- | ---: | ---: |
+| `boundaries` | 17 | 1 |
+| `census_2024_table_c` | 17 | 3 |
+| `dpwh_projects` | 17 | 8 |
+| `flood_control_projects` | 20 | 2 |
+| `flood_susceptibility` | 23 | 0 |
+| `psgc` | 18 | 0 |
+| **Total** | **112** | **14** |
+
+All 96 blocking checks passed. There were zero `FAIL` and zero `ERROR` results.
+The blocking-result gate returned no rows.
+
+The MGB category and missing-or-unrated reference checks now pass.
+The October 10 reload restored the 1,815 records whose geometry was blank before.
+
+### Acceptance evidence now shows every reconciliation check
+
+Before #108, the acceptance query filtered on two names the validator does not write.
+It now returns 22 rows, up from 13.
+The nine added rows are the six "current Bronze row count matches load_log" checks and the three "row count matches documented historical reference" checks.
+The census historical reference check stays a `FLAG`: Bronze holds 43,750 rows against the documented 45,611.
+
+### Scratch write tests
+
+Two test loads ran the new write path on the real files without touching the six Bronze tables.
+Each wrote to a scratch table in `01-bronze`, which was then dropped.
+
+| Source file | Path | Scratch table | Result | Rows |
+| --- | --- | --- | --- | ---: |
+| `psgc.csv` | Spark CSV | `_scratch_psgc` | `SUCCESS`, 30 s | 43,768 |
+| `flood_susceptibility.csv` | MGB text parser | `_scratch_flood_susceptibility` | `SUCCESS`, 38 s | 63,684 |
+
+The MGB test reloaded `src.bronze` first, so it ran the new loader code.
+Its row count equals the selected Bronze snapshot, so the new header and line checks pass on the 2 GB file.
+Each test left two `load_log` rows under a `_scratch_test` source name, which no validation reads.
+
+### CSV quoting check
+
+Issue #105 asked whether Spark's default escape character leaves doubled quotes in Bronze.
+A query of the current tables found 0 values with `""` in `dpwh_projects.source_record_json`, `dpwh_projects.description`, and `boundaries.geometry_json`.
+The loader keeps Spark's default quote and escape settings.
+See [CSV quoting](../../bronze_r2_architecture.md#csv-quoting).

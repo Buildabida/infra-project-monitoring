@@ -2,8 +2,8 @@
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
-project-region, regional flood-exposure, and project-flood mapping validators. Gold
-checks remain planned.
+project-region, regional flood-exposure, and project-flood mapping validators, the
+Gold validator, and the analytics validator.
 
 ## Bronze validation
 
@@ -149,17 +149,23 @@ Structural `stop` checks cover:
 - required mapping and source versions
 - audit evidence for approved rows
 - valid category source fields
+- exactly one active approved DPWH taxonomy version
+- no duplicate active approved DPWH category rule at the complete mapping grain
+- complete approved DPWH sectors and flood markers
 - exclusion of the unsupported `Delayed` status
 - controlled MGB levels and ranks
 - valid PSGC targets for approved geographic rules
 
 Coverage `flag` checks report unmapped or pending Bronze values.
-They cover project categories, project statuses, and MGB susceptibility codes.
+They cover atomic DPWH `componentCategories`, project statuses, and MGB
+susceptibility codes.
 
 An empty manual geographic mapping table is valid.
 The validator records a flag so reviewers can confirm that no exception was approved.
 
-Results append to `04-validation.silver_config_dq_results`.
+Results merge into `04-validation.silver_config_dq_results` with a deterministic
+run ID derived from the selected source snapshots, config versions, and result
+set. An exact rerun updates the same logical evidence rows.
 This table includes `layer`, `mapping_version`, and `run_id` fields.
 
 The existing Bronze writer uses a fixed result structure.
@@ -221,7 +227,7 @@ Table C source lineage is required for every row in
 `silver_population_place_reconciliation`.
 
 PSGC target lineage is required only when `match_status` is
-`MATCHED_EXACT_CONTEXT` or `MATCHED_ALIAS`.
+`MATCHED_EXACT_CONTEXT`, `MATCHED_ALIAS`, or `MATCHED_NORMALIZED_CONTEXT`.
 
 Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
 have null `psgc_source_snapshot_id` and `psgc_source_ingest_run_id` because no
@@ -254,7 +260,7 @@ The validator reports findings without modifying Bronze rows, Silver project row
 
 The project validator applies the relevant FTW data-quality attributes:
 
-- Consistency: project attributes follow deterministic resolution rules, and budget-resolution states agree with the underlying distinct-value counts.
+- Consistency: project attributes and sorted category sets follow deterministic resolution rules, and budget-resolution states agree with the underlying distinct-value counts.
 - Accuracy: parsed and canonical values remain source-supported, while unresolved values are not presented as accepted results.
 - Completeness: Bronze rows, component rows, project rows, missing values, invalid parses, and unresolved attributes remain visible.
 - Auditability: component and project outputs retain source-snapshot and Bronze-ingest lineage.
@@ -266,40 +272,49 @@ The project validator applies the relevant FTW data-quality attributes:
 
 Blocking `stop` checks protect:
 
-- non-empty Bronze DPWH input
-- non-empty Silver component output
+- a non-empty component table
 - exact Bronze-to-component row reconciliation
 - exact component-to-project accounting
-- unique project grain
+- unique component keys, Contract IDs, and project keys
+- present Contract IDs
+- quality and mapping states that use the controlled values
+- quality statuses that agree with their parsed values
 - budget double-count protection
-- mandatory source-snapshot lineage
-- mandatory Bronze-ingest lineage
+- component and project category arrays that agree with their classification state
+- one project taxonomy version
+- project reported budgets that reconcile to the component resolution rule
+- zero-progress flags that agree with resolved progress
+- a mapping version on every mapped row
+- populated, reproducible keys, run IDs, and lineage
+- one component snapshot that equals the latest Bronze DPWH load
+- projects built from the current component run
 
 A blocking failure means the project foundation is unsafe for downstream use.
 
 ### Review flags
 
-Non-blocking `flag` checks report:
+Non-blocking `flag` checks report, each with its denominator:
 
-- missing coordinate pairs
-- partial coordinate pairs
-- unparseable coordinates
-- budget parse failures
+- missing or unparseable `componentCategories`
+- unapproved category tokens and statuses with no approved rule
+- missing, partial, or unparseable coordinate pairs
+- repeated identical source rows, kept and counted
+- unparseable budgets
 - negative budgets
-- progress parse failures
-- progress outside the supported range
-- start-date parse failures
-- completion-date parse failures
-- conflicting project descriptions
-- conflicting project categories
-- conflicting project statuses
-- conflicting progress values
-- conflicting dates
-- conflicting project budgets
-- unresolved stalled classification
-- unresolved long-running classification
+- unparseable progress
+- progress outside 0 to 100
+- unparseable infrastructure years
+- unparseable start or completion dates
+- projects with at least one conflicting attribute
 
 These findings remain visible for review. The validator does not automatically correct, replace, or delete the affected source evidence.
+
+Every check uses one status rule: no failed rows is `PASS`, a failed `stop`
+check is `FAIL`, and a failed `flag` check is `FLAG`. The validator reports
+mapped and unmapped project and budget coverage, single-sector and multi-sector
+counts, missing categories, and DPWH flood-related projects. A second grouped
+component scan independently reconstructs the no-double-count project-budget
+control total.
 
 ### Row reconciliation
 
@@ -338,6 +353,10 @@ The supported outcomes are:
 
 Projects with multiple distinct component budget values must not publish an unsupported canonical project total.
 
+The published resolved project-budget total must equal the control total built
+independently from component evidence. Mapped and unmapped resolved budgets must
+also sum to that same total.
+
 ### Validation evidence
 
 Project validation executes after both project Silver tables are published.
@@ -349,11 +368,14 @@ This preserves validation evidence even when a blocking check fails and keeps
 the project validator consistent with the geography/population and source-reconciliation
 validation contracts.
 
-The validation run identity uses the selected source snapshot, Silver project
-run, and validation-rule version. Exact reruns update the same logical evidence
+The validation run identity uses the Silver project run, the component run, and
+the validation-rule version `silver_project_validation_v4`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
+
+The v4 Databricks run wrote 39 checks. All 24 STOP checks passed. Its results
+are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
 
 ## Silver source-reconciliation validation
 
@@ -508,26 +530,72 @@ data.
 
 See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
 complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
-Runtime outcomes require Databricks execution.
+The first documented Databricks run passed all 18 STOP checks. Its results are
+in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
+
+## Silver MGB flood-area validation
+
+`notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+validates `02-silver.silver_mgb_flood_area` after
+`notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` builds or keeps it.
+Tables 14 and 15 stop when this evidence is missing or has a blocking failure.
+
+The validator compares the table with the selected Bronze snapshot on
+`object_id` in one full outer join. It reads Bronze lineage and codes only,
+never `geometry_json`. It rebuilds every usable geometry from WKB.
+
+The validator persists results to `04-validation.silver_dq_results` before
+enforcing its blocking gate. The validation run ID is deterministic for the
+parse run and validation-rule version, so an exact rerun updates the same
+evidence.
+
+### MGB flood-area data-quality attributes
+
+- Consistency: every published row has a Bronze row, and raw codes equal Bronze.
+- Accuracy: usable and repaired geometry rebuilds as a valid, nonempty polygon
+  and lies inside the degree screen. Every `REPAIRED_GEOMETRY` row stays within
+  the D-43 area tolerance of the MGB `Shape__Area` (STOP).
+- Completeness: every Bronze row is published, and the row count equals the
+  audited `rows_loaded`.
+- Auditability: one deterministic run, complete lineage, and one Bronze ingest run.
+- Validity: deterministic keys, governed vocabularies, WKB presence that matches
+  the status, and SRID 4326 for usable and repaired geometry.
+- Uniqueness: one row per `object_id`, snapshot, and parse rule version.
+- Timeliness: the newest MGB load and its Bronze validation are safe, and the
+  table holds the latest validated snapshot.
+
+FLAG checks keep unusable geometry, blank codes, geometry outside the degree
+screen, and differences from the 63,684-row reference visible. See
+[Silver MGB flood areas](silver_mgb_flood_area.md) for the table contract.
+
+On 2026-10-11, `06a` passed all 18 of its STOP checks on parse rule v2, with
+297 polygons repaired under D-43 and none outside the area tolerance.
+Validators 07 and 08 passed all 37 of their STOP checks each after reading this
+table, both before and after the repair. Their results are in
+[Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
+and [Silver project flood mapping](silver_project_flood_mapping.md#rerun-after-the-bronze-reload-and-one-time-parsing-issue-92).
 
 ## Silver regional flood exposure validation
 
 `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
 validates `02-silver.silver_region_flood_exposure` after Table 14 is rebuilt.
 
-Use this order for the final two steps:
+Use this order for the final steps:
 
-1. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
-2. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`
+2. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+3. `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`
+4. `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
 
 The validator persists results to `04-validation.silver_dq_results` before
 enforcing its blocking gate. The gate reads the persisted rows. The validation
 run ID is deterministic for the exposure run and validation-rule version, so an
 exact rerun updates the same evidence.
 
-The validator recomputes evidence independently. It reparses the published MGB
-snapshot once, rebuilds the expected region × level grid from current inputs,
-reparses the selected region boundaries, and recalculates region areas.
+The validator recomputes evidence independently. It reads the published MGB
+snapshot from the validated `silver_mgb_flood_area`, rebuilds the expected
+region × level grid from current inputs, reparses the selected region
+boundaries, and recalculates region areas.
 
 ### Regional flood exposure data-quality attributes
 
@@ -603,10 +671,13 @@ Runtime outcomes require Databricks execution.
 `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 validates `02-silver.silver_project_flood_map` after Table 15 is rebuilt.
 
-Use this order for the final two steps:
+Use this order for the final steps:
 
-1. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
-2. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+1. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
+   `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, when
+   they have not run for the current MGB snapshot
+2. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
+3. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 
 The validator persists results to `04-validation.silver_dq_results` before
 enforcing its blocking gate. The gate reads the persisted rows. The validation
@@ -615,7 +686,7 @@ so an exact rerun updates the same evidence.
 
 The validator recomputes evidence independently. It declares the Table 13
 coordinate screen itself and recomputes every project's coordinate status. It
-reparses MGB with the governed Table 14 parser and recomputes source accounting.
+reads MGB from the validated `silver_mgb_flood_area` and recomputes source accounting.
 It also rebuilds every project's MGB candidates with a different grid size and
 compares them with the published evidence row by row.
 
@@ -690,6 +761,218 @@ See [Silver project flood mapping](silver_project_flood_mapping.md) for the
 complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
 handoff contracts. The first Databricks run passed every STOP check. Its results
 are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
+
+## Gold validation
+
+`notebooks/04_validation/09_validation_gold.ipynb` checks the six Gold
+dimensions and three Gold facts. It covers issues #60 to #64. It only reads Gold
+and Silver, and it never changes them.
+
+Run it after the last Gold fact:
+
+1. `notebooks/03_gold/00_gold_dim_date.ipynb` to
+   `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`, in the
+   [Gold build order](gold_model.md#build-order)
+2. `notebooks/04_validation/09_validation_gold.ipynb`
+
+The validator saves its results to `04-validation.gold_dq_results` before its
+STOP gate runs (D-47). The table has the same columns as `silver_dq_results`,
+with `layer = 'gold'`. The gate reads the saved rows.
+
+The validation run ID comes from the run IDs of the three Gold facts and the
+rule version `gold-validation-v2`. So an exact rerun updates the same evidence
+instead of adding copies.
+
+The expected values live in the validator, not in the Gold notebooks, so Gold
+never checks itself. They are the key `0` match rules, the five flood levels,
+and the area CRS `EPSG:6933`. The 2024 census total of 112,727,776 people comes
+from issue #61.
+
+### Gold stop checks
+
+- **Project fact (#60):** at most one current row per project. Progress is 0
+  to 100 or empty. Budget is zero or more, or empty. Every row has a source
+  snapshot, and every key finds its dimension row.
+- **Population (#61):** primary population is filled and above zero. Each
+  official region has exactly one primary source in each year. No population
+  row uses region key `0`, so per-person ratios leave it out. The check records
+  the denominator of those ratios.
+- **Flood (#62):** flood area is zero or more, and its share of the region area
+  is 0 to 100. Areas use the equal-area CRS `EPSG:6933`, and the check names the
+  CRS it found. Levels are Unknown, Low, Moderate, High and Very High. Each
+  source system and version has one severity rank per level.
+- **Grain and keys (#63):** every fact and dimension passes its uniqueness rule
+  from the [data model](data-model.md#required-analytical-validation). The
+  date, region, flood and status dimensions each have one key `0` row. Key `0`
+  appears only in the documented cases. Central Office uses region key `0` with
+  the `NON_GEOGRAPHIC` match status.
+- **Lineage (#63):** lineage columns are filled in every table that has them.
+  `dim_date` is built from a date range, so it has none.
+- **Totals (#64):** Gold rows, budgets, population and flood areas equal Silver.
+  Project counts and budgets also match Silver region by region. Current
+  project rows must use the DPWH snapshot that Silver holds now. The details
+  record the Gold and Silver runs and the snapshot.
+
+Two more STOP checks come from the review of #60. Every
+`silver_project_flood_map` row needs an MGB load time, because a count of
+distinct load times skips empty ones. Also, every current Gold project row must
+still be in Silver.
+
+The population and flood facts have no current flag, and their `MERGE` never
+deletes. A new PSGC version, MGB snapshot, or boundary version would leave the
+old rows in place. The row checks stop the run when Gold has more rows than
+Silver, so old rows can't double a total unnoticed.
+
+### Gold review flags
+
+FLAG checks keep known data limits visible with their counts:
+
+- projects without a region, by match status
+- projects without a flood level, by match status and coordinate status
+- projects without a status
+- progress that Silver did not mark `VALID`
+- projects without a long-running flag because they have no start date, or their
+  completion date is before the start date (D-49)
+- region and level pairs with no area data
+- official regions without a boundary, and boundary shapes marked not valid
+- active statuses that look like numbers or map points, from DPWH rows split
+  by a line break
+- the gap between the Gold population and the 2024 census total, with the
+  unmatched Table C rows behind it
+
+Every check names the columns it tested in `details`.
+
+### Gold checks that wait for the marts
+
+Issue #61 also asks that a mart that uses region key `0` in a ratio fails.
+The analytics validator now runs this check on `analytics_population_equity`.
+See [analytics validation](#analytics-validation).
+
+### Gold validation runtime evidence
+
+On October 12, 2026, `09_validation_gold.ipynb` ran twice in the team workspace
+on serverless compute. It ran from commit `dc2c516` of branch
+`validation/issues-60-64-gold-checks`, with rule version `gold-validation-v2`.
+Both runs wrote the same 75 checks under one validation run ID, so the second
+run updated the rows instead of adding copies. All 65 STOP checks passed.
+
+The FLAG checks found:
+
+| Check | Rows | Out of |
+| --- | ---: | ---: |
+| Projects without a region (key `0`): 306 Central Office, 266 unmatched | 572 | 265,656 |
+| Projects without a flood level (key `0`): 250 ambiguous, 50,518 with no map point, 102,178 unmatched | 152,946 | 265,656 |
+| Projects without a status (key `0`) | 76 | 265,656 |
+| Progress not published because Silver did not mark it `VALID` | 98 | 265,656 |
+| Long-running flag is empty because there is no start date | 20,039 | 265,656 |
+| Region and level pairs with no area data | 20 | 72 |
+| Official regions without a boundary | 1 | 18 |
+| Active statuses that are shifted numbers: `0.00` and `121.0181138` | 2 | 18 |
+| Table C rows behind the 4,789-person gap to the 2024 census total | 2 | 43,750 |
+
+The other FLAG check found nothing.
+
+An earlier run that day, from commit `6770773`, used rule version
+`gold-validation-v1` and 76 checks. It found the same FLAG counts. After the
+review of #123, 3 STOP checks also fail on empty values. The FLAG for an empty
+population count is now part of a STOP check. So the rule version changed.
+
+On October 12, 2026, `09_validation_gold.ipynb` ran again after the changes for
+issues #116 and #119, from commit `ff7cacc` of branch
+`feature/issues-116-117-118-119-120-121`. It wrote 75 checks. All 65 STOP checks
+passed. 9 FLAG checks had findings, and 1 found nothing. The long-running FLAG
+now counts 20,045 projects: 20,039 without a start date and 6 with a completion
+before the start (D-49).
+
+## Analytics validation
+
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the six analytics
+views in `05-analytics` that the dashboard and Genie read (D-50, D-51). It covers
+issue #126. It only reads Gold, the views, and `gold_dq_results`, and it never
+changes them.
+
+Run it after the views:
+
+1. `notebooks/04_validation/09_validation_gold.ipynb`, which must pass
+2. `notebooks/05_analytics/01_business_questions.ipynb`
+3. `notebooks/04_validation/10_validation_analytics.ipynb`
+
+The validator rebuilds every view straight from Gold with its own SQL and
+compares it row by row. The expected values live in the validator, not in the
+analytics notebook, so the views never check themselves.
+
+### Analytics gates
+
+Two gates run before any check. Each stops the run with an error and saves no
+evidence:
+
+- **One current snapshot:** current `fact_project_snapshot` rows must hold
+  exactly one DPWH snapshot, with no empty snapshot ID. The analytics notebook
+  runs the same gate before it builds the views. Mixed snapshots would otherwise
+  add up under one snapshot ID.
+- **Gold passed:** the latest Gold validation of the current project fact has no
+  failed STOP check, and it covers the current population and exposure runs.
+
+### Analytics stop checks
+
+There are 74 STOP checks. They cover:
+
+- **Grain:** one row per documented key in each view, and every expected row is
+  there. Every official region keeps a row, even with no mapped project.
+- **Measures:** every count, budget, average, share, rank and rate equals the
+  value rebuilt from Gold. A `NULL` budget stays `NULL`.
+- **Totals:** the regional views, key `0`, and unknown keys add up to every
+  current Gold project and budget. Q2 adds up to all of them. Shares add up to
+  100 within 0.01.
+- **Key `0`:** no regional view has a key `0` row, and per-person ratios leave
+  it out.
+- **Coverage:** only `REPORTED` regions get a rank, a share, or a ratio. BARMM is
+  never ranked.
+- **Flood:** Q2's strict and broad flood shares match Gold (D-39). Q5 shows a
+  total area only when the levels may be added, and its five project-point
+  groups add up to the flood control count.
+- **Lineage:** every view carries the current DPWH snapshot ID, and Q5 also the
+  current MGB snapshot ID (D-29).
+
+### Analytics review flags
+
+There are 13 FLAG checks. They keep known data limits visible with their counts:
+
+- projects left out on region key `0`, by match status
+- projects without a budget, and projects with a budget of 0
+- regions with no or limited DPWH coverage, and regions left out of the equity
+  comparison
+- projects with no usable category, and Multi-sector projects counted whole in
+  the broad flood share
+- projects with no mapped status group, and projects without a long-running flag
+- regions without a primary population
+- flood control projects not placed in an MGB level, regions whose flood levels
+  overlap, and regions with no evaluated exposure
+
+A FLAG check that finds nothing is `PASS`. Every check names the columns it
+tested in `details`.
+
+### Analytics evidence and reruns
+
+The validator saves its results to `04-validation.analytics_dq_results` with
+`MERGE`, before its STOP gate runs (D-52). The table has the same columns as
+`gold_dq_results`, with `layer = 'analytics'`. The gate reads the saved rows, so
+a failed check stays visible after the run stops.
+
+The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot`,
+`dim_region`, `fact_region_population` and `fact_region_flood_exposure`, and the
+rule version `analytics-validation-v1`. The `MERGE` key is the validation run ID,
+the view, and the check name. So a rerun on the same Gold data updates the same
+rows instead of adding copies. New Gold runs give a new ID and a new set of rows.
+
+### Analytics validation runtime evidence
+
+On October 12, 2026, both notebooks ran twice on Databricks serverless compute.
+The final rerun used Gold after PR #125 merged. All 74 STOP checks passed, 11
+FLAG checks found data limits, and the second final rerun updated the same 87
+rows for validation run `e14864fd…297f`. Evidence from before #125 remains as
+historical comparison only. See the
+[analytics evidence](evidence/analytics-views/README.md).
 
 ## Future validation documents
 

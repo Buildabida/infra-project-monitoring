@@ -61,19 +61,7 @@ def view_body(text, view):
 
 def classified_view(text):
     start = text.index("CREATE OR REPLACE TEMPORARY VIEW mgb_source_classified AS")
-    end_marker = "ON parsed.raw_susceptibility_code = mapping.raw_susceptibility_code;"
-    return text[start : text.index(end_marker, start) + len(end_marker)]
-
-
-def parser_ctes(text):
-    start = text.index("direct_parse AS (")
-    end_marker = "FROM normalized\n)"
-    return text[start : text.index(end_marker, start) + len(end_marker)]
-
-
-def geometry_status_case(text):
-    start = text.index("WHEN parsed.geometry_text IS NULL THEN 'BLANK_GEOMETRY'")
-    end_marker = "END AS source_geometry_status"
+    end_marker = "  AND area.run_id = selected.mgb_flood_area_run_id;"
     return text[start : text.index(end_marker, start) + len(end_marker)]
 
 
@@ -207,12 +195,12 @@ def test_08_no_uuid_random_or_current_time_in_logical_identity():
 
 def test_09_rule_version_is_declared_once_and_covers_the_contract():
     code = code_without_comments(FLOOD_MAP_NOTEBOOK)
-    assert len(re.findall(r"silver-project-flood-map-v1", code)) == 1
+    assert len(re.findall(r"silver-project-flood-map-v2", code)) == 1
     assert "DECLARE OR REPLACE VARIABLE classification_rule STRING" in code
     rule = squash(code.split("SET VAR classification_rule_version = CONCAT(", 1)[1])
     rule = rule.split(");", 1)[0]
     for token in [
-        "silver-project-flood-map-v1|predicate=ST_INTERSECTS",
+        "silver-project-flood-map-v2|predicate=ST_INTERSECTS",
         "coordinate-screen-latitude=",
         "min_latitude",
         "max_latitude",
@@ -261,25 +249,27 @@ def test_12_table_14_parser_is_reused_without_change():
     assert flood_map == expected
 
 
-def test_13_validator_reuses_table_14_parser_and_geometry_statuses():
-    exposure = sql(EXPOSURE_NOTEBOOK)
-    validation = sql(VALIDATION_NOTEBOOK)
-    assert parser_ctes(validation) == parser_ctes(exposure)
-    assert geometry_status_case(validation) == geometry_status_case(exposure)
+def test_13_validator_reads_the_parsed_mgb_table_without_parsing():
+    for path in (FLOOD_MAP_NOTEBOOK, VALIDATION_NOTEBOOK):
+        code = code_without_comments(path)
+        assert "silver_mgb_flood_area AS area" in code
+        assert "ST_GEOMFROMWKB(area.geometry_wkb)" in code
+        assert "area.source_geometry_status" in code
+        for parser_part in [
+            "direct_parse",
+            "esri_rings",
+            "FROM_JSON(",
+            "geometry_json",
+        ]:
+            assert parser_part not in code
 
 
-def test_14_esri_rings_and_targeted_normalization_paths_are_present():
+def test_14_flood_map_reads_the_parsed_mgb_run_it_hashes():
     text = sql(FLOOD_MAP_NOTEBOOK)
-    if "$.rings" in sql(EXPOSURE_NOTEBOOK):
-        assert "GET_JSON_OBJECT(direct_parse.geometry_text, '$.rings')" in text
-        assert "'ESRI_JSON_CONVERTED'" in text
-    assert "TRY_TO_GEOMETRY(geometry_text) AS published_geometry" in text
-    assert "'GEOJSON_QUOTED_NUMBERS_NORMALIZED'" in text
-    assert (
-        "COALESCE(\n            published_geometry,\n            normalized_geometry,\n            esri_geometry\n        )"
-        in text
-    )
-    assert "REPLACE(geometry_text, '\"'" not in text
+    assert "AND area.run_id = selected.mgb_flood_area_run_id;" in text
+    assert "mgb_flood_area_context.mgb_flood_area_run_id," in text
+    assert "'STOP: Silver MGB flood-area validation is missing or unsafe'" in text
+    assert "'ESRI_JSON_CONVERTED'" in text
 
 
 def test_15_geometry_statuses_follow_table_14_vocabulary():
@@ -347,8 +337,10 @@ def test_19_native_spatial_predicate_with_grid_equality_and_no_cross_join():
         "project_audit",
         "mgb_context",
         "mgb_publisher",
+        "mgb_flood_area_context",
         "mapping_context",
         "latest_project_flood_source_load",
+        "project_flood_validation_context",
     }
     assert not re.search(r"\bJOIN\b(?<!INNER JOIN)(?<!LEFT JOIN)(?<!CROSS JOIN)", code)
     assert "RIGHT JOIN" not in code.upper()
@@ -518,6 +510,7 @@ def test_29_reads_only_allowed_tables():
     allowed = {
         "`02-silver`.silver_project",
         "`01-bronze`.flood_susceptibility",
+        "`02-silver`.silver_mgb_flood_area",
         "`02-silver`.config_mgb_susceptibility_mapping",
         "`01-bronze`.load_log",
         "`04-validation`.dq_results",
@@ -713,7 +706,11 @@ def test_38_validation_status_and_completeness_checks_exist():
         ),
         ("Projects inside several same-level polygons remain visible", "flag"),
         ("Unmapped or unrated MGB rows remain visible", "flag"),
-        ("Invalid MGB geometry is excluded without repair", "flag"),
+        ("Invalid MGB geometry that D-43 cannot repair is excluded", "flag"),
+        (
+            "Matched projects that depend on repaired MGB geometry remain visible",
+            "flag",
+        ),
         ("Optional MGB publisher version gaps remain visible", "flag"),
     ]:
         assert f"'action', '{action}'" in check_block(name), name
@@ -743,7 +740,7 @@ def test_40_validation_results_persist_before_stop_gate():
     assert "silver-project-flood-map-validation-v1" in validation
 
 
-def test_41_docs_mark_table_15_implemented_and_gold_planned():
+def test_41_docs_mark_table_15_implemented_and_gold_status():
     contract = CONTRACT_DOC.read_text(encoding="utf-8")
     for phrase in [
         "`02-silver.silver_project_flood_map`",
@@ -758,10 +755,12 @@ def test_41_docs_mark_table_15_implemented_and_gold_planned():
         assert temporary not in contract
     data_model = (ROOT / "docs/data-model.md").read_text(encoding="utf-8")
     assert "Project-flood mapping remains planned" not in data_model
-    assert "| Gold | Planned |" in data_model
+    assert "| Gold | Planned |" not in data_model
+    assert "| Gold | Partially implemented |" in data_model
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "Project-flood mapping and Gold remain planned" not in readme
-    assert "Gold remain" in readme or "Gold remains planned" in readme
+    assert "Gold remains planned" not in readme
+    assert "The six Gold dimensions are implemented" in readme
     for path in ["notebooks/README.md", "docs/validation.md", "docs/README.md"]:
         assert "silver_project_flood_map" in (ROOT / path).read_text(encoding="utf-8")
 

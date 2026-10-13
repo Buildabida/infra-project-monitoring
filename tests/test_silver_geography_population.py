@@ -228,5 +228,79 @@ def test_each_notebook_ends_with_an_explanatory_summary():
 def test_psgc_lineage_is_required_only_for_matched_reconciliation_rows():
     sql = notebook_text(VALIDATION_NOTEBOOK)
 
-    assert "match_status IN ('MATCHED_EXACT_CONTEXT', 'MATCHED_ALIAS')" in sql
+    assert (
+        "match_status IN ('MATCHED_EXACT_CONTEXT', 'MATCHED_ALIAS', "
+        "'MATCHED_NORMALIZED_CONTEXT')" in sql
+    )
     assert "match_status <> 'UNMATCHED'" not in sql
+
+
+def test_city_sheet_headings_include_districts_through_their_parent_place():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "AS locality_parent_code" in sql
+    assert "CONCAT(SUBSTRING(place.psgc_code, 1, 5), '00000')" in sql
+    assert "place.locality_parent_code = sheet.sheet_psgc_code" in sql
+    assert "locality.place_type = 'SUBMUNICIPALITY'" in sql
+
+
+def test_sheet_and_heading_aliases_require_context():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "alias.match_rule = 'TABLE_C_SHEET_NAME'" in sql
+    assert "alias.match_rule = 'TABLE_C_LOCALITY_HEADING'" in sql
+    assert "AND TRIM(alias.raw_region_name) <> ''" in sql
+    assert (
+        "(TRIM(alias.raw_region_name) <> '' OR TRIM(alias.raw_province_name) <> '')"
+        in sql
+    )
+    assert (
+        "target.place_type IN ('PROVINCE', 'CITY', 'MUNICIPALITY', 'UNASSIGNED')" in sql
+    )
+    assert (
+        "COALESCE(alias.match_rule, '') NOT IN "
+        "('TABLE_C_SHEET_NAME', 'TABLE_C_LOCALITY_HEADING')" in sql
+    )
+
+
+def test_normalization_key_is_deterministic_and_shared():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "CREATE OR REPLACE TEMPORARY VIEW place_name_match_key" in sql
+    assert "[⁰¹²³⁴⁵⁶⁷⁸⁹]" in sql
+    for rule in ("' SANTO '", "' SANTA '", "' SAINT '"):
+        assert rule in sql
+    assert "CONCAT(' ', name_without_marks, ' ')" in sql
+    assert "$1" not in sql
+    assert "REPLACE(name_with_saint_words, '-', '')" in sql
+    assert "SELECT place_name_standardized FROM `02-silver`.silver_psgc_place" in sql
+
+
+def test_fallback_ranks_run_only_after_exact_and_alias_find_nothing():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "AS place_name_without_footnote" in sql
+    assert r"'\\s*[0-9]+$'" in sql
+    for method in (
+        "'EXACT_CONTEXT'",
+        "'APPROVED_ALIAS'",
+        "'NORMALIZED_NAME_CONTEXT'",
+        "'FOOTNOTE_REMOVED_CONTEXT'",
+    ):
+        assert method in sql
+    assert "MIN(CASE WHEN match_rank <= 2 THEN match_rank END)" in sql
+    assert "primary_rank IS NULL AND match_rank >= 3 AND NOT is_claimed_target" in sql
+    assert "AS target_claim_count" in sql
+    assert "'MATCHED_NORMALIZED_CONTEXT'" in sql
+    assert "WHEN match_status = 'AMBIGUOUS' AND target_claim_count > 1" in sql
+
+
+def test_all_caps_barangays_cannot_absorb_unresolved_subtotals():
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "AS is_barangay_candidate_row" in sql
+    assert "WHERE place_type <> 'BARANGAY'" in sql
+    assert "higher_level_name.name_standardized IS NULL" in sql
+    assert "source.is_barangay_candidate_row AND source.place_name_standardized" in sql
+
+
+def test_validation_accepts_normalized_matches_and_flags_reused_barangays():
+    sql = notebook_text(VALIDATION_NOTEBOOK)
+    assert "'MATCHED_NORMALIZED_CONTEXT'" in sql
+    assert "Normalized-rule match coverage" in sql
+    assert "Each PSGC barangay is accepted at most once" in sql

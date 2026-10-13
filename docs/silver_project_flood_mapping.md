@@ -48,7 +48,8 @@ contract. Neither table is derived from the other.
 | Input | Role in Table 15 |
 | --- | --- |
 | `02-silver.silver_project` | Canonical project identity, parsed coordinates, and project lineage |
-| `01-bronze.flood_susceptibility` | Selected MGB flood-area rows, raw `flood_susceptibility_code`, and `geometry_json` |
+| `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `01-bronze.load_log` | Newest terminal MGB and DPWH load state, audited row count, load time, and optional publisher versions |
 | `04-validation.dq_results` | Latest Bronze MGB and DPWH validation evidence |
@@ -68,8 +69,11 @@ mapping and project-flood mapping are separate relationships.
 If Bronze, CONFIG, and the project foundation are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
-2. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
-3. Run `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`.
+2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb` and
+   `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, unless
+   they already ran for the current MGB snapshot.
+3. Run `notebooks/02_silver/10_silver_project_flood_map.ipynb`.
+4. Run `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`.
 
 When upstream inputs changed, use this dependency-aware order:
 
@@ -79,8 +83,10 @@ When upstream inputs changed, use this dependency-aware order:
 4. `notebooks/02_silver/04_silver_dpwh_project_component.ipynb`, when DPWH changed
 5. `notebooks/02_silver/05_silver_project.ipynb`, after step 4
 6. `notebooks/04_validation/04_validation_silver_projects.ipynb`, after step 5
-7. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
-8. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
+7. `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`, when MGB changed
+8. `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`, after step 7
+9. `notebooks/02_silver/10_silver_project_flood_map.ipynb`
+10. `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 
 Tables 11 to 14 do not need to rerun for Table 15.
 
@@ -117,6 +123,7 @@ The run ID hashes these contracts:
 - project run, project snapshot, and project ingest run
 - MGB snapshot, MGB ingest run, and MGB publisher version or
   `NO_PUBLISHER_VERSION`
+- MGB parse run of `silver_mgb_flood_area` (`mgb_flood_area_run_id`)
 - MGB mapping version and mapping source contract
 - `classification_rule` and `classification_rule_version`
 
@@ -124,7 +131,7 @@ No date, timestamp, UUID, or random value enters logical identity. An exact
 rerun of the same inputs reproduces the same run ID and keys.
 
 `classification_rule_version` is
-`silver-project-flood-map-v1|predicate=ST_INTERSECTS` followed by the
+`silver-project-flood-map-v2|predicate=ST_INTERSECTS` followed by the
 coordinate screen. A changed screen therefore changes the run ID.
 
 The candidate grid size is a performance setting only. It never changes which
@@ -171,31 +178,28 @@ behavior does not permit a Silver `Unknown` classification.
 
 ## Geometry parsing reuse
 
-Table 15 reuses the Table 14 parser without change. See
-[Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
-for the parser contract. The parser tries three governed paths:
+Table 15 reads parsed geometry from `02-silver.silver_mgb_flood_area`, the same
+table Table 14 reads. It never parses `geometry_json` itself. See
+[Silver MGB flood areas](silver_mgb_flood_area.md) for the parser contract,
+including Esri holes, and its validation.
 
-1. parse the geometry as published
-2. apply the targeted quoted-number normalization
-3. convert supported Esri `rings` JSON
+Each row carries one geometry status from that table: `BLANK_GEOMETRY`,
+`UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`, `UNSUPPORTED_GEOMETRY_TYPE`,
+`INVALID_GEOMETRY`, `REPAIRED_GEOMETRY`, or `USABLE_GEOMETRY`. Table 15 reads only the parsed run
+whose `run_id` it hashes into `project_flood_run_id`, and it stops when the
+`06a` validation is missing or has a blocking failure.
 
-The first successful parse wins. Each row receives one Table 14 geometry
-status: `BLANK_GEOMETRY`, `UNPARSEABLE_GEOMETRY`, `EMPTY_GEOMETRY`,
-`UNSUPPORTED_GEOMETRY_TYPE`, `INVALID_GEOMETRY`, or `USABLE_GEOMETRY`.
+Only rows with `susceptibility_mapping_status = 'MAPPED_APPROVED'` and usable
+geometry take part in classification. Usable geometry includes
+`REPAIRED_GEOMETRY`, an invalid polygon repaired under D-43 in
+`silver_mgb_flood_area`; `is_repaired_geometry` keeps it visible, and the
+validator flags matched projects that depend on a repaired polygon. Geometry
+that stays `INVALID_GEOMETRY` is excluded and flagged. Table 15 applies no
+repair, buffer, or other hidden rule of its own.
 
-The parser SQL is copied into the Table 15 notebook and its validator. Two
-regression tests prove that both copies match Table 14 exactly. The only
-differences allowed are the selected-version view name and the added severity
-rank. If Table 14's parser changes, these tests fail until Table 15 is updated
-in the same pull request.
-
-Only rows with `susceptibility_mapping_status = 'MAPPED_APPROVED'` and
-`source_geometry_status = 'USABLE_GEOMETRY'` take part in classification.
-Invalid geometry is excluded and flagged. It is never repaired with
-`ST_BUFFER` or any other hidden rule.
-
-The MGB extract has no stable polygon business key. Table 15 does not invent
-one. It keeps snapshot and run lineage plus candidate counts per project.
+`silver_mgb_flood_area` identifies each polygon by its MGB `object_id` within one
+snapshot (D-42). Table 15 does not publish polygon IDs. It keeps snapshot and run
+lineage plus candidate counts per project.
 
 ## Spatial predicate
 
@@ -263,11 +267,12 @@ The order never implies precedence.
 
 Decision governance: the Buildabida team owns any future severity-precedence
 decision. D-29 and D-30 establish the project's traceability and versioned
-mapping pattern. No severity-precedence rule is approved for v1.
+mapping pattern. D-45 keeps this rule for the capstone: ambiguous projects
+stay `AMBIGUOUS`, and the dashboard shows them as their own group.
 
 Any future precedence must receive a new decision ID in `docs/decisions.md`
 and a new `silver-project-flood-map` rule version before implementation.
-Version `silver-project-flood-map-v1` must not change silently.
+Version `silver-project-flood-map-v2` must not change silently.
 
 ## Output columns
 
@@ -330,14 +335,9 @@ place on an exact rerun.
 - Expensive intermediate views are each consumed once in the publish path.
 - Intermediate results use temporary views, not permanent staging tables.
 - No cache, repartition, collect, Python, UDF, or spatial library is used.
-- The transformation parses MGB geometry twice. One parse feeds the accounting
-  gate before publication, and one feeds the spatial join. This matches the
-  accepted Table 14 pattern.
-
-A shared persisted layer of parsed MGB polygons could remove repeated parsing
-across Tables 14 and 15 and their validators. It would also add a new governed
-table and a new dependency. It is not created until runtime evidence shows the
-repeated parse is a material cost.
+- The transformation reads parsed WKB from `silver_mgb_flood_area`. It never
+  parses MGB geometry text. Since D-42, Tables 14 and 15 and their validators
+  share that one parsed table.
 
 ## Validation
 
@@ -351,7 +351,7 @@ The validator does not trust the transformation's intermediate results:
 
 - It declares the coordinate screen independently and recomputes every
   project's coordinate status.
-- It reparses MGB with the governed parser and recomputes source accounting.
+- It reads MGB from the independently validated `silver_mgb_flood_area` and recomputes source accounting.
 - It rebuilds every project's candidates with a different grid size and
   compares polygon counts, level counts, and candidate levels row by row.
 
@@ -419,26 +419,52 @@ The validator wrote 53 checks to `04-validation.silver_dq_results`. All 37
 STOP checks passed. Of the 16 FLAG checks, 13 reported findings and 3 found
 none.
 
+### Rerun on project rule version 2
+
+Table 15 was rerun after the project foundation moved to `silver_project_v2`.
+
+| Input | Value |
+| --- | --- |
+| Project run | `add5661e4e762ac48a270a437356933bc499a130186cc1f664561364face3449` |
+| Table 15 run ID | `dc10d49cb327609eaa35fd97edc39b34b357d82b7fbf3d42fc12a343aaa208b7` |
+
+The DPWH snapshot, MGB snapshot, and mapping version did not change. The
+validator again wrote 53 checks. All 37 STOP checks passed, and the selected
+project validation it checks had 29 checks with no blocking failure.
+
+### Rerun after the Esri hole fix (issue #92)
+
+Table 15 was rerun on 2026-10-09 with rule version `silver-project-flood-map-v2`,
+which reads Esri polygon holes as holes.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| Table 15 run ID | `2425d8a112a3852faf653ffecd73135ab8e2033237bc08478b2560750f89cea3` |
+
+The DPWH snapshot, MGB snapshot, and mapping version did not change. The
+validator wrote 53 checks with no blocking failure. The tables below are from
+this run.
+
 ### Project classification
 
 | Outcome | Projects | Share of all projects |
 | --- | ---: | ---: |
-| `MATCHED` Low | 7,486 | 2.82% |
-| `MATCHED` Moderate | 7,037 | 2.65% |
-| `MATCHED` High | 4,574 | 1.72% |
-| `MATCHED` Very High | 1,301 | 0.49% |
-| `AMBIGUOUS` across approved levels | 15 | 0.01% |
-| `UNMATCHED`, usable point without an approved polygon | 194,725 | 73.30% |
+| `MATCHED` Low | 10,095 | 3.80% |
+| `MATCHED` Moderate | 9,656 | 3.63% |
+| `MATCHED` High | 6,010 | 2.26% |
+| `MATCHED` Very High | 2,002 | 0.75% |
+| `AMBIGUOUS` across approved levels | 18 | 0.01% |
+| `UNMATCHED`, usable point without an approved polygon | 187,357 | 70.53% |
 | `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
 | Total | 265,656 | 100% |
 
 - 215,138 projects have a `VALID_PAIR` coordinate. No project had a partial
   or out-of-range pair, and no project had an invalid identity.
-- 20,398 projects received a final level. That is 7.68% of all projects and
-  9.48% of projects with a usable coordinate.
-- 116 matched projects sit inside more than one polygon of the same level.
-- The independent recomputation matched the published candidate evidence for
-  every project.
+- 27,763 projects received a final level. That is 10.45% of all projects and
+  12.90% of projects with a usable coordinate. Before the fix, 20,398 did
+  (9.48% of projects with a usable coordinate).
+- 156 matched projects sit inside more than one polygon of the same level.
 
 ### MGB source accounting
 
@@ -446,24 +472,139 @@ The 63,684 selected MGB rows equal the audited Bronze `rows_loaded`:
 
 | Bucket | Rows |
 | --- | ---: |
-| Mapped and usable | 59,478 |
-| Mapped and unusable | 2,368 |
+| Mapped and usable | 61,678 |
+| Mapped and unusable | 168 |
 | Unmapped and usable | 23 |
 | Unmapped and unusable | 1,815 |
 
-- Unusable mapped rows are 2,340 OGC-invalid, 14 empty, and 14 unparseable
-  geometries.
+- Unusable mapped rows are 140 OGC-invalid, 14 empty, and 14 unparseable
+  geometries. Before the fix, 2,340 were OGC-invalid.
 - Unmapped rows are 1,822 blank codes and 16 `No rating` codes. All 1,815 blank
   geometries also have a blank code.
-- All 61,855 parsed geometries used the Esri `rings` path.
+- All parsed geometries used the Esri `rings` path.
 
 ### Interpretation note
 
-Most usable project points, 90.5%, fall outside every approved MGB polygon.
-This run does not explain why. The selected extract may not cover every area,
-or many projects may sit outside mapped susceptibility zones. Excluded invalid
-polygons also remove some coverage. These results must not be read as Low or
-zero flood risk.
+Most usable project points, 87.1%, fall outside every approved MGB polygon.
+These results must not be read as Low or zero flood risk.
+
+Issue #92 found one cause of the low match rate. Before the fix, the Esri parser
+read a polygon's holes as separate polygons, which made the whole feature
+invalid and excluded it. A diagnostic run on 2026-10-09 found that 2,232 of the
+2,340 invalid MGB polygons had holes. The live MGB layer reports 63,684
+features, the same as the Bronze extract, so the extract is not missing
+features.
+
+The fix raised the match rate from 9.48% to 12.90% of projects with a usable
+coordinate. That is still well below the 52% that the issue #92 spot check
+found against the live layer, so a further cause may remain.
+
+### Rerun after the Bronze reload and one-time parsing (issue #92)
+
+The October 9 run still missed 1,815 MGB polygons. The October 4 Bronze load
+had replaced every row with a geometry field longer than 131,072 characters with
+an all-null row, so those polygons reached Silver with no code and no geometry.
+The October 10 Bronze reload restored them. The live MGB layer and the reloaded
+Bronze table now agree on every code count.
+
+Table 15 was rerun on 2026-10-11. It reads parsed geometry from
+`silver_mgb_flood_area` instead of parsing `geometry_json` itself.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| MGB snapshot | `metadata-17bf5e65e1838a2f7be9`, ingest run `07bfbee8-62ba-4b45-976f-10e51c4ab9f3` |
+| Table 15 run ID | `97a8cf5ccf2cba8e34cb739e35e1026b37a7b91102439a3292e0d5cbf2c01961` |
+
+The DPWH snapshot, project run, and mapping version did not change. The
+validator wrote 53 checks: all 37 STOP checks passed, with 13 FLAG and 3 PASS
+review checks.
+
+| Outcome | Projects | Share of all projects |
+| --- | ---: | ---: |
+| `MATCHED` | 62,302 | 23.45% |
+| `AMBIGUOUS` across approved levels | 52 | 0.02% |
+| `UNMATCHED`, usable point without an approved polygon | 152,784 | 57.51% |
+| `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
+| Total | 265,656 | 100% |
+
+- 62,302 projects received a final level. That is 28.96% of the 215,138
+  projects with a usable coordinate, up from 12.90% on October 9.
+- 269 matched projects sit inside more than one polygon of the same level.
+- The validator output does not split matched projects by level, so this
+  section does not report a per-level count.
+
+MGB source accounting for this run:
+
+| Bucket | Rows |
+| --- | ---: |
+| Mapped and usable | 63,335 |
+| Mapped and unusable | 326 |
+| Unmapped and usable | 23 |
+| Unmapped and unusable | 0 |
+| Total, equal to the audited Bronze `rows_loaded` | 63,684 |
+
+- Unusable mapped rows are 297 OGC-invalid, 15 unparseable, and 14 empty
+  geometries.
+- Unmapped rows are 7 blank codes and 16 `No rating` codes. No geometry is blank.
+- 63,669 geometries used the Esri `rings` path.
+- The `Runtime MGB counts are compared with historical Bronze references` FLAG
+  reports 0 blank geometries against the old reference of 1,815. The reference
+  predates the Bronze fix; the difference is expected.
+
+71.02% of usable project points still fall outside every approved MGB polygon.
+These results must not be read as Low or zero flood risk. The match rate is
+still below the 52% from the issue #92 spot check. The next section explains
+the remaining gap.
+
+### Rerun after the invalid polygon repair (D-43)
+
+A diagnostic on 2026-10-11 found the remaining gap. In a deterministic sample of
+50 unmatched projects with a usable coordinate, 17 sat inside an MGB polygon,
+and all 17 polygons were `INVALID_GEOMETRY`. The 297 invalid polygons cover
+about 22,739 sq km in Web Mercator. Most have rings that touch or cross
+themselves, which Esri allows and OGC does not. Decision D-43 repairs them with
+a zero-distance buffer, `ST_BUFFER(geometry, 0)`, in `silver_mgb_flood_area` when the repaired area stays within
+1% or 0.01 sq km of the MGB `Shape__Area`.
+
+Table 15 was rerun on 2026-10-11 after `silver_mgb_flood_area` was rebuilt with
+parse rule v2.
+
+| Input | Value |
+| --- | --- |
+| Project run | `c99563fa560b94dfc40139d4f6ece1d6f625cc9efd7e93228d70904b0683a17a` |
+| MGB parse run | `12765b9cc50d7f107298ab18de2f6bafd8ab10f04bc2a9bee06800c9d984969c` |
+
+The validator wrote 54 checks: all 37 STOP checks passed, with 13 FLAG and 4
+PASS review checks.
+
+| Outcome | Projects | Share of all projects |
+| --- | ---: | ---: |
+| `MATCHED` Low | 35,146 | 13.23% |
+| `MATCHED` Moderate | 27,467 | 10.34% |
+| `MATCHED` High | 35,672 | 13.43% |
+| `MATCHED` Very High | 14,425 | 5.43% |
+| `AMBIGUOUS` across approved levels | 250 | 0.09% |
+| `UNMATCHED`, usable point without an approved polygon | 102,178 | 38.46% |
+| `UNMATCHED`, missing coordinate pair | 50,518 | 19.02% |
+| Total | 265,656 | 100% |
+
+- 112,710 projects received a final level. That is 52.39% of the 215,138
+  projects with a usable coordinate, which matches the 52% from the issue #92
+  spot check. The rate was 28.96% before the repair and 9.48% before any
+  issue #92 fix.
+- 50,475 matched projects, 44.8% of all matched projects, sit inside at least
+  one repaired polygon.
+- 285 matched projects sit inside more than one polygon of the same level.
+- Ambiguous projects rose from 52 to 250, because repaired polygons of
+  different levels can overlap the same point.
+
+MGB source accounting: 63,632 mapped and usable, including 297 repaired; 29
+mapped and unusable (15 unparseable and 14 empty); 23 unmapped and usable. No
+polygon stays `INVALID_GEOMETRY`.
+
+47.49% of usable project points still fall outside every approved MGB polygon.
+These results must not be read as Low or zero flood risk.
 
 ### Unmatched project spot-check
 
@@ -525,11 +666,14 @@ spatial match, Table 15 is incomplete.
 - A usable point without an approved polygon is `UNMATCHED`. The selected MGB
   extract may not cover every area, and unrated MGB rows never drive a level.
 - Points inside overlapping polygons of different approved levels stay
-  `AMBIGUOUS` until the team approves a precedence rule.
-- Invalid MGB geometry is excluded rather than repaired, so a point inside an
-  excluded polygon cannot match it.
-- The MGB extract has no stable polygon key, so per-polygon evidence is kept as
-  counts and levels rather than polygon identifiers.
+  `AMBIGUOUS` (D-45). A precedence rule needs a new decision.
+- Esri holes are read as holes only when the first reading is invalid. A
+  geometry that is still invalid after that is repaired under D-43 when the
+  repair passes its checks. Otherwise it stays `INVALID_GEOMETRY` and is
+  excluded, so a point inside it cannot match it. After the October 11 run, no
+  polygon stays invalid.
+- Table 15 keeps per-polygon evidence as counts and levels, not polygon IDs.
+  `silver_mgb_flood_area` keys each polygon by its MGB `object_id` (D-42).
 - The optional MGB and DPWH publisher versions may be unavailable.
 - The spatial join is the most expensive step. Its runtime cost must be
   monitored when future MGB or DPWH snapshots grow.

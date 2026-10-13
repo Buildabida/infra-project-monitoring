@@ -26,6 +26,7 @@ CONFIG_TABLES = {
         "raw_category",
         "source_infra_type",
         "standardized_sector",
+        "is_flood_related",
         "taxonomy_version",
         "approval_status",
         "is_active",
@@ -141,7 +142,9 @@ def test_approval_states_and_versions_are_validated():
 
 def test_only_verified_mgb_rules_are_seeded_with_expected_ranks():
     seed_cell = next(
-        cell for cell in code_cells(CONFIG_NOTEBOOK) if "FROM VALUES" in cell
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_mgb_susceptibility_mapping AS target" in cell
     )
     expected = {
         "LF": ("Low", 1),
@@ -158,9 +161,67 @@ def test_only_verified_mgb_rules_are_seeded_with_expected_ranks():
     assert "PENDING_REVIEW" not in seed_cell
 
 
+def test_only_approved_dpwh_status_rules_are_seeded():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_project_status_mapping AS target" in cell
+    )
+    expected = {
+        "Completed": ("Completed", "FINISHED"),
+        "On-Going": ("Ongoing", "ACTIVE"),
+        "For Procurement": ("Ongoing", "ACTIVE"),
+        "Not Yet Started": ("Inactive", "INACTIVE"),
+        "Terminated": ("Inactive", "INACTIVE"),
+    }
+
+    assert len(re.findall(r"\('dpwh_projects',", seed_cell)) == len(expected)
+    for source_status, (standardized, group) in expected.items():
+        pattern = (
+            rf"\('dpwh_projects',\s*'{source_status}',\s*'{standardized}',"
+            rf"\s*'{group}'\)"
+        )
+        assert re.search(pattern, seed_cell), source_status
+
+    assert "'dpwh-status-2026-10-v1' AS status_mapping_version" in seed_cell
+    assert "'APPROVED' AS approval_status" in seed_cell
+    assert "TRUE AS is_active" in seed_cell
+    assert "'DPWH'" not in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
+
+
+def test_dpwh_region_aliases_are_approved_and_use_the_config_key():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_place_name_alias AS target" in cell
+    )
+
+    assert "'dpwh_projects' AS source_system" in seed_cell
+    assert "'REGION' AS place_type" in seed_cell
+    assert "'dpwh-region-aliases-2026-10-v1' AS alias_version" in seed_cell
+    assert "'APPROVED' AS approval_status" in seed_cell
+    assert "'Buildabida' AS approved_by" in seed_cell
+    assert "TIMESTAMP '2026-10-09 00:00:00' AS approved_at" in seed_cell
+    assert "PENDING_REVIEW" not in seed_cell
+    assert len(re.findall(r"\('[^']+', '\d{10}', '[^']+'\)", seed_cell)) == 17
+    assert "('Region IV-B', '1700000000', 'MIMAROPA Region')" in seed_cell
+    assert "'MIMAROPA Region', '1700000000'" not in seed_cell
+    assert "Poblacion" not in seed_cell
+
+
+def test_place_alias_coverage_matches_region_place_type_case_insensitively():
+    coverage_cell = next(
+        cell for cell in code_cells(CONFIG_NOTEBOOK) if "raw_place_alias AS (" in cell
+    )
+
+    assert "'dpwh_projects' AS source_system" in coverage_cell
+    assert "UPPER(TRIM(mapping.place_type)) = 'REGION'" in coverage_cell
+
+
 def test_status_config_does_not_seed_delayed_or_derived_rules():
     sql = notebook_text(CONFIG_NOTEBOOK)
-    assert "MERGE INTO `02-silver`.config_project_status_mapping" not in sql
+    assert not re.search(r"'(Delayed|Stalled|Long-running)'", sql, flags=re.IGNORECASE)
     assert not re.search(
         r"VALUES\s*\([^)]*'Delayed'", sql, flags=re.DOTALL | re.IGNORECASE
     )
@@ -175,9 +236,52 @@ def test_manual_override_table_is_allowed_to_start_empty():
 
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
-    assert sql.count("MERGE INTO `02-silver`.") == 1
+    assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
+    assert sql.count("MERGE INTO `02-silver`.") == 4
     assert "CREATE TABLE IF NOT EXISTS" in sql
     assert "INSERT INTO `02-silver`.config_" not in sql
+
+
+def test_dpwh_component_category_taxonomy_is_seeded_and_versioned():
+    sql = notebook_text(CONFIG_NOTEBOOK)
+    expected_categories = {
+        "Bridges",
+        "Buildings and Facilities",
+        "Consultancy",
+        "Flood Control and Drainage",
+        "Roads",
+        "Septage and Sewerage Plants",
+        "Water Provision and Storage",
+    }
+
+    assert "dpwh-component-categories-2026-10-v1" in sql
+    for category in expected_categories:
+        assert f"'{category}'" in sql
+
+    assert re.search(
+        r"'Flood Control and Drainage',\s*'Flood Control and Drainage',\s*"
+        r"'Flood Control and Drainage',\s*TRUE",
+        sql,
+    )
+    assert "Exact normalized componentCategories token" in sql
+
+
+def test_project_category_coverage_uses_only_active_approved_rules():
+    coverage_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "raw_dpwh_component_category AS (" in cell
+    )
+
+    assert "mapping.approval_status = 'APPROVED'" in coverage_cell
+    assert "mapping.is_active = TRUE" in coverage_cell
+
+
+def test_config_validator_protects_dpwh_taxonomy_selection_and_fanout():
+    sql = notebook_text(VALIDATION_NOTEBOOK)
+    assert "exactly one active approved DPWH taxonomy version" in sql
+    assert "DPWH category rules cannot fan out one source classification" in sql
+    assert "approved DPWH category targets and flood markers are complete" in sql
 
 
 def test_notebooks_never_write_bronze_or_gold_or_run_spatial_logic():
@@ -204,3 +308,40 @@ def test_major_sql_sections_have_explanatory_markdown():
             ):
                 assert index > 0
                 assert cells[index - 1]["cell_type"] == "markdown"
+
+
+def test_table_c_place_aliases_are_seeded_with_context():
+    seed_cell = next(
+        cell
+        for cell in code_cells(CONFIG_NOTEBOOK)
+        if "config_place_name_alias AS target" in cell
+        and "'census_2024_table_c' AS source_system" in cell
+    )
+    expected = {
+        "City of Lapu": ("0731100000", "TABLE_C_SHEET_NAME"),
+        "SGA": ("1999900000", "TABLE_C_SHEET_NAME"),
+        "SAN ISIDRO": ("1102324000", "TABLE_C_LOCALITY_HEADING"),
+        "DON VICTORIANO CHIONGBIAN": ("1004217000", "TABLE_C_LOCALITY_HEADING"),
+        "Lurogan": ("1001321017", "TABLE_C_BARANGAY_SPELLING"),
+        "Culasi": ("1001319002", "TABLE_C_BARANGAY_SPELLING"),
+        "Barangay ng mga Mangingisda": ("1731500062", "TABLE_C_BARANGAY_NAME"),
+    }
+
+    for raw_name, (psgc_code, match_rule) in expected.items():
+        row = re.search(rf"\('{raw_name}',[^\n]*", seed_cell).group(0)
+        assert f"'{psgc_code}'" in row
+        assert f"'{match_rule}'" in row
+
+    rows = re.findall(
+        r"^\s+\('([^']*)', '([^']*)', '([^']*)', '([^']*)', '([A-Z]+)'",
+        seed_cell,
+        re.MULTILINE,
+    )
+    assert len(rows) == 19
+    for raw_name, region, province, locality, place_type in rows:
+        assert any(value.strip() for value in (region, province, locality)), raw_name
+        if place_type == "BARANGAY":
+            assert locality.strip(), raw_name
+
+    assert "'census_2024_table_c' AS source_system" in seed_cell
+    assert "WHEN NOT MATCHED THEN INSERT" in seed_cell

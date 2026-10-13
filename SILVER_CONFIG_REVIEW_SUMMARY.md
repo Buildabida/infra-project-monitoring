@@ -12,9 +12,9 @@ It does not transform Bronze or build Gold outputs.
 
 | Table | Initial state |
 | --- | --- |
-| `config_place_name_alias` | Empty pending approved context-specific aliases |
+| `config_place_name_alias` | 17 approved DPWH region aliases, version `dpwh-region-aliases-2026-10-v1` (D-41) |
 | `config_project_category_mapping` | Empty pending approved taxonomy decisions |
-| `config_project_status_mapping` | Empty pending approved status decisions |
+| `config_project_status_mapping` | Five approved DPWH status rules, version `dpwh-status-2026-10-v1` (D-40) |
 | `config_mgb_susceptibility_mapping` | Four approved documented code mappings |
 | `config_manual_geographic_match` | Empty pending approved exceptions |
 
@@ -38,7 +38,12 @@ Only these source-supported MGB rules are seeded:
 Blank values and `No rating` remain unmapped.
 The team must approve any future interpretation.
 
-No category, status, place, or manual geographic rule was invented.
+D-40 later approved DPWH status mapping `dpwh-status-2026-10-v1`. It seeds five rules:
+`Completed` to `Completed` (`FINISHED`), `On-Going` and `For Procurement` to
+`Ongoing` (`ACTIVE`), and `Not Yet Started` and `Terminated` to `Inactive`
+(`INACTIVE`). Blank and malformed statuses remain unmapped.
+
+No category, place, or manual geographic rule was invented.
 
 ## Validation design
 
@@ -121,8 +126,7 @@ Human approval is still required for:
 
 - project category targets
 - standardized project status targets
-- context-specific place aliases
-- `Region IV-B` and `MIMAROPA` handling
+- context-specific place aliases other than the D-41 DPWH region aliases
 - ambiguous names such as `Poblacion`
 - manual geographic overrides
 - blank or `No rating` MGB values
