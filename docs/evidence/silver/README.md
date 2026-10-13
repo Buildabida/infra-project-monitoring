@@ -753,22 +753,23 @@ The 41,951 accepted primary barangays contributed to all 18 official regions.
 Accepted and regional population both equal 112,348,732, for a reconciliation
 difference of 0.
 
-### Remaining review
+### Non-blocking follow-up
 
-The five `UNRESOLVED_HEADING_LIKE` rows still require the read-only profiling
-query in
+The five `UNRESOLVED_HEADING_LIKE` rows may use the read-only profiling query in
 [`docs/silver_geography_population.md`](../../silver_geography_population.md).
 No exception may be approved from the aggregate counts alone. Human review must
 confirm the exact source file, sheet, and raw standardized name.
 
-The supplied evidence does not include:
+The supplied evidence does not include these operational follow-ups:
 
 - the five-row uppercase candidate profile
 - an identical second run proving rerun behavior
 - the dependent Gold population fact and Gold validator rerun
 - analytics and analytics validation after any Gold change
 
-Issue #113 remains open until the required candidate profile and downstream
-evidence are attached and accepted.
+These items do not block Issue #113. The issue's unsafe locality inheritance is
+closed by the fail-closed row role, and the independent duplicate-target STOP
+passed with 0 failures. The five candidates remain visible and unmatched rather
+than receiving an inferred PSGC assignment.
 
 
