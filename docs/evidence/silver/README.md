@@ -771,5 +771,3 @@ These items do not block Issue #113. The issue's unsafe locality inheritance is
 closed by the fail-closed row role, and the independent duplicate-target STOP
 passed with 0 failures. The five candidates remain visible and unmatched rather
 than receiving an inferred PSGC assignment.
-
-
