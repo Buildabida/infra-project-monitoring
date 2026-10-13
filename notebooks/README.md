@@ -411,6 +411,15 @@ Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, va
 
 Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 
+## Build the analytics views
+
+Analytics notebooks live in `05_analytics`. After `09_validation_gold` passes, run:
+
+1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and six persisted views, one per business question. The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. Then it rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+
+The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).
+
 ## Validation connection
 
 `04-validation` is the shared evidence layer for Bronze, Silver, and Gold.
@@ -419,10 +428,12 @@ Each layer records checks that match its responsibility.
 - Bronze validates source preservation, lineage, snapshot identity, and ingestion safety.
 - Silver validates cleaning, typing, deduplication, reconciliation, and geographic matching.
 - Gold validates analytical grain, keys, measures, dimensions, and reporting readiness.
+- Analytics validates that every dashboard view matches Gold exactly.
 
-This sequence produces Bronze, Silver, and Gold results. They live in `04-validation`
+This sequence produces Bronze, Silver, Gold, and analytics results. They live in `04-validation`
 in separate result tables: `dq_results` for Bronze, `silver_config_dq_results` and
-`silver_dq_results` for Silver, and `gold_dq_results` for Gold.
+`silver_dq_results` for Silver, `gold_dq_results` for Gold, and `analytics_dq_results`
+for the analytics views.
 Promotion requires the current layer to pass its blocking checks.
 
 ## Future layer organization
@@ -451,7 +462,8 @@ Keep validation notebooks separate too:
 ├── 07_validation_silver_region_flood_exposure.ipynb
 ├── 08_validation_silver_project_flood_map.ipynb
 ├── 09_validation_gold.ipynb
-└── 10_publish_acceptance_evidence.sql
+├── 10_validation_analytics.ipynb
+└── 11_publish_acceptance_evidence.sql
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based
