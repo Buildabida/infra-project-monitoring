@@ -1066,9 +1066,13 @@ rows for validation run `e14864fd…297f`. Evidence from before #125 remains as
 historical comparison only. See the
 [analytics evidence](evidence/analytics-views/README.md).
 
-That evidence is from rule version v1 and covers the six official views only. The
-exploratory views have no Databricks evidence yet. It will be added after their
-first run.
+That evidence is from rule version v1 and covers the six official views only.
+
+The first run under `analytics-validation-v2` covers all eleven views. It saved
+152 checks under validation run `388660ef…a7995`. All 132 STOP checks passed. 18
+FLAG checks found data limits, and 2 found nothing. The 87 Q1 to Q6 checks match
+the October 12 evidence row for row. See the
+[exploratory analytics evidence](evidence/exploratory-analytics-views/README.md).
 
 ### Known gap: dimension runs in the Gold gate
 

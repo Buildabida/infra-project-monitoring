@@ -80,4 +80,4 @@ Every view and column has a comment, so Genie can read what each one means.
 - Gold has no reason column for a `NULL` `infra_year` or a `NULL` `implementing_office`, so the views cannot say why either is empty.
 - The cohort views read one current snapshot. Showing how the portfolio changed over time would need older snapshots in Gold.
 
-See issue #126 for the scope and acceptance evidence of the six official views. Runtime evidence for the exploratory views will be added after their first Databricks run.
+See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md).
