@@ -151,7 +151,7 @@ Every choice has a row in our [decisions log](docs/decisions.md), with its date 
 - **The TWG-IDI is our main user**, and the public comes second (D-27).
 - **We report listed budgets, not payments**, and we show data gaps first (D-28).
 - **Every layer must survive a source update.** We keep the snapshot, run and version of every load (D-29).
-- **Silver rules live in five versioned tables.** A rule works only after the team approves it (D-30).
+- **Silver rules live in versioned config tables.** A rule works only after the team approves it (D-30, D-53).
 - **Each project gets a region in a fixed order**, and unresolved projects stay visible (D-31).
 - **A project is long-running after 24 months**, and only Gold holds the flag (D-32, D-44).
 - **Gold keys are deterministic hashes**, so a rerun never changes a key (D-33).
@@ -173,7 +173,7 @@ Nadine manages workspace access.
 4. Open `notebooks/00_setup/00_setup_workspace.sql`.
    Select **Run on Databricks**, then **Run File as Workflow**.
 
-The final cell lists the schemas in the catalog.
+The notebook lists the schemas, then confirms the source volume.
 Next, use `01_check_sources.py` to verify access to every configured source.
 See [set up VS Code](docs/vscode-setup.md) for the full instructions.
 
