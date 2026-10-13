@@ -1,0 +1,153 @@
+table_name,status,action,failed_rows,total_rows,percentage,data_quality_check,details
+analytics_category_portfolio,FLAG,flag,180,265656,0.0678,Multi-sector projects counted whole in the flood control share,"Columns: standardized_sector, is_dpwh_flood_related. D-39 flags a project with any Flood Control and Drainage component. Reported budget of these projects=16367824185.17"
+analytics_category_portfolio,FLAG,flag,20496,265656,7.7152,Projects with no usable category (sector NULL),"Columns: standardized_sector, infra_type_mapping_status. Reported budget=48050146057.75"
+analytics_delivery_cohort,FLAG,flag,102,265656,0.0384,Projects with no mapped status group (status_group NULL),"Columns: status_group, status_mapping_status. NO_SOURCE_STATUS=76, NO_APPROVED_STATUS_RULE=26. They keep their own rows"
+analytics_flood_control_exposure,FLAG,flag,9177,34967,26.2447,Flood control projects not placed in any MGB level by their map point,"Columns: flood_control_points_outside_mapped_zones, flood_control_points_no_usable_point. Outside every mapped zone, not low risk: 6636. No usable point: 2541. Ambiguous projects are counted separately."
+analytics_flood_control_exposure,FLAG,flag,10,18,55.5556,"Regions whose flood levels overlap, so no total area","Columns: exposure_area_status. Per-level areas are still shown. Regions: Region III (Central Luzon), Region I (Ilocos Region), National Capital Region (NCR), Region IV-A (CALABARZON), Region II (Cagayan Valley), Cordillera Administrative Region (CAR), Region XII (SOCCSKSARGEN), MIMAROPA Region, Region V (Bicol Region), Region VIII (Eastern Visayas)"
+analytics_flood_control_exposure,FLAG,flag,5,18,27.7778,Regions with no evaluated flood exposure,Columns: exposure_area_status. NOT_EVALUATED means no safe boundary. Regions: Bangsamoro Autonomous Region In Muslim Mindanao (BARMM) NOT_EVALUATED; Region VII (Central Visayas) NOT_EVALUATED; Region IX (Zamboanga Peninsula) NOT_EVALUATED; Negros Island Region (NIR) NOT_EVALUATED; Region VI (Western Visayas) NOT_EVALUATED
+analytics_implementing_office_portfolio,FLAG,flag,97,265656,0.0365,Projects with no resolved implementing office (implementing_office NULL),Columns: implementing_office. They keep their own NULL row with no rank. Gold does not say whether the office was missing or conflicting. Reported budget=15.02. Real offices=221
+analytics_infrastructure_year_trend,FLAG,flag,102,265656,0.0384,Projects with no infrastructure year (infra_year NULL),"Columns: infra_year. They keep their own NULL row. Reported budget=15.02. Observed years 2016 to 2026. Projects by year: NULL=102, 2016=21216, 2017=26387, 2018=26623, 2019=22927, 2020=21865, 2021=23187, 2022=23164, 2023=26171, 2024=30741, 2025=27794, 2026=15479"
+analytics_infrastructure_year_trend,FLAG,flag,20045,265656,7.5455,Projects without a long-running flag,"Columns: long_running_flag, long_running_evaluated_count. They are left out of pct_long_running"
+analytics_infrastructure_year_trend,FLAG,flag,19037,23569,80.7714,Zero-progress projects that are For Procurement,"Columns: zero_progress_flag, dim_project_status.source_status. pct_zero_progress includes them (D-46). They are not stalled"
+analytics_population_equity,FLAG,flag,1,18,5.5556,Regions left out of the equity comparison,"Columns: source_coverage_status, total_reported_budget_pesos, population_count. Left out: Bangsamoro Autonomous Region In Muslim Mindanao (BARMM) NO_MAPPED_PROJECT_DATA"
+analytics_project_delivery_status,FLAG,flag,4,265084,0.0015,Projects with no mapped status group (status_group NULL),"Columns: status_group, status_mapping_status. NO_SOURCE_STATUS means Gold has no status; NO_APPROVED_STATUS_RULE means the source status, often a shifted value, has no approved mapping"
+analytics_project_delivery_status,FLAG,flag,19762,265084,7.455,Projects without a long-running flag because they have no start date,Columns: long_running_evaluated_count. These are left out of pct_long_running
+analytics_project_size_concentration,FLAG,flag,1,18,5.5556,Official regions with no or limited DPWH project coverage,Columns: source_coverage_status. Not normal regional coverage: Bangsamoro Autonomous Region In Muslim Mindanao (BARMM) NO_MAPPED_PROJECT_DATA
+analytics_project_size_concentration,FLAG,flag,19379,265084,7.3105,Projects in the view with a reported budget of 0,Columns: projects_with_zero_budget. A 0 stays 0 as reported and stays in the median and p90. For Procurement projects report 0 (D-46). Projects with a known budget=265084
+analytics_regional_investment,FLAG,flag,572,265656,0.2153,Current projects left out on region key 0,"Columns: region_key, region_match_status. By status: UNMATCHED=266, NON_GEOGRAPHIC=306. Reported budget=157264916718.79, without a budget=87"
+analytics_regional_investment,FLAG,flag,1,18,5.5556,Official regions with no or limited DPWH project coverage,Columns: source_coverage_status. Not ranked: Bangsamoro Autonomous Region In Muslim Mindanao (BARMM) NO_MAPPED_PROJECT_DATA
+analytics_regional_investment,FLAG,flag,19379,265084,7.3105,Projects in the view with a reported budget of 0,Columns: reported_budget_pesos. A 0 stays 0 as reported and lowers the average
+analytics_category_portfolio,PASS,stop,0,9,0.0,Average budget divides by projects with a budget,"Columns: avg_budget_per_project_pesos, projects_with_budget"
+analytics_category_portfolio,PASS,stop,0,9,0.0,Broad and strict flood control shares match Gold,"Columns: flood_control_share_of_portfolio_pct (is_dpwh_flood_related), flood_control_single_sector_share_pct (standardized_sector)"
+analytics_category_portfolio,PASS,stop,0,9,0.0,Budget share matches Gold for every category,Columns: share_of_total_budget_pct
+analytics_category_portfolio,PASS,stop,0,1,0.0,Budget shares add up to 100 percent,"Columns: share_of_total_budget_pct. Total=99.9999, tolerance=0.01"
+analytics_category_portfolio,PASS,stop,0,1,0.0,"Categories add up to every current Gold project and budget, including region key 0","Columns: project_count, total_reported_budget_pesos. View projects=265656, Gold=265656. View budget=6535616688962.02, Gold=6535616688962.02"
+analytics_category_portfolio,PASS,stop,0,9,0.0,Every Gold category combination has exactly one row,"Columns: standardized_sector, is_dpwh_flood_related, infra_type_mapping_status"
+analytics_category_portfolio,PASS,stop,0,9,0.0,"One row per sector, flood flag, and mapping status","Columns: standardized_sector, is_dpwh_flood_related, infra_type_mapping_status"
+analytics_category_portfolio,PASS,stop,0,9,0.0,"Project count, projects with a budget, and budget match Gold for every category","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_category_portfolio,PASS,stop,0,9,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_delivery_cohort,PASS,stop,0,12,0.0,"Each year adds up to its trend-view projects, flag denominators, and For Procurement count","Columns: project_count, long_running_evaluated_count, zero_progress_evaluated_count, for_procurement_count, analytics_infrastructure_year_trend"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Every Gold year and status group has exactly one row,"Columns: infra_year, status_group, status_mapping_status. Compared with a NULL-safe equal"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Flag counts never exceed their denominators,"Columns: project_count, long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Long-running and zero-progress rates divide by projects where the flag is known,"Columns: pct_long_running, pct_zero_progress"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Long-running count and its evaluated denominator match Gold,"Columns: long_running_evaluated_count, long_running_count. The denominator counts projects whose flag is not NULL"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,"One row per infrastructure year, status group, and status mapping status","Columns: infra_year, status_group, status_mapping_status"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Project count and For Procurement count match Gold for every row,"Columns: project_count, for_procurement_count"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Share of year projects divides by every project of the same year,Columns: pct_of_year_projects. The denominator is counted from Gold and includes projects with no status group
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Status mapping status follows the status group,"Columns: status_group, status_mapping_status. MAPPED with a group, NO_SOURCE_STATUS or NO_APPROVED_STATUS_RULE without one"
+analytics_delivery_cohort,PASS,stop,0,12,0.0,The rows of each year add up to 100 percent,"Columns: pct_of_year_projects. Each row is rounded to 2 decimals, so the tolerance is 0.005 per row of the year"
+analytics_delivery_cohort,PASS,stop,0,35,0.0,Zero-progress count and its evaluated denominator match Gold,"Columns: zero_progress_evaluated_count, zero_progress_count. The denominator counts projects whose flag is not NULL"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,A region with no mapped DPWH project shows no flood control value,"Columns: flood_control_project_count, flood_control_share_of_region_budget_pct, flood_control_pesos_per_sqkm_exposed, flood_control_points_*"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,A total area appears only when the levels may be added,"Columns: total_susceptible_area_sqkm, exposure_area_status"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Budget and coverage status match Q1,"Columns: total_reported_budget_pesos, source_coverage_status"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,DPWH and MGB snapshot IDs are the current snapshots,"Columns: source_snapshot_id, mgb_source_snapshot_id (D-29)"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Each level area and share matches the newest Gold exposure run,"Columns: low_area_sqkm, moderate_area_sqkm, high_area_sqkm, very_high_area_sqkm, high_share_of_region_area_pct, very_high_share_of_region_area_pct"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Every Q1 region has exactly one row,Columns: region_key
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Exposure status is a known value,Columns: exposure_area_status
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Exposure status matches the Gold additivity status,"Columns: exposure_area_status, fact_region_flood_exposure.level_area_additivity_status"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Flood control projects and budget match Gold for every region,"Columns: flood_control_project_count, flood_control_budget_pesos"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Flood control share of the region budget matches Gold,Columns: flood_control_share_of_region_budget_pct
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,One row per region,Columns: region_key
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Pesos per square kilometer divides flood control budget by the total area,Columns: flood_control_pesos_per_sqkm_exposed
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Project-point groups and their percents match Gold,Columns: flood_control_points_*
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,The five project-point groups add up to the flood control project count,"Columns: flood_control_points_*, flood_control_project_count"
+analytics_flood_control_exposure,PASS,stop,0,18,0.0,Total area is the sum of the level areas where they may be added,Columns: total_susceptible_area_sqkm
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Average and median budget use only projects with a known budget,"Columns: avg_budget_per_project_pesos, median_budget_per_project_pesos, projects_with_budget"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,"Every Gold office, including NULL, has exactly one row",Columns: implementing_office. Compared with a NULL-safe equal
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Flag counts never exceed their denominators,"Columns: project_count, long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Long-running and zero-progress counts and their evaluated denominators match Gold,"Columns: long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Long-running and zero-progress rates divide by projects where the flag is known,"Columns: pct_long_running, pct_zero_progress"
+analytics_implementing_office_portfolio,PASS,stop,0,1,0.0,"Offices, including NULL, add up to every current Gold project and budget","Columns: project_count, total_reported_budget_pesos. View projects=265656, Gold=265656, of which NULL office=97. View budget=6535616688962.02, Gold=6535616688962.02"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,"One row per implementing office, including NULL",Columns: implementing_office
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,"Project count, projects with a budget, and budget match Gold for every office and a NULL budget stays NULL","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,"Ranks cover only real offices, ties share a rank, and rank 1 is the highest","Columns: project_count_rank, budget_rank"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Region and sector counts match Gold,"Columns: region_count, sector_count. Region key 0 and NULL sectors are not counted"
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_implementing_office_portfolio,PASS,stop,0,222,0.0,The NULL office row has no rank,"Columns: implementing_office, project_count_rank, budget_rank"
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,Average budget divides by projects with a budget,"Columns: avg_budget_per_project_pesos, projects_with_budget"
+analytics_infrastructure_year_sector,PASS,stop,0,12,0.0,Each year adds up to its trend-view projects and budget,"Columns: project_count, total_reported_budget_pesos, analytics_infrastructure_year_trend"
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,Every Gold year and sector combination has exactly one row,"Columns: infra_year, standardized_sector, infra_type_mapping_status. Compared with a NULL-safe equal"
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,"One row per infrastructure year, sector, and mapping status","Columns: infra_year, standardized_sector, infra_type_mapping_status"
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,"Project count, projects with a budget, and budget match Gold for every year and sector","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,Share of the year budget matches Gold,Columns: share_of_year_budget_pct. The denominator is the reported budget of the same infra_year
+analytics_infrastructure_year_sector,PASS,stop,0,76,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_infrastructure_year_sector,PASS,stop,0,12,0.0,The sectors of each year add up to 100 percent,Columns: share_of_year_budget_pct. Tolerance=0.01
+analytics_infrastructure_year_sector,PASS,stop,0,1,0.0,Years and sectors add up to every current Gold project and budget,"Columns: project_count, total_reported_budget_pesos. View projects=265656, Gold=265656. View budget=6535616688962.02, Gold=6535616688962.02"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Budget coverage and average budget divide by projects with a budget,"Columns: budget_coverage_pct, avg_budget_per_project_pesos, projects_with_budget"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,"Every Gold infrastructure year, including NULL, has exactly one row",Columns: infra_year. Compared with a NULL-safe equal
+analytics_infrastructure_year_trend,PASS,stop,0,265656,0.0,Every current project finds its dim_project and dim_project_status row,"Columns: fact_project_snapshot.project_key, fact_project_snapshot.status_key"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Flag counts never exceed their denominators,"Columns: project_count, long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,For Procurement count matches Gold,"Columns: for_procurement_count, dim_project_status.source_status"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Long-running and zero-progress rates divide by projects where the flag is known,"Columns: pct_long_running, pct_zero_progress"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Long-running count and its evaluated denominator match Gold,"Columns: long_running_evaluated_count, long_running_count. The denominator counts projects whose flag is not NULL"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,"One row per infrastructure year, including NULL",Columns: infra_year
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,"Project count, projects with a budget, and budget match Gold for every year and a NULL budget stays NULL","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Status group counts match Gold,"Columns: finished_count, active_count, inactive_count, unmapped_status_count, dim_project_status.status_group"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,The four status counts add up to the project count,"Columns: finished_count, active_count, inactive_count, unmapped_status_count, project_count"
+analytics_infrastructure_year_trend,PASS,stop,0,1,0.0,"Years, including NULL, add up to every current Gold project and budget","Columns: project_count, total_reported_budget_pesos. View projects=265656, Gold=265656, of which NULL year=102. View budget=6535616688962.02, Gold=6535616688962.02"
+analytics_infrastructure_year_trend,PASS,stop,0,12,0.0,Zero-progress count and its evaluated denominator match Gold,"Columns: zero_progress_evaluated_count, zero_progress_count. The denominator counts projects whose flag is not NULL"
+analytics_population_equity,PASS,stop,0,18,0.0,"A region outside the comparable set shows no share, gap, or per-capita value","Columns: investment_share_pct, comparable_population_share_pct, equity_gap_pp, investment_per_capita_pesos"
+analytics_population_equity,PASS,stop,0,18,0.0,Budget and coverage status match Q1,"Columns: total_reported_budget_pesos, source_coverage_status"
+analytics_population_equity,PASS,stop,0,3,0.0,Each share adds up to 100 percent,"Columns: investment_share_pct, population_share_pct, comparable_population_share_pct. Totals=100.0000, 100.0002, 100.0000"
+analytics_population_equity,PASS,stop,0,18,0.0,Equity gap is investment share minus comparable population share,Columns: equity_gap_pp
+analytics_population_equity,PASS,stop,0,18,0.0,Every Q1 region has exactly one row,Columns: region_key
+analytics_population_equity,PASS,stop,0,18,0.0,Investment per capita divides comparable budget by comparable population,Columns: investment_per_capita_pesos
+analytics_population_equity,PASS,stop,0,18,0.0,"Investment, population, and comparable population shares match Gold","Columns: investment_share_pct, population_share_pct, comparable_population_share_pct"
+analytics_population_equity,PASS,flag,0,18,0.0,Official regions without a primary population,Columns: population_count
+analytics_population_equity,PASS,stop,0,1,0.0,One population reference year,Columns: population_reference_year
+analytics_population_equity,PASS,stop,0,18,0.0,One row per region,Columns: region_key
+analytics_population_equity,PASS,stop,0,18,0.0,Per-person ratios leave region key 0 out,Columns: region_key. Asked for by the Gold validation docs once the dashboard datasets exist
+analytics_population_equity,PASS,stop,0,18,0.0,Population matches the newest primary Gold population,"Columns: population_count, population_reference_year"
+analytics_population_equity,PASS,stop,0,18,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_project_delivery_status,PASS,stop,0,18,0.0,A region with no mapped project keeps exactly one empty row,"Columns: standardized_sector, status_group, project_count"
+analytics_project_delivery_status,PASS,stop,0,341,0.0,"Every Gold region, category, and status group has exactly one row","Columns: region_key, standardized_sector, status_group"
+analytics_project_delivery_status,PASS,stop,0,342,0.0,Flag counts never exceed their denominators,"Columns: project_count, long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_project_delivery_status,PASS,stop,0,341,0.0,Long-running and zero-progress rates divide by projects where the flag is known,"Columns: pct_long_running, pct_zero_progress"
+analytics_project_delivery_status,PASS,stop,0,342,0.0,"One row per region, category, and status group","Columns: region_key, standardized_sector, status_group"
+analytics_project_delivery_status,PASS,stop,0,341,0.0,Project and flag counts match Gold for every group,"Columns: project_count, long_running_evaluated_count, long_running_count, zero_progress_evaluated_count, zero_progress_count"
+analytics_project_delivery_status,PASS,stop,0,18,0.0,"Regions, project totals, and coverage status match Q1","Columns: region_key, project_count, source_coverage_status"
+analytics_project_delivery_status,PASS,stop,0,342,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_project_delivery_status,PASS,stop,0,342,0.0,Status shares divide by the region and the region-sector project counts,"Columns: pct_of_region_projects, pct_of_region_sector_projects, analytics_regional_investment.project_count"
+analytics_project_size_concentration,PASS,stop,0,18,0.0,A region with no mapped project shows no distribution value,"Columns: project_count, median_budget_per_project_pesos, p90_budget_per_project_pesos, max_budget_per_project_pesos, largest_project_share_of_region_budget_pct"
+analytics_project_size_concentration,PASS,stop,0,18,0.0,"Coverage status, project counts, budget, and average match Q1","Columns: source_coverage_status, project_count, projects_with_budget, budget_coverage_pct, total_reported_budget_pesos, avg_budget_per_project_pesos"
+analytics_project_size_concentration,PASS,stop,0,18,0.0,Every Q1 region has exactly one row,Columns: region_key
+analytics_project_size_concentration,PASS,stop,0,18,0.0,Largest project share divides the largest budget by the region budget,Columns: largest_project_share_of_region_budget_pct
+analytics_project_size_concentration,PASS,stop,0,18,0.0,"Median, 90th percentile, and largest budget match Gold over projects with a known budget","Columns: median_budget_per_project_pesos, p90_budget_per_project_pesos, max_budget_per_project_pesos. Rebuilt from Gold rows where reported_budget_pesos IS NOT NULL with the same exact PERCENTILE_CONT"
+analytics_project_size_concentration,PASS,stop,0,18,0.0,One row per region,Columns: region_key
+analytics_project_size_concentration,PASS,stop,0,18,0.0,"Project count, projects with a budget, and budget match Gold for every region","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_project_size_concentration,PASS,stop,0,18,0.0,Projects with a budget of 0 match Gold and a NULL budget is not counted,Columns: projects_with_zero_budget. Gold rows where reported_budget_pesos = 0
+analytics_project_size_concentration,PASS,stop,0,18,0.0,Region key 0 is never in the view,Columns: region_key. Q1 counts key 0 projects separately
+analytics_project_size_concentration,PASS,stop,0,18,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_project_size_concentration,PASS,stop,0,18,0.0,"The median is at most the 90th percentile, which is at most the largest budget","Columns: median_budget_per_project_pesos, p90_budget_per_project_pesos, max_budget_per_project_pesos"
+analytics_region_category,PASS,stop,0,18,0.0,A region with no mapped project keeps exactly one empty row,"Columns: standardized_sector, project_count"
+analytics_region_category,PASS,stop,0,122,0.0,Average budget divides by projects with a budget,"Columns: avg_budget_per_project_pesos, projects_with_budget"
+analytics_region_category,PASS,stop,0,18,0.0,"Each region adds up to its Q1 projects, budget, and coverage status","Columns: region_key, project_count, total_reported_budget_pesos, source_coverage_status"
+analytics_region_category,PASS,stop,0,122,0.0,Every Gold region and sector pair has exactly one row,"Columns: region_key, standardized_sector"
+analytics_region_category,PASS,stop,0,123,0.0,One row per region and sector,"Columns: region_key, standardized_sector"
+analytics_region_category,PASS,stop,0,122,0.0,"Project count, projects with a budget, and budget match Gold for every region and sector","Columns: project_count, projects_with_budget, total_reported_budget_pesos. Compared with a NULL-safe equal"
+analytics_region_category,PASS,stop,0,122,0.0,Share of region budget and share of sector budget match Gold,"Columns: share_of_region_budget_pct, share_of_sector_budget_pct"
+analytics_region_category,PASS,stop,0,123,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_regional_investment,PASS,stop,0,18,0.0,A region with no mapped project shows no budget,"Columns: project_count, total_reported_budget_pesos"
+analytics_regional_investment,PASS,stop,0,265656,0.0,At most one current row per project,"Columns: fact_project_snapshot.project_key, is_current_snapshot. Current rows=265656"
+analytics_regional_investment,PASS,stop,0,18,0.0,Average budget divides by projects with a budget,"Columns: avg_budget_per_project_pesos, projects_with_budget"
+analytics_regional_investment,PASS,stop,0,1,0.0,BARMM is never ranked,"Columns: dim_region.is_barmm, source_coverage_status. Bangsamoro Autonomous Region In Muslim Mindanao (BARMM) status=NO_MAPPED_PROJECT_DATA, projects=0, reported budget=NULL"
+analytics_regional_investment,PASS,stop,0,18,0.0,Budget and project-count ranks cover only REPORTED regions and rank 1 is the highest,"Columns: budget_rank, project_count_rank"
+analytics_regional_investment,PASS,stop,0,18,0.0,Budget coverage percent is projects with a budget over all projects,"Columns: budget_coverage_pct, projects_with_budget, project_count"
+analytics_regional_investment,PASS,stop,0,18,0.0,Budget share matches Gold for every region,Columns: share_of_included_regions_budget_pct
+analytics_regional_investment,PASS,stop,0,1,0.0,Budget shares add up to 100 percent,"Columns: share_of_included_regions_budget_pct. Total=100.0000, tolerance=0.01"
+analytics_regional_investment,PASS,stop,0,18,0.0,Coordinate and match coverage match Gold for every region,"Columns: projects_with_coordinates, coordinate_coverage_pct, projects_matched_with_conflict"
+analytics_regional_investment,PASS,stop,0,18,0.0,Coverage status follows the rule,"Columns: source_coverage_status. No mapped project is NO_MAPPED_PROJECT_DATA, BARMM with projects is LIMITED_SOURCE_COVERAGE, the rest is REPORTED"
+analytics_regional_investment,PASS,stop,0,1,0.0,Current projects use one PSGC version,Columns: dim_region.psgc_version
+analytics_regional_investment,PASS,stop,0,18,0.0,Every official region of the current PSGC version has exactly one row,"Columns: region_key, dim_region.psgc_version. Regions with a break: none"
+analytics_regional_investment,PASS,stop,0,265656,0.0,Every region key above 0 finds its dim_region row,Columns: fact_project_snapshot.region_key. Reported budget on unknown keys=0.00
+analytics_regional_investment,PASS,stop,0,18,0.0,One row per region,Columns: region_key
+analytics_regional_investment,PASS,stop,0,18,0.0,Project count matches Gold for every region,Columns: project_count
+analytics_regional_investment,PASS,flag,0,265084,0.0,Projects in the view without a reported budget,Columns: reported_budget_pesos. They count in project_count but not in projects_with_budget or the average
+analytics_regional_investment,PASS,stop,0,18,0.0,Projects with a budget match Gold for every region,Columns: projects_with_budget
+analytics_regional_investment,PASS,stop,0,18,0.0,Rank gap is project-count rank minus budget rank,Columns: project_vs_budget_rank_gap
+analytics_regional_investment,PASS,stop,0,18,0.0,Region key 0 is never in the view,Columns: region_key
+analytics_regional_investment,PASS,stop,0,18,0.0,Reported budget matches Gold for every region and a NULL budget stays NULL,Columns: total_reported_budget_pesos. Compared with a NULL-safe equal
+analytics_regional_investment,PASS,stop,0,18,0.0,Snapshot ID is the current DPWH snapshot,Columns: source_snapshot_id (D-29)
+analytics_regional_investment,PASS,stop,0,1,0.0,"View, key 0, and unknown keys add up to every current project and budget","Columns: project_count, total_reported_budget_pesos. View projects=265084, key 0=572, unknown keys=0, all current=265656. View budget=6378351772243.23, key 0=157264916718.79, all current=6535616688962.02"

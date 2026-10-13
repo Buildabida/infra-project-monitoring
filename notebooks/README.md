@@ -415,7 +415,7 @@ Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01
 
 Analytics notebooks live in `05_analytics`. After `09_validation_gold` passes, run:
 
-1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and six persisted views, one per business question. The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
+1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and eleven persisted views. Six are official views, one per business question. Five are exploratory monitoring views (D-54). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
 2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. Then it rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
 
 The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).

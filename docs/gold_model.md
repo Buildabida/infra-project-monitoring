@@ -223,6 +223,8 @@ As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The natio
 
 Before the issue #88 fix, the gap was 3,783,955 people (3.4 percent), and NCR had no Manila population.
 
+After the final Issue #113 fail-closed rerun on October 13, Gold and Silver both total 112,348,732. The difference from the national census total is 379,044. Gold preserves the accepted Silver population and does not infer a replacement for rows that Silver leaves unmatched.
+
 Gold copies the Silver totals and does not fill the gap. The Gold population checks flag it.
 
 ## Relationships
@@ -382,6 +384,21 @@ Before you finish any Gold task, check that:
 - [ ] Any doubt was raised with the team, not settled by guessing.
 
 ## Runtime evidence
+
+### Population refresh on October 13, 2026 (final Issue #113 run)
+
+After the final Issue #113 Silver rerun, `05_gold_fact_region_population` updated all 18 existing regional rows. It inserted and deleted no rows. Gold and Silver both total 112,348,732, all 18 official regions have a population row, and no population fact uses region key `0`.
+
+| Measure | Value |
+| --- | --- |
+| Gold population rows | 18 |
+| Gold population total | 112,348,732 |
+| Silver population total | 112,348,732 |
+| Regions without population | 0 |
+| Population rows on region key `0` | 0 |
+| Gold `fact_region_population` `run_id` | `acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3` |
+
+`09_validation_gold` then saved 75 checks under validation run `4ec99da18177c198b1d9441a8ae74e5c8a3fc648d114ad9d26d14462e84245dc`. All 65 STOP checks passed, 9 FLAG checks had findings, 1 FLAG check found nothing, and no check failed. The current results are in [`docs/evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv`](evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv).
 
 ### Run on October 13, 2026 (Silver audit fixes #109 to #115)
 

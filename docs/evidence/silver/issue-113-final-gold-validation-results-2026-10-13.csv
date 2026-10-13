@@ -1,0 +1,76 @@
+table_name,status,action,failed_rows,total_rows,percentage,data_quality_check,details
+dim_project_status,FLAG,flag,2,18,11.1111,Active statuses that look like numbers or map points,"Columns: source_status. These come from DPWH rows split by a line break. Values: 0.00, 121.0181138"
+dim_region_boundary,FLAG,flag,1,18,5.5556,Official regions without a boundary,"Columns: region_key. Regions=18, boundaries=17"
+fact_project_snapshot,FLAG,flag,20045,265656,7.5455,"Long-running flag is empty: no start date, or completion before start","Columns: long_running_flag, start_date_key, source_completion_date_key"
+fact_project_snapshot,FLAG,flag,98,265656,0.0369,Progress not published because Silver did not mark it VALID,Columns: physical_progress_pct
+fact_project_snapshot,FLAG,flag,152946,265656,57.573,Projects without a flood level (key 0),"Columns: flood_susceptibility_key, flood_match_status, coordinate_status. By status: AMBIGUOUS with VALID_PAIR=250, UNMATCHED with MISSING_PAIR=50518, UNMATCHED with VALID_PAIR=102178"
+fact_project_snapshot,FLAG,flag,572,265656,0.2153,Projects without a region (key 0),"Columns: region_key, region_match_status. By status: NON_GEOGRAPHIC=306, UNMATCHED=266"
+fact_project_snapshot,FLAG,flag,76,265656,0.0286,Projects without a status (key 0),Columns: status_key
+fact_region_flood_exposure,FLAG,flag,20,72,27.7778,Region and level pairs with no area data,"Columns: susceptible_area_sqkm, spatial_match_status"
+fact_region_population,FLAG,flag,2,43750,0.0046,Region total is below the 2024 census total,"Columns: population_count, is_primary_source, silver_population_place_reconciliation.row_disposition, locality_context_code. Gold primary total=112,348,732, census reference=112,727,776, gap=379,044 people. Table C rows in a known town that Silver could not match: 2 rows, 4,789 people: San Rafael in sheet Batangas, region code 0400000000, 637 people, UNMATCHED, Sawata in sheet Davao del Norte, region code 1100000000, 4152 people, UNMATCHED"
+dim_date,PASS,stop,0,1,0.0,Date key 0 exists once for missing dates,Columns: date_key
+dim_date,PASS,stop,0,13150,0.0,Date key is the date as yyyymmdd,"Columns: date_key, calendar_date"
+dim_date,PASS,stop,0,13150,0.0,Date key is unique,Columns: date_key
+dim_date,PASS,stop,0,13150,0.0,One row per calendar date,Columns: calendar_date
+dim_flood_susceptibility,PASS,stop,0,5,0.0,All five levels are present,"Columns: flood_susceptibility_level. Found High=3, Low=1, Moderate=2, Unknown=0, Very High=4"
+dim_flood_susceptibility,PASS,stop,0,1,0.0,Flood key 0 exists once for Unknown,Columns: flood_susceptibility_key
+dim_flood_susceptibility,PASS,stop,0,5,0.0,Flood susceptibility key is unique,Columns: flood_susceptibility_key
+dim_flood_susceptibility,PASS,stop,0,5,0.0,"Levels are Unknown, Low, Moderate, High or Very High","Columns: flood_susceptibility_level. Found High=3, Low=1, Moderate=2, Unknown=0, Very High=4"
+dim_flood_susceptibility,PASS,stop,0,5,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, source_version"
+dim_flood_susceptibility,PASS,stop,0,5,0.0,"One row per source system, level and version","Columns: source_system, flood_susceptibility_level, source_version"
+dim_flood_susceptibility,PASS,stop,0,5,0.0,Severity rank is unique within each source system and version,"Columns: source_system, source_version, severity_rank. Found High=3, Low=1, Moderate=2, Unknown=0, Very High=4"
+dim_flood_susceptibility,PASS,stop,0,265656,0.0,Silver project flood map has a load time on every row,Columns: silver_project_flood_map.mgb_source_load_ts. A count of distinct load times skips empty ones
+dim_project,PASS,stop,0,265656,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, taxonomy_version"
+dim_project,PASS,stop,0,265656,0.0,One row per source system and Contract ID,"Columns: source_system, contract_id"
+dim_project,PASS,stop,0,265656,0.0,Project key is unique,Columns: project_key
+dim_project,PASS,stop,0,265656,0.0,Rows equal Silver projects,"Columns: all rows, COUNT(*). Gold rows=265656, Silver rows=265656"
+dim_project_status,PASS,stop,0,35,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, status_mapping_version"
+dim_project_status,PASS,stop,0,35,0.0,"One row per source system, status and mapping version","Columns: source_system, source_status, status_mapping_version"
+dim_project_status,PASS,stop,0,1,0.0,Status key 0 exists once for missing or conflicting status,Columns: status_key
+dim_project_status,PASS,stop,0,35,0.0,Status key is unique,Columns: status_key
+dim_region,PASS,stop,0,19,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, psgc_run_id, exposure_run_id"
+dim_region,PASS,stop,0,18,0.0,Official regions equal Silver REGION rows,"Columns: region_key. Gold=18, Silver=18"
+dim_region,PASS,stop,0,19,0.0,One row per region code and PSGC version,"Columns: psgc_region_code, psgc_version"
+dim_region,PASS,stop,0,1,0.0,Region key 0 exists once and is not a geographic region,"Columns: region_key, is_geographic_region"
+dim_region,PASS,stop,0,19,0.0,Region key is unique,Columns: region_key
+dim_region_boundary,PASS,stop,0,17,0.0,Boundary key is unique,Columns: boundary_key
+dim_region_boundary,PASS,flag,0,17,0.0,Boundary shapes marked not valid,Columns: geometry_valid_flag
+dim_region_boundary,PASS,stop,0,17,0.0,Every boundary belongs to a real region,Columns: region_key
+dim_region_boundary,PASS,stop,0,17,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, boundary_version, psgc_run_id, exposure_run_id"
+dim_region_boundary,PASS,stop,0,17,0.0,One row per region and boundary version,"Columns: region_key, boundary_version"
+fact_project_snapshot,PASS,stop,0,265656,0.0,At most one current row per project,"Columns: project_key, is_current_snapshot. Current rows=265,656"
+fact_project_snapshot,PASS,stop,0,18,0.0,Budget by region equals Silver,"Columns: region_key, reported_budget_pesos. Differences: none"
+fact_project_snapshot,PASS,stop,0,306,0.0,Central Office projects use region key 0 and the non-geographic status,"Columns: region_key, region_match_status, region_match_method. Central Office rows=306"
+fact_project_snapshot,PASS,stop,0,1,0.0,Current budget total equals Silver,"Columns: reported_budget_pesos. Gold=6535616688962.02, Silver=6535616688962.02"
+fact_project_snapshot,PASS,stop,0,265656,0.0,"Current rows equal Silver projects, with no stale current rows","Columns: is_current_snapshot, project_key. Gold current=265,656, Silver=265,656, stale current rows=0"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Current rows use the Silver DPWH snapshot,"Columns: source_snapshot_id, silver_project.source_snapshot_id. Gold snapshot=metadata-6321c7aa6f2a14e12f4c, Silver snapshot=metadata-6321c7aa6f2a14e12f4c"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Date key 0 only when the date is missing,"Columns: snapshot_date_key, start_date_key, source_completion_date_key, silver_project.start_date, silver_project.completion_date. The snapshot date key is never 0"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Every key finds its dimension row,"Columns: project_key, region_key, status_key, flood_susceptibility_key, snapshot_date_key, start_date_key, source_completion_date_key. Missing project=0, region=0, status=0, flood=0, date=0"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Flood key 0 only when the flood match is not MATCHED,"Columns: flood_susceptibility_key, flood_match_status. Key 0 rows by status and coordinates: AMBIGUOUS with VALID_PAIR=250, UNMATCHED with MISSING_PAIR=50518, UNMATCHED with VALID_PAIR=102178"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, source_snapshot_id, delivery_rule_version"
+fact_project_snapshot,PASS,stop,0,265656,0.0,One row per project and snapshot,"Columns: project_key, source_snapshot_id"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Physical progress is 0 to 100 or empty,Columns: physical_progress_pct. Empty values=98
+fact_project_snapshot,PASS,stop,0,18,0.0,Project count by region equals Silver,"Columns: region_key, project_key. Differences: none. Gold run=def31215c60484374b1bbe3c284d60cff77d2f0728753bde48c74cb1064d6286, Silver project run=c6317d2b45b2b3f9832e9dfccf130317fea4d1b06a18922d837d22d449b6a424, Silver region map run=54441fa48025a4a2c1fbf86b6bd69b93a116a490b832ff68e43abe6ec0290c0c, snapshot=metadata-6321c7aa6f2a14e12f4c"
+fact_project_snapshot,PASS,stop,0,265656,0.0,Project snapshot key is unique,Columns: project_snapshot_key
+fact_project_snapshot,PASS,stop,0,265656,0.0,Region key 0 only when the region match is not MATCHED or MATCHED_WITH_CONFLICT,"Columns: region_key, region_match_status. Key 0 rows by status: NON_GEOGRAPHIC=306, UNMATCHED=266"
+fact_project_snapshot,PASS,stop,0,265656,0.0,"Reported budget is zero or more, or empty",Columns: reported_budget_pesos. Empty values=87
+fact_project_snapshot,PASS,stop,0,265656,0.0,Source snapshot ID is never empty,Columns: source_snapshot_id
+fact_project_snapshot,PASS,stop,0,265656,0.0,Status key 0 only when the Silver status is missing or conflicting,"Columns: status_key, silver_project.status_raw. Silver leaves status_raw empty when the status is missing or its rows disagree"
+fact_region_flood_exposure,PASS,stop,0,1,0.0,Area total and empty areas equal Silver,"Columns: susceptible_area_sqkm. Gold=44218.7219 sq km, Silver=44218.7219 sq km. Empty areas Gold=20, Silver=20. Gold run=26416088e406d1a4d959dc069cd65bab019880815bbe763d3a66e2125f892e48, Silver run=5e09d8862ae65d5c304016531893d9c906f317de8056e42d6259c11ce4412ff8"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,"Areas use the equal-area CRS, not degrees","Columns: area_calculation_crs. Expected EPSG:6933, found EPSG:6933"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,Every row has a real region and flood level,"Columns: region_key, flood_susceptibility_key"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,Flood area is zero or more,Columns: susceptible_area_sqkm
+fact_region_flood_exposure,PASS,stop,0,72,0.0,Flood exposure key is unique,Columns: region_flood_exposure_key
+fact_region_flood_exposure,PASS,stop,0,72,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, mgb_source_snapshot_id, boundary_version, area_rule_version. mgb_source_version is empty by design"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,"One row per region, level, MGB snapshot and boundary version","Columns: region_key, flood_susceptibility_key, mgb_source_snapshot_id, boundary_version"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,"Rows equal Silver, with no old rows left","Columns: all rows, COUNT(*). Gold rows=72, Silver rows=72. The MERGE never deletes, so rows from an older MGB snapshot or boundary version would show here"
+fact_region_flood_exposure,PASS,stop,0,72,0.0,Share of region area is 0 to 100,Columns: share_of_region_area_pct
+fact_region_population,PASS,stop,0,18,0.0,Each region has exactly one primary source per year,"Columns: region_key, reference_year, is_primary_source. Checked for every official region in dim_region"
+fact_region_population,PASS,stop,0,18,0.0,Every region key finds its dimension row,Columns: region_key
+fact_region_population,PASS,stop,0,18,0.0,Lineage columns are filled,"Columns: run_id, source_load_ts, source_name, reference_year"
+fact_region_population,PASS,stop,0,18,0.0,"No population row uses region key 0, so ratios leave it out","Columns: region_key. Denominator for per-person ratios: 112,348,732 people in 18 primary rows. Key 0 is never in it"
+fact_region_population,PASS,stop,0,18,0.0,"One row per region, year and source","Columns: region_key, reference_year, source_name"
+fact_region_population,PASS,stop,0,18,0.0,Population fact key is unique,Columns: region_population_fact_key
+fact_region_population,PASS,stop,0,1,0.0,Population total equals Silver,"Columns: population_count. Gold=112,348,732, Silver=112,348,732. Gold run=acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3, Silver run=9552ba1050c8c6bd412db728973a2acf809debd82edc29c2289fb292e302ceb3"
+fact_region_population,PASS,stop,0,18,0.0,Primary population is above zero,"Columns: population_count, is_primary_source. An empty count fails too"
+fact_region_population,PASS,stop,0,18,0.0,"Rows equal Silver, with no old rows left","Columns: all rows, COUNT(*). Gold rows=18, Silver rows=18. The MERGE never deletes, so rows from an older PSGC version would show here"
