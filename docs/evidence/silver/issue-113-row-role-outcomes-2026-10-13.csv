@@ -1,0 +1,15 @@
+metric,value,unit,details
+table_c_source_rows,43750,rows,Selected Bronze Table C snapshot
+silver_reconciliation_rows,43750,rows,One reconciliation result per source row
+accepted_primary_rows,41951,rows,Positive matched barangays used for regional population
+matched_non_primary_rows,1733,rows,Matched higher-level totals excluded from primary aggregation
+invalid_or_non_positive_population_rows,12,rows,Visible and excluded from accepted primary population
+unmatched_rows,54,rows,Visible fail-closed or otherwise unresolved rows
+unresolved_heading_like_rows,5,rows,Uppercase heading-like rows requiring human review
+rows_after_unresolved_heading,41,rows,Rows forced unmatched until a new resolved heading
+ambiguous_rows,0,rows,No ambiguous reconciliation result
+active_approved_row_role_exceptions,0,rows,No exception was approved or seeded
+official_region_rows,18,rows,All official PSGC regions represented
+accepted_population,112348732,people,Population from accepted primary rows
+regional_population,112348732,people,Published regional population
+population_reconciliation_difference,0,people,Regional population minus accepted population

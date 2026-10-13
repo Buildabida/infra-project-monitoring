@@ -236,8 +236,11 @@ which makes the #113 row-role decision before matching.
 `silver_region_population` stops when the reconciliation table holds more than one
 run ID.
 
-Databricks must rerun the changed notebook and validator before this contract has
-runtime evidence. No row-role exceptions are approved or seeded by this change.
+The October 13, 2026 Databricks run is recorded in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-pre-match-table-c-row-role-guard-issue-113-pr-130).
+All 25 geography and population STOP checks passed. The run found five
+`UNRESOLVED_HEADING_LIKE` rows and forced 41 following rows to remain unmatched
+until a new resolved heading. No row-role exceptions were approved or seeded.
 
 The regional table retains the lineage of the accepted matched inputs plus the
 reconciliation run identity.
