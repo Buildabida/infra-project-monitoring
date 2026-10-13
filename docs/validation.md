@@ -1081,7 +1081,7 @@ that the same validation covered the current `dim_project` and
 Q3, Q5 and Q6 already read these dimensions, and the cohort and office views read
 them too. The documented run order, `09_validation_gold` then the views then this
 validator, avoids the gap. A fix that adds the dimension runs to the gate is a
-separate follow-up, so it can be reviewed against D-52 on its own.
+separate follow-up. It needs its own review against D-52.
 
 ## Future validation documents
 
