@@ -8,6 +8,7 @@ VALIDATION_NOTEBOOK = (
     REPO_ROOT
     / "notebooks/04_validation/03_validation_silver_geography_population.ipynb"
 )
+GEOGRAPHY_DOC = REPO_ROOT / "docs/silver_geography_population.md"
 NOTEBOOKS = (
     SILVER_DIR / "01_silver_psgc_place.ipynb",
     SILVER_DIR / "02_silver_population_place_reconciliation.ipynb",
@@ -398,6 +399,8 @@ def test_unresolved_heading_like_row_fails_closed_before_matching():
     )
     assert "row_role_exception_version" in sql
     assert "NO_APPROVED_ROW_ROLE_EXCEPTION" in sql
+    assert "heading.candidate_psgc_code AS heading_candidate_psgc_code" in sql
+    assert "NAMED_STRUCT('locality_code', heading_candidate_psgc_code)" in sql
 
 
 def test_misspelled_uppercase_heading_cannot_match_a_barangay_in_previous_locality():
@@ -442,6 +445,34 @@ def test_uppercase_exception_permits_matching_without_assigning_a_target():
     assert "exception.approval_status = 'APPROVED'" in sql
     assert "exception.is_active = TRUE" in sql
     assert "exception.canonical_psgc_code" not in sql
+
+
+def test_uppercase_candidate_profile_is_source_scoped_and_read_only():
+    documentation = GEOGRAPHY_DOC.read_text(encoding="utf-8")
+
+    for field in (
+        "source_file",
+        "sheet_name",
+        "place_name_raw",
+        "place_name_standardized",
+        "source_row_number",
+        "locality_context_code",
+        "matched_psgc_code",
+        "matched_place_name",
+        "matched_place_type",
+        "candidate_match_count",
+        "match_method",
+        "match_status",
+        "population_count",
+        "is_higher_level_psgc_name",
+        "standardized_value_occurrences",
+        "proposed_row_role",
+    ):
+        assert field in documentation
+
+    assert "`source_row_number` is diagnostic" in documentation
+    assert "INSERT INTO" not in documentation
+    assert "MERGE INTO" not in documentation
 
 
 def test_unresolved_heading_like_row_clears_later_context_and_matching():

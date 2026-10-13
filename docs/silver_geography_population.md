@@ -288,6 +288,68 @@ Flag checks report:
 Every coverage check retains a numerator, denominator, and percentage when meaningful.
 Results are stored before the validator enforces the stop gate.
 
+## Uppercase row-role review query
+
+Run this read-only query after rebuilding the reconciliation table and before
+approving any uppercase barangay exception. `source_row_number` is diagnostic
+evidence only. It is not part of the exception key or matching rule.
+
+```sql
+USE CATALOG `buildabida-capstone`;
+
+WITH higher_level_name AS (
+    SELECT DISTINCT place_name_standardized
+    FROM `02-silver`.silver_psgc_place
+    WHERE place_type <> 'BARANGAY'
+),
+reconciliation AS (
+    SELECT
+        result.*,
+        COUNT(*) OVER (
+            PARTITION BY result.source_snapshot_id, result.place_name_standardized
+        ) AS standardized_value_occurrences
+    FROM `02-silver`.silver_population_place_reconciliation AS result
+),
+profiled AS (
+    SELECT
+        result.source_file,
+        result.sheet_name,
+        result.place_name_raw,
+        result.place_name_standardized,
+        result.source_row_number,
+        result.locality_context_code,
+        context.place_name_raw AS locality_context_name,
+        result.matched_psgc_code,
+        result.matched_place_name,
+        result.matched_place_type,
+        result.candidate_match_count,
+        result.match_method,
+        result.match_status,
+        result.population_count,
+        higher.place_name_standardized IS NOT NULL AS is_higher_level_psgc_name,
+        result.standardized_value_occurrences,
+        CASE
+            WHEN result.row_role = 'APPROVED_UPPERCASE_BARANGAY' THEN 'BARANGAY'
+        END AS proposed_row_role
+    FROM reconciliation AS result
+    LEFT JOIN `02-silver`.silver_psgc_place AS context
+        ON result.locality_context_code = context.psgc_code
+       AND result.psgc_source_snapshot_id = context.source_snapshot_id
+    LEFT JOIN higher_level_name AS higher
+        ON result.place_name_standardized = higher.place_name_standardized
+    WHERE result.row_role IN (
+        'UNRESOLVED_HEADING_LIKE',
+        'APPROVED_UPPERCASE_BARANGAY'
+    )
+)
+SELECT *
+FROM profiled
+ORDER BY source_file, sheet_name, TRY_CAST(source_row_number AS BIGINT);
+```
+
+Human review must supply `BARANGAY` only when the exact source-file and sheet
+evidence supports it. A null `proposed_row_role` means no approval has been made.
+
 ## Known limitations
 
 - Table C provides no reliable PSGC code, so matching depends on verified sheet and section

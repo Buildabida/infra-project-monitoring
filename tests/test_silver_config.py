@@ -265,6 +265,18 @@ def test_table_c_row_role_exception_table_starts_empty_and_is_source_scoped():
     )
 
 
+def test_silver_schema_exists_before_the_first_config_table_is_created():
+    sql = notebook_text(CONFIG_NOTEBOOK)
+
+    assert sql.index("USE CATALOG `buildabida-capstone`") < sql.index(
+        "CREATE TABLE IF NOT EXISTS `02-silver`.config_table_c_row_role_exception"
+    )
+    assert sql.index("CREATE SCHEMA IF NOT EXISTS `02-silver`") < sql.index(
+        "CREATE TABLE IF NOT EXISTS `02-silver`.config_table_c_row_role_exception"
+    )
+    assert "SELECT 'config_table_c_row_role_exception', COUNT(*)" in sql
+
+
 def test_rerun_path_does_not_blindly_append_config_rows():
     sql = notebook_text(CONFIG_NOTEBOOK)
     assert sql.count("MERGE WITH SCHEMA EVOLUTION INTO `02-silver`.") == 1
