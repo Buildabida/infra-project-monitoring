@@ -73,6 +73,14 @@ Snapshot context for D-19 and D-23:
 - D-19 records the September 29 flood-control snapshot with 9,855 rows.
 - The accepted October 4 snapshot contains 9,861 rows.
 
+## Proposed
+
+A proposed decision is drafted but not yet approved by the team. It moves to "Made" when the team approves it, and its date then becomes the date the team agreed. Until then, work that depends on it says "proposed".
+
+| ID | Drafted | Decision | Why | Approval |
+| --- | --- | --- | --- | --- |
+| D-54 | Oct 13 | Extend `05-analytics` with five exploratory monitoring views in addition to the six official Q1 to Q6 business-question views: `analytics_infrastructure_year_trend`, `analytics_infrastructure_year_sector`, `analytics_delivery_cohort`, `analytics_project_size_concentration`, and `analytics_implementing_office_portfolio`. The six official Q1 to Q6 views remain unchanged. The exploratory views follow the D-50 contract: current-snapshot Gold only, one DPWH snapshot, `CREATE OR REPLACE VIEW`, comments on every view and column, source snapshot lineage, and validation through `10_validation_analytics`. `infra_year` is a project cohort attribute in the current snapshot, not a historical point-in-time DPWH portfolio snapshot. So these views may compare the current characteristics of different infrastructure-year cohorts, but must not claim that they rebuild what the DPWH portfolio looked like in those years. No project-budget bands are approved by this decision. No contractor Analytics view is approved until the Gold contract safely exposes contractor resolution status and contractor-name standardization is addressed separately. This updates D-50 by keeping the six official business-question views while allowing more governed exploratory monitoring views. | The proctor asked for a broader monitoring dashboard that can reveal more questions and patterns than Q1 to Q6. The views add no transformation to the dashboard, and the validator rebuilds each one from Gold. Gold `dim_project` has `contractor_name` but not Silver's `contractor_resolution_status`, so a `NULL` contractor cannot be told apart as missing or conflicting, and unstandardized names can split one firm. Zero-progress rates keep the Q3 definition and disclose `For Procurement` with a separate count, as D-46 allows. The validation rule version moves to `analytics-validation-v2`, and the D-52 run-ID recipe is unchanged. | Drafted with the reviewer. Waiting for team approval. |
+
 ## Resolved questions
 
 | ID | Question | Resolution |

@@ -11,7 +11,8 @@ NOTEBOOKS_README = ROOT / "notebooks/README.md"
 RESULTS = "`04-validation`.analytics_dq_results"
 GOLD_RESULTS = "`04-validation`.gold_dq_results"
 
-VIEWS = [
+# the six official business-question views (D-50, D-51)
+OFFICIAL_VIEWS = [
     "analytics_regional_investment",
     "analytics_category_portfolio",
     "analytics_project_delivery_status",
@@ -19,6 +20,15 @@ VIEWS = [
     "analytics_flood_control_exposure",
     "analytics_region_category",
 ]
+# the exploratory monitoring views (D-54, proposed)
+EXPLORATORY_VIEWS = [
+    "analytics_infrastructure_year_trend",
+    "analytics_infrastructure_year_sector",
+    "analytics_delivery_cohort",
+    "analytics_project_size_concentration",
+    "analytics_implementing_office_portfolio",
+]
+VIEWS = OFFICIAL_VIEWS + EXPLORATORY_VIEWS
 
 CHECK = re.compile(
     r"NAMED_STRUCT\(\n\s+'table_name', '(?P<table>\w+)', 'attribute', '(?P<attribute>\w+)',\n"
@@ -151,7 +161,10 @@ def test_07_validation_run_id_is_deterministic():
         "exposure_fact.exposure_fact_run_id, validation_rule_version ), 256) "
         "AS validation_run_id"
     ) in squash(text)
-    assert "DEFAULT 'analytics-validation-v1'" in text
+    # the check set grew with the exploratory views, so the rule version moved to v2.
+    # the hash recipe above is unchanged (D-52)
+    assert "DEFAULT 'analytics-validation-v2'" in text
+    assert "analytics-validation-v1" not in code_without_comments(VALIDATION)
     code = code_without_comments(VALIDATION).lower()
     for token in [
         "uuid(",
@@ -226,9 +239,18 @@ def test_11_gold_gate_covers_the_population_and_exposure_facts():
 
 def test_12_check_counts_and_actions():
     found = checks()
-    assert sum(item["action"] == "stop" for item in found) == 74
-    assert sum(item["action"] == "flag" for item in found) == 13
+    official = [item for item in found if item["table"] in OFFICIAL_VIEWS]
+    exploratory = [item for item in found if item["table"] in EXPLORATORY_VIEWS]
+    # the official q1 to q6 check set is unchanged
+    assert sum(item["action"] == "stop" for item in official) == 74
+    assert sum(item["action"] == "flag" for item in official) == 13
+    assert sum(item["action"] == "stop" for item in exploratory) == 58
+    assert sum(item["action"] == "flag" for item in exploratory) == 7
+    assert sum(item["action"] == "stop" for item in found) == 132
+    assert sum(item["action"] == "flag" for item in found) == 20
     assert {item["table"] for item in found} == set(VIEWS)
+    names = [(item["table"], item["name"]) for item in found]
+    assert len(names) == len(set(names))
 
 
 def test_13_every_view_has_grain_and_lineage_checks():
@@ -324,9 +346,176 @@ def test_16_docs_describe_analytics_validation():
     assert "## Analytics validation" in doc
     assert "10_validation_analytics" in doc
     assert "analytics_dq_results" in doc
-    assert "| D-52 |" in DECISIONS.read_text(encoding="utf-8")
+    decisions = DECISIONS.read_text(encoding="utf-8")
+    assert "| D-52 |" in decisions
+    assert "| D-54 |" in decisions
+    for view in EXPLORATORY_VIEWS:
+        assert f"`{view}`" in doc, view
     readme = NOTEBOOKS_README.read_text(encoding="utf-8")
     gold = readme.index("04_validation/09_validation_gold")
     views = readme.index("05_analytics/01_business_questions")
     validator = readme.index("04_validation/10_validation_analytics")
     assert gold < views < validator
+
+
+def test_17_every_exploratory_view_has_grain_reconciliation_and_lineage_checks():
+    for view in EXPLORATORY_VIEWS:
+        own = [item for item in checks() if item["table"] == view]
+        attributes = {item["attribute"] for item in own if item["action"] == "stop"}
+        assert {
+            "Uniqueness",
+            "Completeness",
+            "Accuracy",
+            "Consistency",
+            "Auditability",
+        } <= attributes, view
+        lineage = [item for item in own if item["attribute"] == "Auditability"]
+        assert [item["name"] for item in lineage] == [
+            "Snapshot ID is the current DPWH snapshot"
+        ], view
+    # each lineage check compares the view with the one snapshot the gate allowed
+    code = squash(code_without_comments(VALIDATION))
+    for prefix in ["yt", "ys", "dc", "ps", "io"]:
+        assert (
+            f"COUNT_IF(NOT output.source_snapshot_id <=> context.project_snapshot_id) AS {prefix}_lineage_breaks"
+        ) in code, prefix
+
+
+def test_18_exploratory_contract_checks_exist_with_the_right_action():
+    trend = "analytics_infrastructure_year_trend"
+    sector = "analytics_infrastructure_year_sector"
+    cohort = "analytics_delivery_cohort"
+    size = "analytics_project_size_concentration"
+    office = "analytics_implementing_office_portfolio"
+    for table, name, action in [
+        # null infra_year is accounted for, never dropped
+        (
+            trend,
+            "Years, including NULL, add up to every current Gold project and budget",
+            "stop",
+        ),
+        (
+            trend,
+            "Every Gold infrastructure year, including NULL, has exactly one row",
+            "stop",
+        ),
+        (trend, "Projects with no infrastructure year (infra_year NULL)", "flag"),
+        (
+            trend,
+            "Every current project finds its dim_project and dim_project_status row",
+            "stop",
+        ),
+        (trend, "The four status counts add up to the project count", "stop"),
+        (
+            trend,
+            "Project count, projects with a budget, and budget match Gold for every year and a NULL budget stays NULL",
+            "stop",
+        ),
+        # long-running and zero-progress denominators are rebuilt on their own
+        (trend, "Long-running count and its evaluated denominator match Gold", "stop"),
+        (trend, "Zero-progress count and its evaluated denominator match Gold", "stop"),
+        (cohort, "Long-running count and its evaluated denominator match Gold", "stop"),
+        (
+            cohort,
+            "Zero-progress count and its evaluated denominator match Gold",
+            "stop",
+        ),
+        (trend, "Zero-progress projects that are For Procurement", "flag"),
+        (trend, "For Procurement count matches Gold", "stop"),
+        # the year-sector share divides by the same year
+        (sector, "Share of the year budget matches Gold", "stop"),
+        (sector, "The sectors of each year add up to 100 percent", "stop"),
+        (sector, "Each year adds up to its trend-view projects and budget", "stop"),
+        # the cohort share divides by every project of the year
+        (
+            cohort,
+            "Share of year projects divides by every project of the same year",
+            "stop",
+        ),
+        (cohort, "Status mapping status follows the status group", "stop"),
+        (cohort, "Projects with no mapped status group (status_group NULL)", "flag"),
+        (
+            cohort,
+            "Each year adds up to its trend-view projects, flag denominators, and For Procurement count",
+            "stop",
+        ),
+        # key 0 stays out of the size comparison, and the distribution uses known budgets only
+        (size, "Region key 0 is never in the view", "stop"),
+        (size, "Coverage status, project counts, budget, and average match Q1", "stop"),
+        (
+            size,
+            "Median, 90th percentile, and largest budget match Gold over projects with a known budget",
+            "stop",
+        ),
+        (
+            size,
+            "Projects with a budget of 0 match Gold and a NULL budget is not counted",
+            "stop",
+        ),
+        (size, "Projects in the view with a reported budget of 0", "flag"),
+        (size, "Official regions with no or limited DPWH project coverage", "flag"),
+        # the null office stays visible and is never ranked
+        (office, "Every Gold office, including NULL, has exactly one row", "stop"),
+        (office, "The NULL office row has no rank", "stop"),
+        (
+            office,
+            "Offices, including NULL, add up to every current Gold project and budget",
+            "stop",
+        ),
+        (
+            office,
+            "Projects with no resolved implementing office (implementing_office NULL)",
+            "flag",
+        ),
+    ]:
+        assert check(table, name)["action"] == action, (table, name)
+
+
+def test_19_validator_rebuilds_the_exploratory_views_from_gold():
+    code = squash(code_without_comments(VALIDATION))
+    # one current gold row per project, with left joins so a missing dimension row breaks the totals
+    for recipe in [
+        (
+            "FROM `03-gold`.fact_project_snapshot AS fact LEFT JOIN `03-gold`.dim_project AS project "
+            "ON fact.project_key = project.project_key LEFT JOIN `03-gold`.dim_project_status AS status "
+            "ON fact.status_key = status.status_key WHERE fact.is_current_snapshot;"
+        ),
+        # the null year and null office are compared like any other value
+        "ON expected.infra_year <=> output.infra_year",
+        "ON expected.implementing_office <=> output.implementing_office",
+        # denominators rebuilt with a different expression than the views use
+        "COUNT_IF(long_running_flag IS NOT NULL) AS long_running_evaluated_count",
+        "COUNT_IF(zero_progress_flag IS NOT NULL) AS zero_progress_evaluated_count",
+        # the median and p90 come from known budgets only, with the same documented function
+        "WHERE region_key <> 0 AND reported_budget_pesos IS NOT NULL",
+        "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY reported_budget_pesos) AS median_budget",
+        "PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY reported_budget_pesos) AS p90_budget",
+        "WHERE reported_budget_pesos IS NOT NULL GROUP BY ALL",
+        # ranks over real offices only
+        "FROM offices WHERE implementing_office IS NOT NULL",
+        # the observed year list is sorted, so the evidence reads the same on every run
+        "SORT_ARRAY(COLLECT_LIST(NAMED_STRUCT('year', infra_year, 'projects', project_count)))",
+        "DECLARE OR REPLACE VARIABLE for_procurement_source_status STRING DEFAULT 'For Procurement';",
+    ]:
+        assert recipe in code, recipe
+    lowered = code.lower()
+    for approximate in ["percentile_approx", "approx_percentile"]:
+        assert approximate not in lowered, approximate
+
+
+def test_20_exploratory_checks_save_under_the_project_snapshot():
+    text = squash(sql(VALIDATION))
+    # the exploratory views read the dpwh snapshot, so their evidence keeps the project fact run
+    assert (
+        "CASE checks.table_name WHEN 'analytics_population_equity' THEN context.population_fact_run_id "
+        "WHEN 'analytics_flood_control_exposure' THEN context.exposure_fact_run_id "
+        "ELSE context.project_fact_run_id END"
+    ) in text
+    for group in [
+        "year_trend_checks",
+        "year_sector_checks",
+        "delivery_cohort_checks",
+        "size_checks",
+        "office_checks",
+    ]:
+        assert f"UNION ALL SELECT * FROM {group}" in text, group

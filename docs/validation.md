@@ -935,9 +935,13 @@ nothing. Every FLAG count equals the run above. The rows are in
 
 ## Analytics validation
 
-`notebooks/04_validation/10_validation_analytics.ipynb` checks the six analytics
-views in `05-analytics` that the dashboard and Genie read (D-50, D-51). It covers
-issue #126. It only reads Gold, the views, and `gold_dq_results`, and it never
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the analytics
+views in `05-analytics` that the dashboard and Genie read. The Analytics layer
+contains six official business-question views (D-50, D-51, issue #126) plus five
+exploratory monitoring views (D-54, proposed): `analytics_infrastructure_year_trend`,
+`analytics_infrastructure_year_sector`, `analytics_delivery_cohort`,
+`analytics_project_size_concentration`, and
+`analytics_implementing_office_portfolio`. It only reads Gold, the views, and `gold_dq_results`, and it never
 changes them.
 
 Run it after the views:
@@ -964,7 +968,8 @@ evidence:
 
 ### Analytics stop checks
 
-There are 74 STOP checks. They cover:
+There are 132 STOP checks. The 74 checks of the six official views are
+unchanged, and the five exploratory views add 58. Together they cover:
 
 - **Grain:** one row per documented key in each view, and every expected row is
   there. Every official region keeps a row, even with no mapped project.
@@ -983,9 +988,37 @@ There are 74 STOP checks. They cover:
 - **Lineage:** every view carries the current DPWH snapshot ID, and Q5 also the
   current MGB snapshot ID (D-29).
 
+The exploratory checks add:
+
+- **Cohorts:** the `infra_year` rows, including the `NULL` year, add up to every
+  current Gold project and budget. Every current project must find its
+  `dim_project` and `dim_project_status` row, so none can drop out of a join.
+- **Status:** the four status counts of the trend view add up to the project
+  count. The cohort view's status reason follows the status group, so status key
+  `0` and unmapped statuses keep their own rows.
+- **Denominators:** the long-running and zero-progress denominators are rebuilt
+  as `COUNT_IF(flag IS NOT NULL)`, on their own, for every row. The cohort view's
+  `pct_of_year_projects` divides by every project of the year, counted from Gold.
+  The year-sector share divides by the budget of the same year. Each year's shares
+  add up to 100.
+- **Cross-view:** the year-sector and cohort rows of each year add up to the trend
+  view of the same year. The size view matches Q1 for regions, coverage, counts,
+  budget, and average.
+- **Distribution:** the median, p90, and largest budget are rebuilt from Gold rows
+  with a known budget only, with the same exact `PERCENTILE_CONT` as the view. The
+  zero-budget count uses `reported_budget_pesos = 0`, so a missing budget is never
+  counted as 0. Region key `0` is never in the size view.
+- **Offices:** the `NULL` office keeps one row and gets no rank. Ranks cover real
+  offices only, and ties share a rank.
+- **Lineage:** each exploratory view carries the current DPWH snapshot ID.
+
+The Q1 check "At most one current row per project" covers every view, so no
+project can count twice.
+
 ### Analytics review flags
 
-There are 13 FLAG checks. They keep known data limits visible with their counts:
+There are 20 FLAG checks: the 13 of the official views and 7 for the exploratory
+views. They keep known data limits visible with their counts:
 
 - projects left out on region key `0`, by match status
 - projects without a budget, and projects with a budget of 0
@@ -997,6 +1030,14 @@ There are 13 FLAG checks. They keep known data limits visible with their counts:
 - regions without a primary population
 - flood control projects not placed in an MGB level, regions whose flood levels
   overlap, and regions with no evaluated exposure
+- projects with no `infra_year`. Its details list every observed year with its
+  project count, so shifted or outlier years stay visible
+- projects without a long-running flag, and zero-progress projects that are
+  `For Procurement` (D-46)
+- projects with no mapped status group in the cohort view, by reason
+- projects with a reported budget of 0 in the size view, and regions with no or
+  limited coverage there
+- projects with no resolved implementing office
 
 A FLAG check that finds nothing is `PASS`. Every check names the columns it
 tested in `details`.
@@ -1010,7 +1051,9 @@ a failed check stays visible after the run stops.
 
 The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot`,
 `dim_region`, `fact_region_population` and `fact_region_flood_exposure`, and the
-rule version `analytics-validation-v1`. The `MERGE` key is the validation run ID,
+rule version `analytics-validation-v2`. The rule version moved from v1 to v2 when
+the exploratory checks were added. The recipe itself is unchanged (D-52), so the
+v1 evidence of the six official views stays as it was. The `MERGE` key is the validation run ID,
 the view, and the check name. So a rerun on the same Gold data updates the same
 rows instead of adding copies. New Gold runs give a new ID and a new set of rows.
 
@@ -1022,6 +1065,23 @@ FLAG checks found data limits, and the second final rerun updated the same 87
 rows for validation run `e14864fd…297f`. Evidence from before #125 remains as
 historical comparison only. See the
 [analytics evidence](evidence/analytics-views/README.md).
+
+That evidence is from rule version v1 and covers the six official views only. The
+exploratory views have no Databricks evidence yet. It will be added after their
+first run.
+
+### Known gap: dimension runs in the Gold gate
+
+The Gold gate checks that the latest Gold validation of the current project fact
+passed and covers the current population and exposure facts. It does not check
+that the same validation covered the current `dim_project` and
+`dim_project_status` runs, and the validation run ID does not include them
+(D-52). If `dim_project` or `dim_project_status` were rebuilt after
+`09_validation_gold` and before this validator, the gate would not notice. Q2,
+Q3, Q5 and Q6 already read these dimensions, and the cohort and office views read
+them too. The documented run order, `09_validation_gold` then the views then this
+validator, avoids the gap. A fix that adds the dimension runs to the gate is a
+separate follow-up, so it can be reviewed against D-52 on its own.
 
 ## Future validation documents
 
