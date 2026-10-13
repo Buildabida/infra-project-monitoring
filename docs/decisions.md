@@ -79,3 +79,9 @@ Snapshot context for D-19 and D-23:
 | --- | --- | --- |
 | D-03 | How do we match a project to a place? Options reviewed: Map point, office name, or both. | D-31 uses both within a governed region-first precedence. Exact reviewed evidence selects the region before coordinate-boundary fallback. Central Office stays non-geographic, and conflicts or unresolved rows stay visible. |
 | D-21 | Do we add the DENR MGB flood-susceptibility map as a sixth source? | Yes. D-23 approves the trimmed extract as the sixth R2 snapshot. |
+
+## Proposed decisions awaiting team approval
+
+| ID | Proposed decision | Why |
+| --- | --- | --- |
+| D-53 | Classify Census Table C row roles before barangay matching. An uppercase non-first-sheet row that does not uniquely resolve as a locality heading is `UNRESOLVED_HEADING_LIKE` and clears locality context before matching. It may be a barangay only through one active, approved, versioned exact exception keyed by source system, source file, sheet name, standardized raw place name, and mapping version. No fuzzy or previous-locality inference is allowed. | A heading-like row can otherwise exact-match a barangay in the preceding locality and silently assign later population rows to the wrong municipality. Visible unmatched rows are safer. |

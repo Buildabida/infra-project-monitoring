@@ -135,7 +135,7 @@ Audit and table reconciliation prevent a stale table from representing a failed 
 
 ## Silver configuration validation
 
-`notebooks/04_validation/02_validation_silver_config.ipynb` validates the five
+`notebooks/04_validation/02_validation_silver_config.ipynb` validates the six
 configuration tables in `02-silver`.
 
 The validator runs after `notebooks/02_silver/00_config_mappings.ipynb`.
@@ -157,12 +157,14 @@ Structural `stop` checks cover:
 - valid PSGC targets for approved geographic rules
 - a PSGC version on each approved DPWH region alias that equals the Bronze
   `psgc.source_release` of its target code (#114)
+- exact source-file and sheet scope, controlled `BARANGAY` role, and no active
+  approved fan-out for Table C row-role exceptions (#113)
 
 Coverage `flag` checks report unmapped or pending Bronze values.
 They cover atomic DPWH `componentCategories`, project statuses, and MGB
 susceptibility codes.
 
-An empty manual geographic mapping table is valid.
+Empty manual geographic mapping and Table C row-role exception tables are valid.
 The validator records a flag so reviewers can confirm that no exception was approved.
 
 Results merge into `04-validation.silver_config_dq_results` with a deterministic
@@ -201,7 +203,7 @@ Blocking checks fail when row accounting, keys, lineage, accepted population gra
 official region coverage, or population totals are unsafe. Findings such as ambiguous
 matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
 
-Validation version `silver-geography-population-validation-v3` adds these checks:
+Validation version `silver-geography-population-validation-v4` adds these checks:
 
 - `One reconciliation run ID reproduces from its lineage` is a STOP (#112). Every row
   must carry the run ID that the Table C snapshot, the selected PSGC snapshot, the alias
@@ -213,7 +215,14 @@ Validation version `silver-geography-population-validation-v3` adds these checks
   notebook's candidate views, so an alias whose only candidate stayed `AMBIGUOUS` also
   counts as unused.
 - `Rows under an unresolved heading-like row remain visible` is a FLAG (#113). It counts
-  rows that failed closed because they follow an all-caps row that matched nothing.
+  rows that failed closed because they follow an unresolved heading-like row.
+- `Unresolved heading-like rows cannot produce a trusted match or locality` is a STOP
+  (#113). It prevents an unresolved uppercase heading from entering a barangay match.
+- `Rows after unresolved headings cannot inherit a trusted locality` is a STOP (#113).
+  It protects later rows until a new resolved heading establishes context.
+- `Unresolved heading-like rows remain visible` and `Every active approved row-role
+  exception was used` are FLAG checks (#113). The latter keeps reviewed exceptions
+  observable rather than silently accumulating.
 
 The exact Table C accounting rule is:
 

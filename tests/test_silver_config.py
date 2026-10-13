@@ -59,6 +59,16 @@ CONFIG_TABLES = {
         "approval_status",
         "is_active",
     },
+    "config_table_c_row_role_exception": {
+        "source_system",
+        "source_file",
+        "sheet_name",
+        "raw_place_name_standardized",
+        "approved_row_role",
+        "mapping_version",
+        "approval_status",
+        "is_active",
+    },
 }
 
 
@@ -100,7 +110,7 @@ def test_notebooks_are_valid_nbformat_json():
         )
 
 
-def test_five_config_tables_and_required_columns_are_declared():
+def test_six_config_tables_and_required_columns_are_declared():
     sql = notebook_text(CONFIG_NOTEBOOK)
 
     for table_name, required_columns in CONFIG_TABLES.items():
@@ -119,6 +129,7 @@ def test_natural_key_validation_exists_for_every_table():
         "source_system, source_status, status_mapping_version",
         "source_system, raw_susceptibility_code, source_version, mapping_version",
         "source_system, record_type, source_record_id, mapping_version",
+        "source_system, source_file, sheet_name, raw_place_name_standardized, mapping_version",
     )
 
     for group in expected_groups:
@@ -232,6 +243,23 @@ def test_manual_override_table_is_allowed_to_start_empty():
     assert "MERGE INTO `02-silver`.config_manual_geographic_match" not in sql
     assert "INSERT INTO `02-silver`.config_manual_geographic_match" not in sql
     assert "An empty table is allowed" in notebook_text(VALIDATION_NOTEBOOK)
+
+
+def test_table_c_row_role_exception_table_starts_empty_and_is_source_scoped():
+    sql = notebook_text(CONFIG_NOTEBOOK)
+    validation = notebook_text(VALIDATION_NOTEBOOK)
+
+    assert "config_table_c_row_role_exception" in sql
+    assert "MERGE INTO `02-silver`.config_table_c_row_role_exception" not in sql
+    assert "INSERT INTO `02-silver`.config_table_c_row_role_exception" not in sql
+    assert "source_file STRING NOT NULL" in sql
+    assert "sheet_name STRING NOT NULL" in sql
+    assert "raw_place_name_standardized STRING NOT NULL" in sql
+    assert "approved_row_role STRING NOT NULL" in sql
+    assert "approved_row_role <> 'BARANGAY'" in validation
+    assert "TRIM(source_file) = ''" in validation
+    assert "TRIM(sheet_name) = ''" in validation
+    assert "at most one active approved exception exists for each source identity" in validation
 
 
 def test_rerun_path_does_not_blindly_append_config_rows():
@@ -357,4 +385,4 @@ def test_dpwh_region_aliases_must_name_the_bronze_psgc_version():
     assert "AND TRIM(config.psgc_version) = reference.psgc_version" in check
     assert "WHERE config.source_system = 'dpwh_projects'" in check
     assert "UPPER(TRIM(config.place_type)) = 'REGION'" in check
-    assert "'silver_config_validation_v3'" in sql
+    assert "'silver_config_validation_v4'" in sql
