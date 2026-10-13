@@ -17,7 +17,7 @@ OFFICIAL_VIEWS = {
     "analytics_flood_control_exposure": "One row per official region",
     "analytics_region_category": "One row per official region, DPWH sector, and mapping status",
 }
-# the exploratory monitoring views (D-54, proposed)
+# the exploratory monitoring views (D-54)
 EXPLORATORY_VIEWS = {
     "analytics_infrastructure_year_trend": "One row per infrastructure year, including NULL",
     "analytics_infrastructure_year_sector": (
@@ -331,10 +331,13 @@ def test_16_docs_describe_the_views():
     decisions = DECISIONS.read_text(encoding="utf-8")
     for decision in ["| D-50 |", "| D-51 |", "| D-54 |"]:
         assert decision in decisions, decision
-    # d-54 stays proposed until the team approval is recorded
-    made, proposed = decisions.split("## Proposed", 1)
-    assert "| D-54 |" not in made
-    assert "| D-54 |" in proposed.split("## Resolved questions", 1)[0]
+    # the team approved d-54, so it is a made decision with its approval recorded
+    made = decisions.split("## Made", 1)[1].split("## Resolved questions", 1)[0]
+    d54 = [line for line in made.splitlines() if line.startswith("| D-54 |")]
+    assert len(d54) == 1
+    assert d54[0].startswith("| D-54 | Oct 13 |")
+    assert "The team agreed in the group chat." in d54[0]
+    assert "## Proposed" not in decisions
 
 
 def exploratory_code(name):
@@ -353,7 +356,7 @@ def test_18_exploratory_views_are_labeled_and_cite_their_decision():
     for name in EXPLORATORY_VIEWS:
         comment = view_sql(name).split("\n)\nCOMMENT '", 1)[1]
         assert comment.startswith("Exploratory "), name
-        assert "(D-54, proposed)" in comment.split(". ", 1)[0], name
+        assert "(D-54)" in comment.split(". ", 1)[0], name
     header = cell_sources(VIEWS, "markdown")[0]
     assert "6 official business-question views" in header
     assert "5 exploratory monitoring views" in header

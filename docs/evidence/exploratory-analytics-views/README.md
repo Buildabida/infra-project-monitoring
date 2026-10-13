@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report records Databricks evidence for the five exploratory monitoring views from issue #131 (D-54, proposed).
+This report records Databricks evidence for the five exploratory monitoring views from issue #131 (D-54).
 The views sit beside the six official business-question views, Q1 to Q6, and do not change them.
 
 The evidence covers:
@@ -13,7 +13,8 @@ The evidence covers:
 - a regression comparison of the 87 Q1 to Q6 checks with the October 12 evidence
 
 The evidence comes from the executed notebooks `05_analytics/01_business_questions` and `04_validation/10_validation_analytics`, exported from Databricks.
-The SQL in both exported notebooks is the same, cell for cell, as the SQL on the feature branch.
+The SQL in both exported notebooks was the same, cell for cell, as the SQL on the feature branch at the time of the run.
+After the run, the team approved D-54 on October 13, 2026. The five exploratory view comments then changed from `(D-54, proposed)` to `(D-54)`. No logic changed. A rerun of `01_business_questions` refreshes the comments that Genie reads.
 The exported notebooks carry no run timestamp. The run read the Gold built on October 13, 2026, after the Silver audit fixes for #109 to #115. See the run IDs below and the [Gold model](../../gold_model.md#runtime-evidence).
 
 ## Run identity

@@ -1,11 +1,11 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer contains six official business-question views plus five exploratory monitoring views. Each official view answers one business question. The exploratory views support broader monitoring and exploration (D-54, proposed). All views read current-snapshot Gold, live in the `05-analytics` schema, and hold no data of their own.
+This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer contains six official business-question views plus five exploratory monitoring views. Each official view answers one business question. The exploratory views support broader monitoring and exploration (D-54). All views read current-snapshot Gold, live in the `05-analytics` schema, and hold no data of their own.
 
 ## Run order
 
 1. `09_validation_gold` must pass first.
-2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, and the eleven views with `CREATE OR REPLACE VIEW`. These are the six official views (D-50, D-51) and the five exploratory views (D-54, proposed).
+2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, and the eleven views with `CREATE OR REPLACE VIEW`. These are the six official views (D-50, D-51) and the five exploratory views (D-54).
 3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and the Gold validation again, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` (D-52). It stops the run if any STOP check fails. See [analytics validation](../../docs/validation.md#analytics-validation).
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice.
@@ -55,7 +55,7 @@ Every view and column has a comment, so Genie can read what each one means.
 - `pct_zero_progress` includes `For Procurement` projects, the same as Q3. D-46 allows a zero-progress count that says so. The cohort views add `for_procurement_count` to show how many there are. A zero-progress project is not stalled.
 - `analytics_project_size_concentration` takes its regions and coverage from Q1 and leaves key `0` out. Its median and p90 are exact `PERCENTILE_CONT` values over projects with a reported budget that is not `NULL`. A reported 0 stays in. There are no budget bands, because bands need their own decision.
 - `analytics_implementing_office_portfolio` keeps a `NULL` office as its own row with no rank. Gold does not say whether that office was missing or conflicting.
-- No exploratory view reads contractors. A contractor view waits for Gold to carry contractor resolution status and for a name standardization rule (D-54, proposed).
+- No exploratory view reads contractors. A contractor view waits for Gold to carry contractor resolution status and for a name standardization rule (D-54).
 
 ## For the dashboard
 

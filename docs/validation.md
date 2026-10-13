@@ -938,7 +938,7 @@ nothing. Every FLAG count equals the run above. The rows are in
 `notebooks/04_validation/10_validation_analytics.ipynb` checks the analytics
 views in `05-analytics` that the dashboard and Genie read. The Analytics layer
 contains six official business-question views (D-50, D-51, issue #126) plus five
-exploratory monitoring views (D-54, proposed): `analytics_infrastructure_year_trend`,
+exploratory monitoring views (D-54): `analytics_infrastructure_year_trend`,
 `analytics_infrastructure_year_sector`, `analytics_delivery_cohort`,
 `analytics_project_size_concentration`, and
 `analytics_implementing_office_portfolio`. It only reads Gold, the views, and `gold_dq_results`, and it never

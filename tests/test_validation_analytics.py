@@ -20,7 +20,7 @@ OFFICIAL_VIEWS = [
     "analytics_flood_control_exposure",
     "analytics_region_category",
 ]
-# the exploratory monitoring views (D-54, proposed)
+# the exploratory monitoring views (D-54)
 EXPLORATORY_VIEWS = [
     "analytics_infrastructure_year_trend",
     "analytics_infrastructure_year_sector",
