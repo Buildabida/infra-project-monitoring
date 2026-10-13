@@ -383,6 +383,23 @@ Before you finish any Gold task, check that:
 
 ## Runtime evidence
 
+### Run on October 13, 2026 (Silver audit fixes #109 to #115)
+
+Gold `00` to `07` ran on Databricks serverless compute in the team workspace, on commit `dbd1824` of branch `fix/issue-109-stale-mgb-gate`. Before that, the Silver notebooks reran with the fixes for #109 to #115 (`silver_project_v7`, `silver-population-place-v4`), and every Silver validator passed every STOP check. Gold `00` started at about 06:38 UTC.
+
+| Measure | Value |
+| --- | --- |
+| `dim_project` rows | 265,656, equal to Silver |
+| Current `fact_project_snapshot` rows | 265,656, equal to Silver |
+| Current reported budget (PHP) | 6,535,616,688,962.02, equal to Silver |
+| `fact_region_population` primary total | 112,722,987, equal to Silver |
+| `fact_region_flood_exposure` area | 44,218.7219 sq km, equal to Silver |
+| `dim_region` rows | 19 (18 regions and key `0`) |
+| `dim_region_boundary` rows | 17 |
+| Current `fact_project_snapshot` `run_id` | `def31215c60484374b1bbe3c284d60cff77d2f0728753bde48c74cb1064d6286` |
+
+`09_validation_gold` then ran once. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing. Every FLAG count equals the October 12 run. The rows are in [`docs/evidence/silver/issue-109-115-gold-validation-2026-10-13.csv`](evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
+
 ### Run on October 12, 2026 (issues #116 and #119)
 
 Gold `03`, `04`, and `07` ran on Databricks serverless compute in the team workspace, on commit `ff7cacc` of branch `feature/issues-116-117-118-119-120-121`. Before that, `05_silver_project` ran on `silver_project_v6`, and the project-dependent Silver notebooks reran. Every Silver validator passed every STOP check. Gold `00`, `01`, `02`, `05`, and `06` did not rerun, because they do not read project data.

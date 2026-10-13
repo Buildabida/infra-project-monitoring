@@ -737,7 +737,7 @@ def test_40_validation_results_persist_before_stop_gate():
         "SHA2(CONCAT_WS('|', run_id, validation_rule_version), 256) AS validation_run_id"
         in validation
     )
-    assert "silver-project-flood-map-validation-v1" in validation
+    assert "silver-project-flood-map-validation-v2" in validation
 
 
 def test_41_docs_mark_table_15_implemented_and_gold_status():
@@ -780,3 +780,81 @@ def test_42_summary_documents_contract_and_runtime_boundary():
         "requires Databricks execution",
     ]:
         assert phrase in summary
+
+
+def test_43_parsed_mgb_gate_requires_current_bronze_ingest():
+    flood_map = sql(FLOOD_MAP_NOTEBOOK)
+
+    assert "parsed_snapshot_id" in flood_map
+    assert "parsed_ingest_run_id" in flood_map
+
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in flood_map
+
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in flood_map
+
+    assert "silver_mgb_flood_area is stale" in flood_map
+
+
+def test_44_validator_blocks_stale_parsed_mgb_lineage():
+    validator = sql(VALIDATION_NOTEBOOK)
+    check = check_block("Parsed MGB lineage matches current accepted Bronze MGB ingest")
+    assert "'attribute', 'Timeliness'" in check
+    assert "'action', 'stop'" in check
+    assert "CAST(stale_parsed_mgb_lineage_rows AS BIGINT)" in check
+
+    # one run-level comparison, joined into the single metrics row
+    lineage = view_body(validator, "project_flood_validation_metrics")
+    assert "parsed_mgb.parsed_snapshot_id <=> context.latest_mgb_snapshot_id" in lineage
+    assert (
+        "parsed_mgb.parsed_ingest_run_id <=> context.bronze_mgb_ingest_run_id"
+        in lineage
+    )
+    assert "CROSS JOIN parsed_mgb_lineage;" in lineage
+    row_evidence = lineage[lineage.index("row_evidence AS (") :]
+    row_evidence = row_evidence[: row_evidence.index("output_metrics AS (")]
+    assert "stale_parsed_mgb_lineage_rows" not in row_evidence
+
+
+def test_45_parsed_mgb_ingest_is_compared_with_bronze_not_load_log():
+    # a SKIPPED_IDEMPOTENT load logs a new load_log run_id but keeps the Bronze
+    # _ingest_run_id, so the expected ingest run must come from the Bronze rows
+    context = squash(
+        view_body(sql(VALIDATION_NOTEBOOK), "project_flood_validation_context")
+    )
+    assert (
+        "MAX(_ingest_run_id) AS bronze_mgb_ingest_run_id "
+        "FROM `01-bronze`.flood_susceptibility" in context
+    )
+    assert "CROSS JOIN current_bronze_mgb;" in context
+    assert "THEN run_id END) AS latest_mgb_ingest_run_id" not in context
+    assert "latest_mgb_ingest_run_id" not in sql(VALIDATION_NOTEBOOK)
+
+
+def test_46_flood_map_gate_reads_bronze_ingest_inside_the_assert():
+    gate = squash(view_body(sql(FLOOD_MAP_NOTEBOOK), "selected_project_flood_versions"))
+    mgb_context = gate[
+        gate.index("mgb_context AS (") : gate.index("mgb_publisher AS (")
+    ]
+    assert "MAX(_ingest_run_id) AS mgb_source_ingest_run_id" in mgb_context
+    assert "FROM `01-bronze`.flood_susceptibility" in mgb_context
+    assert "load_log" not in mgb_context
+    assertion = gate[gate.index("SELECT ASSERT_TRUE(") :]
+    assertion = assertion[: assertion.index("silver_mgb_flood_area is stale")]
+    assert "parsed_snapshot_id <> mgb_source_snapshot_id" in assertion
+    assert "parsed_ingest_run_id <> mgb_source_ingest_run_id" in assertion
+
+
+def test_47_srid_checks_read_the_stored_srid():
+    # issue #114: ST_SRID of a geometry built with ST_SETSRID always equals the SRID set
+    for path in (FLOOD_MAP_NOTEBOOK, VALIDATION_NOTEBOOK):
+        code = code_without_comments(path)
+        assert "area.geometry_srid" in code, path.name
+        assert "ST_SRID(mgb_geometry) <> source_geometry_srid" not in code, path.name
+        assert "NOT (geometry_srid <=> source_geometry_srid)" in code, path.name
+
+
+def test_48_blank_geometry_reference_matches_the_restored_bronze():
+    # issue #115: the October 10 Bronze reload restored the 1,815 blank polygons
+    text = sql(VALIDATION_NOTEBOOK)
+    assert "reference_blank_geometry_rows BIGINT DEFAULT 0;" in text
+    assert "DEFAULT 1815" not in text

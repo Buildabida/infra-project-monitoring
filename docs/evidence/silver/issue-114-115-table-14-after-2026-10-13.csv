@@ -1,0 +1,10 @@
+flood_susceptibility_level,spatial_match_status,region_rows,susceptible_area_sqkm,source_polygons,fragments
+High,CALCULATED,13,16615.1039,11341,11341
+High,NO_SAFE_REGION_BOUNDARY,5,null,null,null
+Low,CALCULATED,13,11448.7952,14915,14915
+Low,NO_SAFE_REGION_BOUNDARY,5,null,null,null
+Moderate,CALCULATED,13,11626.4386,21620,21620
+Moderate,NO_SAFE_REGION_BOUNDARY,5,null,null,null
+Very High,CALCULATED,12,4528.3842,3089,3089
+Very High,NO_MAPPED_EXPOSURE,1,0.0000,0,0
+Very High,NO_SAFE_REGION_BOUNDARY,5,null,null,null

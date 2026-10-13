@@ -15,6 +15,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review the parsed MGB flood polygons (`silver_mgb_flood_area`), the Esri parser, the skip rule, and validation | [Silver MGB flood areas](silver_mgb_flood_area.md) |
 | Review regional MGB flood exposure, the equal-area CRS, zero versus no data, overlap, lineage, and validation | [Silver regional flood exposure](silver_region_flood_exposure.md) |
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver_project_flood_mapping.md) |
+| Review Databricks evidence for Silver fixes | [Silver validation evidence](evidence/silver/README.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |

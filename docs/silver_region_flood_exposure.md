@@ -33,7 +33,7 @@ flood-control spending is enough, fair, effective, or caused by any factor.
 | Input | Role in Table 14 |
 | --- | --- |
 | `02-silver.silver_mgb_flood_area` | Selected MGB polygons parsed once, with raw codes, geometry statuses, and WKB geometry |
-| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot |
+| `01-bronze.flood_susceptibility` | Lineage columns only, to prove the selected MGB snapshot and Bronze ingest run |
 | `02-silver.config_mgb_susceptibility_mapping` | The only authority for code-to-level and severity-rank standardization |
 | `02-silver.silver_psgc_place` | Current official region set and PSGC lineage |
 | `01-bronze.boundaries` | Region boundary geometry, boundary versions, and boundary lineage |
@@ -53,10 +53,23 @@ If Bronze, CONFIG, and PSGC are accepted and unchanged:
 
 1. Review the existing accepted upstream evidence.
 2. Run `notebooks/02_silver/08a_silver_mgb_flood_area.ipynb`. It skips the parse
-   when the MGB snapshot and parse rule are unchanged.
+   when the MGB snapshot, the Bronze ingest run, and the parse rule are unchanged.
 3. Run `notebooks/04_validation/06a_validation_silver_mgb_flood_area.ipynb`.
 4. Run `notebooks/02_silver/09_silver_region_flood_exposure.ipynb`.
 5. Run `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`.
+
+After a Bronze MGB force reload with the same snapshot ID, rerun `08a` and its
+validator before Table 14. The parsed table must carry both the current MGB
+snapshot ID and the current Bronze ingest run ID. A matching snapshot alone is
+not enough. Table 14 stops on stale parsed lineage before spatial processing,
+and validator 07 repeats the check.
+
+The expected ingest run comes from the `_ingest_run_id` of the current
+`01-bronze.flood_susceptibility` rows, not from `load_log.run_id`. A
+`SKIPPED_IDEMPOTENT` load writes a new `load_log` run ID but keeps the Bronze
+rows, so a `load_log` comparison would stop every routine Bronze rerun.
+The October 12, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.
@@ -302,7 +315,9 @@ directions:
 
 - A province the boundary places in a region, by its code prefix, must still
   belong to that region in the current PSGC. This catches a province that left
-  the region.
+  the region. Notebook 09 and validator 07 use the same null-safe test,
+  `NOT (region_code <=> psgc_region_code)`. So an unlisted province and a listed
+  province with no region both count as left (#114).
 - Every current PSGC province of a region must appear in the boundary
   snapshot. This catches a province that joined the region after the boundary
   was published. Independent cities are not checked in this direction.
@@ -372,10 +387,13 @@ raw polygon areas would double-count overlap.
 within_level_overlap_sqkm = sum of clipped fragment areas - dissolved level area
 ```
 
-`source_polygon_count` counts contributing source rows before dissolve.
-`intersection_fragment_count` counts region-by-polygon intersection results
-before dissolve. They are equal by construction because each safe region has
-exactly one boundary feature. The validator proves the equality.
+`source_polygon_count` counts distinct contributing MGB `object_id` values
+before dissolve. `intersection_fragment_count` counts region-by-polygon
+intersection results before dissolve. They should be equal because each safe
+region has exactly one boundary feature. The two counts are computed apart, so
+the validator stops the run if a polygon ever yields two fragments in one
+region (#114). Before #114, `source_polygon_count` was a copy of
+`intersection_fragment_count`, so this check could not fail.
 
 A polygon crossing two regions contributes to both regional counts. Do not sum
 `source_polygon_count` across regions as a national unique-polygon total.
@@ -549,19 +567,26 @@ All seven data-quality attributes have executable checks:
   and geometry findings
 - Uniqueness: keys, grain, and boundary lineage duplicates
 - Timeliness: newest loads and validation, current snapshots, current mapping
-  version, one run, and historical reference comparison
+  version, one run, historical reference comparison, and parsed MGB lineage that
+  matches the current Bronze MGB rows
 
 ## STOP and FLAG
 
 STOP examples:
 
 - unsafe MGB, boundary, PSGC, or CONFIG upstream state
+- stale `silver_mgb_flood_area` lineage, where the parsed snapshot or ingest
+  run differs from the current Bronze MGB rows
 - source accounting that does not reconcile
 - ambiguous approved mapping
 - incomplete grid or duplicated grain
 - negative area or a share outside 0 to 100
 - missing geography published as zero
 - area not in the approved equal-area CRS, or in square degrees
+- usable MGB geometry stored with an SRID other than 4326. The notebook and the
+  validator read `silver_mgb_flood_area.geometry_srid`. `ST_SRID` of a geometry
+  rebuilt with `ST_SETSRID` always returns the SRID just set, so it cannot
+  catch a wrong stored SRID (#114).
 - missing mandatory lineage or a broken deterministic identity
 
 FLAG examples:
@@ -574,7 +599,10 @@ FLAG examples:
 - an unavailable optional publisher version
 - mapped polygons that do not intersect a safe region
 - within-level and cross-level overlap findings
-- runtime counts that differ from historical references
+- runtime counts that differ from historical references. The blank-geometry
+  reference is 0 since validation version
+  `silver-region-flood-exposure-validation-v2`. It was 1,815 until the October 10
+  Bronze reload restored those polygons, so the FLAG fired on every run (#115).
 
 A FLAG is a visible source limitation, not a failure.
 

@@ -177,7 +177,7 @@ def test_13_project_never_sums_budgets():
 def test_14_project_keeps_key_recipe_and_versions_its_rule():
     text = sql(PROJECT)
     assert "'dpwh' AS project_key_label" in text
-    assert "'silver_project_v6' AS transformation_rule_version" in text
+    assert "'silver_project_v7' AS transformation_rule_version" in text
     assert "CONCAT_WS('|', parameters.project_key_label" in text
     assert "COALESCE(attribute.component_run_id, '')" in text
     assert "COALESCE(category.taxonomy_version, '')" in text
@@ -426,7 +426,7 @@ def test_31_validator_checks_implementing_office_resolution():
     assert "implementing_office_resolution_status = 'CONFLICT'" in text
     assert "'Implementing office follows the resolution rule'" in text
     assert "'Missing or conflicting implementing offices remain visible'" in text
-    assert "'silver_project_validation_v5'" in text
+    assert "'silver_project_validation_v6'" in text
 
 
 def test_32_project_resolves_contractor_like_the_office():
@@ -459,3 +459,79 @@ def test_33_validator_checks_contractor_resolution():
         "(contractor_resolution_status = 'CONFLICT' AND distinct_contractor_count < 2)",
     ]:
         assert predicate in text, predicate
+
+
+def test_34_project_resolves_coordinates_as_one_valid_pair():
+    resolution = statement(
+        PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_attribute_resolution"
+    )
+    pair = (
+        "COUNT(DISTINCT CASE WHEN coordinate_status = 'VALID_PAIR' "
+        "THEN NAMED_STRUCT('latitude', latitude_parsed, 'longitude', longitude_parsed) END)"
+    )
+    assert f"{pair} AS distinct_coordinate_pair_count" in resolution
+    assert (
+        f"CASE WHEN {pair} = 1 THEN MAX(CASE WHEN coordinate_status = 'VALID_PAIR' "
+        "THEN latitude_parsed END) END AS latitude_parsed" in resolution
+    )
+    assert (
+        f"CASE WHEN {pair} = 1 THEN MAX(CASE WHEN coordinate_status = 'VALID_PAIR' "
+        "THEN longitude_parsed END) END AS longitude_parsed" in resolution
+    )
+    assert "END AS coordinate_resolution_status" in resolution
+    # the old rule resolved each value on its own and could mix two rows (#110)
+    assert "COUNT(DISTINCT latitude_parsed)" not in resolution
+    assert "COUNT(DISTINCT longitude_parsed)" not in resolution
+    table = statement(PROJECT, "CREATE OR REPLACE TABLE `02-silver`.silver_project")
+    assert "attribute.coordinate_resolution_status," in table
+    assert "attribute.distinct_coordinate_pair_count," in table
+
+
+def test_35_status_publishes_only_for_a_resolved_raw_status():
+    status = statement(
+        PROJECT, "CREATE OR REPLACE TEMPORARY VIEW project_status_resolution"
+    )
+    assert "WHEN status_raw_resolution_status = 'RESOLVED'" in status
+    assert "AND distinct_status_mapping_count = 1" in status
+    assert "AND candidate_status_group IS NOT NULL" in status
+    for column in ("standardized_status", "status_group", "status_mapping_version"):
+        assert (
+            f"CASE WHEN status_mapping_state = 'MAPPED' THEN candidate_{column} END "
+            f"AS {column}" in status
+        )
+    assert "ELSE 'UNMAPPED'" in status
+    table = statement(PROJECT, "CREATE OR REPLACE TABLE `02-silver`.silver_project")
+    for column in (
+        "standardized_status",
+        "status_group",
+        "status_mapping_version",
+        "status_mapping_state",
+    ):
+        assert f"status_resolution.{column}," in table
+        assert f"attribute.{column}," not in table
+    assert "LEFT JOIN project_status_resolution AS status_resolution" in table
+
+
+def test_36_validator_recounts_pairs_and_checks_status_resolution():
+    metrics = statement(
+        VALIDATION, "CREATE OR REPLACE TEMPORARY VIEW silver_project_validation_metrics"
+    )
+    assert "AS expected_latitude" in metrics
+    assert "AS expected_longitude" in metrics
+    assert "LEFT JOIN component_project_control USING (contract_id)" in metrics
+    assert "latitude_parsed <=> expected_latitude" in metrics
+    assert "(latitude_parsed IS NULL) <> (longitude_parsed IS NULL)" in metrics
+    assert "status_resolution_status IS DISTINCT FROM 'RESOLVED'" in metrics
+    assert "AS expected_standardized_status" in metrics
+    assert "standardized_status <=> expected_standardized_status" in metrics
+    text = sql(VALIDATION)
+    for name, action in (
+        ("Project coordinates publish as one pair from one component pair", "stop"),
+        (
+            "Standardized status publishes only for a resolved and mapped raw status",
+            "stop",
+        ),
+        ("Conflicting coordinate pairs remain visible", "flag"),
+    ):
+        block = text[text.index(f"'{name}'") :]
+        assert f"'{action}'" in block[: block.index("FROM m")]

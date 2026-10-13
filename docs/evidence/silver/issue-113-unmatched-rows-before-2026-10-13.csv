@@ -1,0 +1,9 @@
+source_file,sheet_name,source_row_number,place_name_raw,is_all_caps,is_first_row,population_count,ambiguity_or_exception_reason,accepted_rows_after_it,accepted_population_after_it
+CALABARZON_0.xlsx,Batangas,301,San Rafael,false,false,637,null,5,10353
+NIR_0.xlsx,Negros Oriental,6,NEGROS ORIENTAL 1,true,true,1492038,No verified locality context,0,null
+BARMM_1.xlsx,SGA,6,SPECIAL GEOGRAPHIC AREA 1,true,true,214703,No verified locality context,0,null
+BARMM_1.xlsx,Maguindanao del Norte,6,MAGUINDANAO DEL NORTE 1,true,true,1124811,No verified locality context,0,null
+BARMM_1.xlsx,Maguindanao del Sur,6,MAGUINDANAO DEL SUR 1,true,true,813243,No verified locality context,0,null
+NIR_0.xlsx,Negros Occidental,6,NEGROS OCCIDENTAL 1*,true,true,2680477,No verified locality context,0,null
+NIR_0.xlsx,Siquijor,6,SIQUIJOR 1,true,true,107642,No verified locality context,0,null
+Region XI_1.xlsx,Davao del Norte,251,Sawata,false,false,4152,null,0,null

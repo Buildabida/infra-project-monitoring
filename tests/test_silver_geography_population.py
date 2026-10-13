@@ -299,8 +299,116 @@ def test_all_caps_barangays_cannot_absorb_unresolved_subtotals():
     assert "source.is_barangay_candidate_row AND source.place_name_standardized" in sql
 
 
-def test_validation_accepts_normalized_matches_and_flags_reused_barangays():
+def test_validation_accepts_normalized_matches_and_stops_on_reused_barangays():
     sql = notebook_text(VALIDATION_NOTEBOOK)
     assert "'MATCHED_NORMALIZED_CONTEXT'" in sql
     assert "Normalized-rule match coverage" in sql
-    assert "Each PSGC barangay is accepted at most once" in sql
+    # issue #114: a barangay accepted twice double counts population, so it stops the run
+    assert (
+        "'Each PSGC barangay is accepted at most once',\n"
+        "        duplicate_accepted_targets, accepted_primary_rows, 'stop'" in sql
+    )
+
+
+def test_reconciliation_run_id_hashes_the_selected_psgc_snapshot():
+    # issue #112: unmatched rows have no PSGC lineage, so CONCAT_WS skipped it and
+    # one run published two run IDs
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "SELECT snapshot_id AS psgc_snapshot_id\n" in sql
+    assert "FROM latest_psgc_load_for_population\n),\nselected AS (" in sql
+    assert "        selected_psgc.psgc_snapshot_id,\n" in sql
+    assert "CROSS JOIN selected_psgc;" in sql
+    assert (
+        "CONCAT_WS('|', source_snapshot_id, psgc_source_snapshot_id, alias_version"
+        not in sql
+    )
+    assert "'silver-population-place-v4' AS transformation_rule_version" in sql
+
+
+def test_region_population_and_validator_require_one_reconciliation_run_id():
+    region_sql = notebook_code(NOTEBOOKS[2])
+    assert (
+        "COUNT(DISTINCT run_id) = 1,\n"
+        "    'Population reconciliation must publish exactly one run ID'" in region_sql
+    )
+
+    sql = notebook_code(VALIDATION_NOTEBOOK)
+    assert "COUNT(DISTINCT result_row.run_id) AS run_id_count" in sql
+    assert "result_row.run_id <=> SHA2(CONCAT_WS(" in sql
+    assert "            psgc.source_snapshot_id,\n" in sql
+    assert (
+        "'One reconciliation run ID reproduces from its lineage',\n"
+        "        unreproduced_run_id_rows, silver_rows_1, 'stop'" in sql
+    )
+    assert "'silver-geography-population-validation-v3'" in sql
+
+
+def test_unresolved_heading_clears_the_locality_context():
+    # issue #113: LAST_VALUE(..., TRUE) skipped an unresolved heading, so its
+    # barangays inherited the previous locality
+    sql = notebook_code(NOTEBOOKS[1])
+    assert (
+        "CASE WHEN heading.candidate_count = 1 THEN heading.candidate_psgc_code END,\n            TRUE"
+        not in sql
+    )
+    assert "THEN NAMED_STRUCT(\n                    'locality_code'," in sql
+    assert "higher_level_name.name_standardized IS NOT NULL" in sql
+    assert "LAST_VALUE(heading_context, TRUE) OVER (" in sql
+    assert (
+        "WHEN last_heading_context IS NOT NULL THEN last_heading_context.locality_code"
+        in sql
+    )
+    assert (
+        "WHEN sheet_place_type IN ('CITY', 'MUNICIPALITY') THEN sheet_psgc_code" in sql
+    )
+
+
+def test_validation_flags_aliases_that_produced_no_accepted_match():
+    # issue #114: an approved alias that never applies is a dead or mistyped rule
+    sql = notebook_code(VALIDATION_NOTEBOOK)
+    assert (
+        "LEFT ANTI JOIN `02-silver`.silver_population_place_reconciliation AS result_row"
+        in sql
+    )
+    assert "result_row.sheet_context_method = 'APPROVED_ALIAS'" in sql
+    assert "result_row.matched_psgc_code = alias.canonical_psgc_code" in sql
+    assert (
+        "'Every active approved alias produced an accepted match',\n"
+        "        unused_alias_rows, active_alias_rows, 'flag'" in sql
+    )
+
+
+def test_unresolved_heading_like_row_fails_closed():
+    # issue #113 review: an all-caps row tried as a barangay that matches nothing is an
+    # unresolved heading, so every later row up to the next heading fails closed
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "heading_context IS NOT NULL AS is_heading_row," in sql
+    assert (
+        "is_uppercase_heading\n            AND is_barangay_candidate_row\n"
+        "            AND match_status IN ('UNMATCHED', 'AMBIGUOUS') AS is_unresolved_heading_like"
+        in sql
+    )
+    squashed = " ".join(sql.split())
+    assert (
+        "WHEN is_heading_row THEN FALSE WHEN is_unresolved_heading_like THEN TRUE END, TRUE"
+        in squashed
+    )
+    assert "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING" in sql
+    assert ") AS follows_unresolved_heading" in sql
+    assert (
+        "CASE WHEN NOT follows_unresolved_heading THEN matched_psgc_code END AS matched_psgc_code"
+        in sql
+    )
+    assert (
+        "WHEN follows_unresolved_heading AND match_status <> 'INVALID_SOURCE' THEN 'UNMATCHED'"
+        in sql
+    )
+    reason = "Follows an unresolved heading-like row, so no locality is trusted"
+    assert f"follows_unresolved_heading THEN '{reason}'" in sql
+
+    validator = notebook_code(VALIDATION_NOTEBOOK)
+    assert f"ambiguity_or_exception_reason = '{reason}'" in validator
+    assert (
+        "'Rows under an unresolved heading-like row remain visible',\n"
+        "        rows_after_unresolved_heading, silver_rows_1, 'flag'" in validator
+    )

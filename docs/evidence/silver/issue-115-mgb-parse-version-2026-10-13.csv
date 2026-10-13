@@ -1,0 +1,2 @@
+parse_rule_version,run_id,mgb_rows,usable_rows,blank_rows,non_4326_rows
+silver-mgb-flood-area-parse-v2|esri-rings-as-text|holes-when-first-reading-invalid|buffer0-invalid-within-ratio=0.01-or-sqm=10000.0,6667374783ea5197a1976589e8ee9da11e679a92657b9efaa28900f944597619,63684,63655,0,15

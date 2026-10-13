@@ -144,6 +144,13 @@ manual evidence is still inspected so a conflicting Central Office override is
 visible, but the non-geographic rule remains authoritative. Gold may later
 represent these records with its governed non-geographic dimension member.
 
+Only rows that normalize exactly to `Central Office` are excluded from spatial
+candidate generation. Projects with a blank, null, or otherwise unresolved
+reported region remain eligible for `COORDINATE_BOUNDARY` fallback when they
+have a valid coordinate and intersect exactly one selected region boundary, as
+required by D-31. The October 12, 2026 run is in the
+[Silver validation evidence](evidence/silver/README.md#october-12-2026-coordinate-fallback-for-blank-regions-issue-111).
+
 ## Exact region-name standardization
 
 The project and PSGC names use only:
@@ -318,6 +325,16 @@ Blocking checks protect:
 - current-PSGC resolution and uniqueness of selected region boundaries
 - manual override decision evidence
 - mandatory project, PSGC, boundary, configuration, rule, and load lineage
+- coordinate statuses limited to `VALID_PAIR`, `MISSING_PAIR`, `PARTIAL_PAIR`,
+  and `OUT_OF_RANGE` (#114)
+- every row built from the current `silver_project` run and the current PSGC
+  region run (#114)
+
+The validation version is `silver-project-region-map-validation-v2`. Before
+issue #114, the coordinate-exception FLAG looked for `OUTSIDE_SCREENING_RANGE`,
+a value Table 13 never emits. So it counted partial pairs but never out-of-range
+ones. The October 13, 2026 run of the new checks is in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
 
 Nonblocking checks retain:
 

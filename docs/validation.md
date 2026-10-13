@@ -155,6 +155,8 @@ Structural `stop` checks cover:
 - exclusion of the unsupported `Delayed` status
 - controlled MGB levels and ranks
 - valid PSGC targets for approved geographic rules
+- a PSGC version on each approved DPWH region alias that equals the Bronze
+  `psgc.source_release` of its target code (#114)
 
 Coverage `flag` checks report unmapped or pending Bronze values.
 They cover atomic DPWH `componentCategories`, project statuses, and MGB
@@ -199,6 +201,20 @@ Blocking checks fail when row accounting, keys, lineage, accepted population gra
 official region coverage, or population totals are unsafe. Findings such as ambiguous
 matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
 
+Validation version `silver-geography-population-validation-v3` adds these checks:
+
+- `One reconciliation run ID reproduces from its lineage` is a STOP (#112). Every row
+  must carry the run ID that the Table C snapshot, the selected PSGC snapshot, the alias
+  version, and the rule version reproduce.
+- `Each PSGC barangay is accepted at most once` is now a STOP, not a FLAG (#114). A
+  barangay accepted twice counts its population twice in the region total.
+- `Every active approved alias produced an accepted match` is a FLAG (#114). It counts
+  aliases that resolved no sheet and matched no row. The validator cannot see the
+  notebook's candidate views, so an alias whose only candidate stayed `AMBIGUOUS` also
+  counts as unused.
+- `Rows under an unresolved heading-like row remain visible` is a FLAG (#113). It counts
+  rows that failed closed because they follow an all-caps row that matched nothing.
+
 The exact Table C accounting rule is:
 
 ```text
@@ -232,6 +248,9 @@ PSGC target lineage is required only when `match_status` is
 Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
 have null `psgc_source_snapshot_id` and `psgc_source_ingest_run_id` because no
 single PSGC target was accepted.
+
+`run_id` does not read the row's own PSGC lineage. It hashes the selected PSGC
+snapshot, so these rows share the run ID of the matched rows (#112).
 
 These unresolved rows remain visible for review and must not receive fabricated
 PSGC lineage.
@@ -284,6 +303,9 @@ Blocking `stop` checks protect:
 - one project taxonomy version
 - project reported budgets that reconcile to the component resolution rule
 - zero-progress flags that agree with resolved progress
+- implementing office and contractor values that follow the missing, resolved, or conflict rule
+- coordinates that publish as one complete pair, equal to a pair recounted from the components
+- a standardized status, status group, and mapping version only for a resolved and mapped raw status
 - a mapping version on every mapped row
 - populated, reproducible keys, run IDs, and lineage
 - one component snapshot that equals the latest Bronze DPWH load
@@ -298,6 +320,7 @@ Non-blocking `flag` checks report, each with its denominator:
 - missing or unparseable `componentCategories`
 - unapproved category tokens and statuses with no approved rule
 - missing, partial, or unparseable coordinate pairs
+- projects whose components report more than one valid coordinate pair
 - repeated identical source rows, kept and counted
 - unparseable budgets
 - negative budgets
@@ -314,7 +337,9 @@ check is `FAIL`, and a failed `flag` check is `FLAG`. The validator reports
 mapped and unmapped project and budget coverage, single-sector and multi-sector
 counts, missing categories, and DPWH flood-related projects. A second grouped
 component scan independently reconstructs the no-double-count project-budget
-control total.
+control total. The same scan recounts each project's coordinate pair from the
+rows that hold both values, and the project scan compares it with the published
+pair.
 
 ### Row reconciliation
 
@@ -369,7 +394,7 @@ the project validator consistent with the geography/population and source-reconc
 validation contracts.
 
 The validation run identity uses the Silver project run, the component run, and
-the validation-rule version `silver_project_validation_v4`. Exact reruns update the same logical evidence
+the validation-rule version `silver_project_validation_v6`. Exact reruns update the same logical evidence
 instead of creating duplicate validation records.
 
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
@@ -418,6 +443,7 @@ Blocking checks protect:
 - exact-match assignment correctness
 - unresolved conflicting costs
 - mandatory source and target lineage
+- a `target_project_run_id` equal to the current `silver_project` run (#114)
 
 ### Source-reconciliation review flags
 
@@ -505,6 +531,10 @@ Blocking checks protect:
 - selected region boundary-code uniqueness
 - applied manual-override decision evidence
 - mandatory source and transformation lineage
+- coordinate statuses limited to `VALID_PAIR`, `MISSING_PAIR`, `PARTIAL_PAIR`,
+  and `OUT_OF_RANGE` (#114)
+- a `project_run_id` and `psgc_run_id` equal to the current `silver_project` and
+  PSGC region runs (#114)
 
 ### Project-region review flags
 
@@ -513,7 +543,8 @@ Nonblocking checks retain:
 - geographic match coverage with the full project denominator
 - missing reported regions
 - exact-name, approved-alias, and unresolved text coverage
-- missing, partial, or outside-screening coordinates
+- missing, partial, or out-of-range coordinates. Before #114 this flag looked
+  for `OUTSIDE_SCREENING_RANGE`, which Table 13 never emits.
 - usable-point, one-region, no-boundary, and multiple-region spatial coverage
 - empty approved alias or manual-exception configurations
 - boundary coverage and PSGC-version mismatch
@@ -623,6 +654,8 @@ Blocking checks protect:
 - safe newest MGB and boundary loads and Bronze validation
 - safe Silver CONFIG and selected PSGC validation
 - published snapshots, PSGC run, and mapping version that are current
+- a parsed `silver_mgb_flood_area` with the latest MGB snapshot and the
+  `_ingest_run_id` of the current Bronze MGB rows
 - one deterministic run
 - MGB source-row accounting against the audited row count
 - one-to-one approved mapping and approved-only published levels
@@ -637,8 +670,11 @@ Blocking checks protect:
 - dissolve that never increases area
 - additivity status that matches measured cross-level overlap
 - one denominator and identical region-level values across levels
-- source polygon and fragment count contract
-- expected source SRID for usable MGB geometry
+- source polygon and fragment count contract. `source_polygon_count` counts
+  distinct `object_id` values apart from the fragments, so the check can fail
+  (#114).
+- expected source SRID for usable MGB geometry, read from the stored
+  `geometry_srid` (#114)
 - mandatory lineage
 
 ### Regional flood exposure review flags
@@ -653,11 +689,13 @@ Nonblocking checks retain:
 - regions without a safe, unambiguous, valid boundary
 - unresolved region boundary codes and boundary lineage duplicates
 - boundary and PSGC version mismatch
-- province-level territory differences between the boundary and current PSGC
+- province-level territory differences between the boundary and current PSGC.
+  The validator and notebook 09 use the same null-safe predicate (#114).
 - within-level overlap removed by dissolve and cross-level overlap
 - any approval of blank or `No rating` codes
 - optional MGB publisher and boundary version gaps
-- differences from historical Bronze reference counts
+- differences from historical Bronze reference counts. The blank-geometry
+  reference is 0 since #115.
 
 The validator does not invent an unknown level, repair geometry, deduplicate
 boundaries, fabricate a region polygon, or turn missing geography into zero.
@@ -722,6 +760,8 @@ Blocking checks protect:
 - safe Silver CONFIG and selected project validation
 - published MGB snapshot, project snapshot, project run, and mapping version
   that are current
+- a parsed `silver_mgb_flood_area` with the latest MGB snapshot and the
+  `_ingest_run_id` of the current Bronze MGB rows
 - one deterministic run and one published version set
 - MGB source-row accounting against the audited row count
 - one-to-one approved mapping and approved-only levels and ranks
@@ -733,7 +773,8 @@ Blocking checks protect:
 - no severity collapse across distinct levels
 - same-level overlap that stays matched with its polygon count
 - the Table 13 coordinate contract and safe coordinates only
-- expected source SRID for usable MGB geometry
+- expected source SRID for usable MGB geometry, read from the stored
+  `geometry_srid` (#114)
 - publisher versions taken only from `load_log`
 - mandatory lineage
 
@@ -752,7 +793,8 @@ Nonblocking checks retain:
 - any approval of blank or `No rating` codes
 - optional MGB and DPWH publisher-version gaps
 - MGB geometry parse paths
-- differences from historical Bronze reference counts
+- differences from historical Bronze reference counts. The blank-geometry
+  reference is 0 since #115.
 
 The validator never picks a level for an ambiguous project or invents an unknown
 level. It does not repair geometry or treat a missing match as low or zero risk.
@@ -883,6 +925,13 @@ issues #116 and #119, from commit `ff7cacc` of branch
 passed. 9 FLAG checks had findings, and 1 found nothing. The long-running FLAG
 now counts 20,045 projects: 20,039 without a start date and 6 with a completion
 before the start (D-49).
+
+On October 13, 2026, `09_validation_gold.ipynb` ran again after the Silver audit
+fixes for issues #109 to #115, from commit `dbd1824` of branch
+`fix/issue-109-stale-mgb-gate`. It wrote 75 checks under validation run ID
+`eb6145ab…`. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found
+nothing. Every FLAG count equals the run above. The rows are in
+[`issue-109-115-gold-validation-2026-10-13.csv`](evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
 
 ## Analytics validation
 
