@@ -1,0 +1,5 @@
+table_name,data_quality_check,status,failed_rows,total_rows,details,run_ts
+silver_project_flood_map,Runtime MGB counts are compared with historical Bronze references,FLAG,1815,63684,"Runtime rows=63684 versus reference 63684; runtime blank geometry=0 versus reference 1815; references are evidence, not filters",2026-10-12T16:38:38.093Z
+silver_project_flood_map,Runtime MGB counts are compared with historical Bronze references,FLAG,1815,63684,"Runtime rows=63684 versus reference 63684; runtime blank geometry=0 versus reference 1815; references are evidence, not filters",2026-10-12T14:37:56.996Z
+silver_region_flood_exposure,Runtime MGB counts are compared with historical Bronze references,FLAG,1815,63684,"Runtime rows=63684 versus reference 63684; runtime blank geometry=0 versus reference 1815; references are evidence, not filters",2026-10-12T14:29:30.391Z
+silver_mgb_flood_area,Row count matches the historical reference,PASS,0,63684,Published=63684; reference=63684,2026-10-12T14:08:33.774Z

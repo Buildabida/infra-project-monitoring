@@ -255,8 +255,8 @@ No project changed region.
 
 This run covers the population part of
 [PR #128](https://github.com/Buildabida/infra-project-monitoring/pull/128) and
-validators 02, 03, 05, and 06. The MGB flood part has not run yet. See
-"Not run yet" below.
+validators 02, 03, 05, and 06. The MGB flood part ran on October 13. See
+"MGB flood run (#114 and #115)" below.
 
 ### What changed (#112 to #115)
 
@@ -269,8 +269,9 @@ validators 02, 03, 05, and 06. The MGB flood part has not run yet. See
   locality.
 - #114: checks that could not fail can now fail. This run covers validators 02,
   03, 05, and 06. The SRID, polygon count, and territory checks in notebooks 09
-  and 10 and validators 07 and 08 have not run yet.
-- #115: the blank-geometry reference and the `buffer0` label have not run yet.
+  and 10 and validators 07 and 08 ran in the MGB flood run below.
+- #115: the blank-geometry reference is 0 and the repair label is `buffer0`.
+  Both ran in the MGB flood run below.
 
 ### Run identity and outcome (#112 to #115)
 
@@ -442,23 +443,109 @@ The validator 06 coordinate FLAG now counts `OUT_OF_RANGE`. It found 0 because
 the 215,138 usable pairs and the 50,518 missing pairs make up all 265,656
 projects.
 
-### Not run yet (#114 and #115)
+### MGB flood run (#114 and #115)
 
-The MGB flood part of PR #128 has not run on Databricks. Bri plans to run it
-after she merges PR #128 into `fix/issue-109-stale-mgb-gate`. The steps and
-queries are in the PR description.
+Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `eb318fa`.
+Steps 7 to 10 ran on October 12, 2026 from 18:53 to 19:21 UTC. Steps 11 and 12
+ran on October 13 at 05:25 and 05:33 UTC. The free daily compute limit stopped
+step 11 overnight.
 
-| Step | Notebook | What to check |
+| Step | Notebook | Result |
 | ---: | --- | --- |
-| 7 | `08a_silver_mgb_flood_area` | A full parse, because the `buffer0` label changes the parse run ID. 63,684 rows, 0 blank geometries, every row with SRID 4326. |
-| 8 | `06a_validation_silver_mgb_flood_area` | Every STOP check passes. |
-| 9 | `09_silver_region_flood_exposure` | Every gate passes. |
-| 10 | `07_validation_silver_region_flood_exposure` | The SRID, polygon count, reference count, and parsed lineage checks pass. |
-| 11 | `10_silver_project_flood_map` | Every gate passes. |
-| 12 | `08_validation_silver_project_flood_map` | The SRID, reference count, and parsed lineage checks pass. |
+| 7 | `08a_silver_mgb_flood_area` | `next_action = PARSE_AND_PUBLISH`. The `buffer0` label changed the parse run ID, so the full parse ran. |
+| 8 | `06a_validation_silver_mgb_flood_area` | 23 checks. All 18 STOP checks passed. 3 FLAG findings. 0 FAIL. |
+| 9 | `09_silver_region_flood_exposure` | Completed. Every gate passed. |
+| 10 | `07_validation_silver_region_flood_exposure` | 60 checks. All 38 STOP checks passed. 13 FLAG findings. 0 FAIL. |
+| 11 | `10_silver_project_flood_map` | Completed. Every gate passed. |
+| 12 | `08_validation_silver_project_flood_map` | 55 checks. All 38 STOP checks passed. 12 FLAG findings. 0 FAIL. |
 
-The Table 14 and Table 15 outcomes should equal the "before" tables above,
-because issues #114 and #115 change checks and a label, not results.
+An earlier attempt at steps 11 and 12, at 04:55 UTC, ran from `main` by mistake
+because the shared Git folder had been switched to `main`. Its validator wrote
+54 checks without the #109 and #115 changes. The rerun above, from this branch,
+replaced it. The Table 15 values did not change between the two runs.
+
+#### Parsed MGB table (#115)
+
+From [`issue-115-mgb-parse-version-2026-10-13.csv`](issue-115-mgb-parse-version-2026-10-13.csv):
+
+| Parse rule version | MGB rows | Usable rows | Blank rows | Rows without SRID 4326 |
+| --- | ---: | ---: | ---: | ---: |
+| `silver-mgb-flood-area-parse-v2\|esri-rings-as-text\|holes-when-first-reading-invalid\|buffer0-invalid-within-ratio=0.01-or-sqm=10000.0` | 63,684 | 63,655 | 0 | 15 |
+
+The new parse run ID is
+`6667374783ea5197a1976589e8ee9da11e679a92657b9efaa28900f944597619`. The 15 rows
+without SRID 4326 are the 15 `UNPARSEABLE_GEOMETRY` rows. They have no geometry,
+so they have no SRID. Every usable row has SRID 4326, and the SRID STOP checks
+below found 0 failures.
+
+#### Table 14 and Table 15 after the run (#114 and #115)
+
+Both tables equal the "before" tables above, row for row.
+
+Table 14, from [`issue-114-115-table-14-after-2026-10-13.csv`](issue-114-115-table-14-after-2026-10-13.csv):
+
+| Level | Spatial match status | Region rows | Susceptible area (sq km) | Source polygons | Fragments |
+| --- | --- | ---: | ---: | ---: | ---: |
+| High | `CALCULATED` | 13 | 16,615.1039 | 11,341 | 11,341 |
+| High | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Low | `CALCULATED` | 13 | 11,448.7952 | 14,915 | 14,915 |
+| Low | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Moderate | `CALCULATED` | 13 | 11,626.4386 | 21,620 | 21,620 |
+| Moderate | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+| Very High | `CALCULATED` | 12 | 4,528.3842 | 3,089 | 3,089 |
+| Very High | `NO_MAPPED_EXPOSURE` | 1 | 0.0000 | 0 | 0 |
+| Very High | `NO_SAFE_REGION_BOUNDARY` | 5 | | | |
+
+`source_polygon_count` is now counted on its own as distinct `object_id`, and it
+equals `intersection_fragment_count` on every row.
+
+Table 15, from [`issue-114-115-table-15-after-2026-10-13.csv`](issue-114-115-table-15-after-2026-10-13.csv):
+
+| Match status | Level | Projects | Matched polygons |
+| --- | --- | ---: | ---: |
+| `AMBIGUOUS` | | 250 | 502 |
+| `MATCHED` | High | 35,672 | 35,781 |
+| `MATCHED` | Low | 35,146 | 35,227 |
+| `MATCHED` | Moderate | 27,467 | 27,526 |
+| `MATCHED` | Very High | 14,425 | 14,462 |
+| `UNMATCHED` | | 152,696 | 0 |
+
+#### Corrected checks (#114 and #115)
+
+From [`issue-114-115-key-checks-2026-10-13.csv`](issue-114-115-key-checks-2026-10-13.csv):
+
+| Validator | Check | Action | Status | Failed rows | Total rows |
+| ---: | --- | --- | --- | ---: | ---: |
+| 06a | Usable geometry is stored in the source SRID | STOP | PASS | 0 | 63,655 |
+| 07 | Usable MGB geometry uses the expected longitude-latitude SRID | STOP | PASS | 0 | 63,655 |
+| 07 | Source polygon and fragment counts follow their contract | STOP | PASS | 0 | 51 |
+| 07 | Territory-mismatched boundaries are never treated as safe geography | STOP | PASS | 0 | 18 |
+| 07 | Parsed MGB lineage matches current accepted Bronze MGB ingest | STOP | PASS | 0 | 1 |
+| 07 | Runtime MGB counts are compared with historical Bronze references | FLAG | PASS | 0 | 63,684 |
+| 08 | Usable MGB geometry uses the expected longitude-latitude SRID | STOP | PASS | 0 | 63,655 |
+| 08 | Parsed MGB lineage matches current accepted Bronze MGB ingest | STOP | PASS | 0 | 1 |
+| 08 | Runtime MGB counts are compared with historical Bronze references | FLAG | PASS | 0 | 63,684 |
+
+The reference checks now compare 0 blank geometries with a reference of 0.
+Before #115 they compared 0 with 1,815 and flagged every run, in
+[`issue-115-reference-flag-before-2026-10-13.csv`](issue-115-reference-flag-before-2026-10-13.csv).
+Validator 07 dropped from 14 to 13 FLAG findings and validator 08 from 13 to 12.
+
+The territory FLAG still reports 5 of 13 regions with boundary differences from
+current PSGC. That is the same finding as before the run. The shared null-safe
+predicate did not change it.
+
+#### Run IDs (#114 and #115)
+
+From [`issue-114-115-validator-run-summary-2026-10-13.csv`](issue-114-115-validator-run-summary-2026-10-13.csv):
+
+| Table | Pipeline run ID | Validation run ID |
+| --- | --- | --- |
+| `silver_mgb_flood_area` | `6667374783ea5197a1976589e8ee9da11e679a92657b9efaa28900f944597619` | `8235dd0bd058584cd9ffb8da8ffae369c8673da3a7d0f4c9739e51ec6ead6d50` |
+| `silver_region_flood_exposure` | `5e09d8862ae65d5c304016531893d9c906f317de8056e42d6259c11ce4412ff8` | `f954fb59ecd760845c281b8fb2386da7dff26fb9909238db719dee502202dcf5` |
+| `silver_project_flood_map` | `53072d13762efa5c36d7f3b327dfc34204805600c934a27d1ba4d01ae4a2a028` | `6627dbeecff3c3c226aa12b7bc4ba9db8acf38886b321fe2e1073b95e0485dab` |
+
+After this run, every Silver table's newest validation has 0 FAIL.
 
 ### What this run does not prove (#112 to #115)
 

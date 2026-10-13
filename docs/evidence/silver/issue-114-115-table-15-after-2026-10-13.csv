@@ -1,0 +1,7 @@
+match_status,flood_susceptibility_level,projects,matched_polygons
+AMBIGUOUS,null,250,502
+MATCHED,High,35672,35781
+MATCHED,Low,35146,35227
+MATCHED,Moderate,27467,27526
+MATCHED,Very High,14425,14462
+UNMATCHED,null,152696,0
