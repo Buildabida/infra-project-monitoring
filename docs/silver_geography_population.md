@@ -103,16 +103,17 @@ Context comes first:
    `TABLE_C_LOCALITY_HEADING` alias, then the normalization key below. A Manila district
    or an SGA municipality belongs to its sheet through the verified PSGC place at its
    five-digit code, because neither has a `province_code`.
-3. Carry the last heading row down to later rows as the current locality. A heading
-   row has heading candidates, or it is an all-caps row that names a PSGC province,
-   city, municipality, or district. When that heading is ambiguous or does not
-   resolve, the context is cleared. Its barangays stay `UNMATCHED` and never inherit
-   the previous locality (#113). Before its first heading, a city or municipality
-   sheet is its own locality.
-4. Fail closed after an unresolved heading-like row. An all-caps row that is tried as
-   a barangay and matches nothing is treated as a heading this run could not resolve.
-   Every later row up to the next heading becomes `UNMATCHED` with the reason
+3. Decide `row_role` before any barangay candidate is built. A uniquely resolved
+   locality is `RESOLVED_HEADING`. A non-first-sheet uppercase row is
+   `UNRESOLVED_HEADING_LIKE` unless one active, approved, source-file and
+   sheet-scoped `BARANGAY` exception permits it as
+   `APPROVED_UPPERCASE_BARANGAY`. Other rows are `NORMAL_BARANGAY_CANDIDATE`.
+4. `UNRESOLVED_HEADING_LIKE` never enters exact, alias, normalized, or
+   footnote-removed barangay matching. It clears locality context, publishes no
+   accepted PSGC target, and remains `UNMATCHED`. Every later row up to a new
+   `RESOLVED_HEADING` also becomes `UNMATCHED` with the reason
    `Follows an unresolved heading-like row, so no locality is trusted` (#113).
+   Before its first heading, a city or municipality sheet is its own locality.
 
 Each row then follows a four-rank waterfall. A later rank runs only when every
 earlier rank found nothing for that row.
@@ -135,10 +136,9 @@ Safeguards:
   When two rows reach the same place through them, both stay `AMBIGUOUS`.
 - Rank 4 never removes a number that is part of a real name. `Barangay 1` and
   `Zapote 3` match at rank 1, so they never reach rank 4. `Zapote 3 5` loses only `5`.
-- An all-caps row is normally a subtotal heading. When it resolves to no heading, it is
-  tried as an exact barangay only if it is not the sheet subtotal and its name is not
-  any PSGC province, city, municipality, or district name. `H-2` and `UEP I` qualify.
-  An unresolved municipality subtotal such as `SAN ISIDRO` does not.
+- An uppercase source value is not automatically a barangay. It needs an active,
+  approved, exact row-role exception keyed by source file and sheet before it can
+  enter the contextual barangay waterfall. The exception does not assign a PSGC code.
 - Matched province, city, municipality, and Manila district subtotals stay
   `MATCHED_NON_PRIMARY_LEVEL` and never enter the regional total.
 
@@ -228,17 +228,19 @@ These rows remain traceable through their Table C source lineage and Silver run
 identity.
 
 The reconciliation `run_id` hashes the Table C snapshot, the selected PSGC snapshot,
-the alias version, and the rule version. The PSGC snapshot comes from the selected
+the alias version, the selected row-role exception version or
+`NO_APPROVED_ROW_ROLE_EXCEPTION`, and the rule version. The PSGC snapshot comes from the selected
 PSGC load, not from each row. So unmatched rows share the run ID of matched rows, and
-one run publishes one run ID (#112). The rule version is `silver-population-place-v4`,
-which adds the fail-closed rule for unresolved heading-like rows (#113).
+one run publishes one run ID (#112). The rule version is `silver-population-place-v5`,
+which makes the #113 row-role decision before matching.
 `silver_region_population` stops when the reconciliation table holds more than one
 run ID.
 
-The October 13, 2026 run is in the
-[Silver validation evidence](evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
-The run IDs went from two to one. The #113 heading rule changed 0 of 43,750 rows
-in that snapshot.
+The October 13, 2026 Databricks run is recorded in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-pre-match-table-c-row-role-guard-issue-113-pr-130).
+All 25 geography and population STOP checks passed. The run found five
+`UNRESOLVED_HEADING_LIKE` rows and forced 41 following rows to remain unmatched
+until a new resolved heading. No row-role exceptions were approved or seeded.
 
 The regional table retains the lineage of the accepted matched inputs plus the
 reconciliation run identity.
@@ -267,6 +269,8 @@ Stop checks protect:
 - one reconciliation run ID that reproduces from its lineage (#112)
 - controlled match statuses and row dispositions
 - valid approved alias targets
+- controlled row roles and approved row-role exception use
+- unresolved heading-like rows and following rows cannot retain a trusted locality
 - positive matched barangay inclusion
 - each PSGC barangay accepted for at most one Table C row (#114)
 - official PSGC region coverage
@@ -278,12 +282,76 @@ Flag checks report:
 - repeated standardized place names
 - exact, alias, and normalized-rule coverage
 - active approved aliases that produced no accepted match (#114)
+- active approved row-role exceptions that produced no source row
+- unresolved heading-like rows and rows forced unmatched after them (#113)
 - ambiguous and unmatched Table C rows
 - invalid or non-positive population
 - missing official-region population
 
 Every coverage check retains a numerator, denominator, and percentage when meaningful.
 Results are stored before the validator enforces the stop gate.
+
+## Uppercase row-role review query
+
+Run this read-only query after rebuilding the reconciliation table and before
+approving any uppercase barangay exception. `source_row_number` is diagnostic
+evidence only. It is not part of the exception key or matching rule.
+
+```sql
+USE CATALOG `buildabida-capstone`;
+
+WITH higher_level_name AS (
+    SELECT DISTINCT place_name_standardized
+    FROM `02-silver`.silver_psgc_place
+    WHERE place_type <> 'BARANGAY'
+),
+reconciliation AS (
+    SELECT
+        result.*,
+        COUNT(*) OVER (
+            PARTITION BY result.source_snapshot_id, result.place_name_standardized
+        ) AS standardized_value_occurrences
+    FROM `02-silver`.silver_population_place_reconciliation AS result
+),
+profiled AS (
+    SELECT
+        result.source_file,
+        result.sheet_name,
+        result.place_name_raw,
+        result.place_name_standardized,
+        result.source_row_number,
+        result.locality_context_code,
+        context.place_name_raw AS locality_context_name,
+        result.matched_psgc_code,
+        result.matched_place_name,
+        result.matched_place_type,
+        result.candidate_match_count,
+        result.match_method,
+        result.match_status,
+        result.population_count,
+        higher.place_name_standardized IS NOT NULL AS is_higher_level_psgc_name,
+        result.standardized_value_occurrences,
+        CASE
+            WHEN result.row_role = 'APPROVED_UPPERCASE_BARANGAY' THEN 'BARANGAY'
+        END AS proposed_row_role
+    FROM reconciliation AS result
+    LEFT JOIN `02-silver`.silver_psgc_place AS context
+        ON result.locality_context_code = context.psgc_code
+       AND result.psgc_source_snapshot_id = context.source_snapshot_id
+    LEFT JOIN higher_level_name AS higher
+        ON result.place_name_standardized = higher.place_name_standardized
+    WHERE result.row_role IN (
+        'UNRESOLVED_HEADING_LIKE',
+        'APPROVED_UPPERCASE_BARANGAY'
+    )
+)
+SELECT *
+FROM profiled
+ORDER BY source_file, sheet_name, TRY_CAST(source_row_number AS BIGINT);
+```
+
+Human review must supply `BARANGAY` only when the exact source-file and sheet
+evidence supports it. A null `proposed_row_role` means no approval has been made.
 
 ## Known limitations
 
@@ -297,13 +365,10 @@ Results are stored before the validator enforces the stop gate.
   `Sawata` under Sawata, Davao del Norte (4,152 people), and `San Rafael` under the
   City of Calaca, Batangas (637 people). No PSGC barangay in either place has a close
   name, so they need a source check before any alias.
-- A heading is found by its candidates or by its PSGC name. A misspelled heading that
-  matches neither is tried as an all-caps barangay. When that fails, the rows below it
-  fail closed as `UNMATCHED` instead of inheriting the previous locality (#113). A
-  misspelled heading that happens to match a real barangay in the previous locality
-  would still pass, and then the at-most-once STOP is the backstop. On October 13,
-  2026 no all-caps row in the middle of a sheet was unmatched, so the rule changed 0
-  rows.
+- An uppercase value can be a true barangay, but it remains unresolved unless a human
+  approves one exact source-file and sheet exception. This protects against a
+  misspelled locality heading that happens to equal a real barangay in the preceding
+  locality. No exception is seeded in this change.
 - Historical evidence says 43,748 of 43,750 rows matched PSGC population during an earlier
   review. The current snapshots determine the actual result.
 - The historical national population reference of 112,727,776 applies only when the selected

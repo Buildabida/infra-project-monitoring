@@ -16,13 +16,14 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 
 | Item | Status |
 | --- | --- |
-| Five configuration tables | Implemented by the Silver config notebook |
+| Six configuration tables | Implemented by the Silver config notebook |
 | Configuration validation | Implemented by the Silver config validator |
 | DPWH component-category taxonomy | Implemented as approved taxonomy `dpwh-component-categories-2026-10-v1` (D-39). Runtime-validated in Databricks on Oct 9 and Oct 11. See [project runtime evidence](silver_project_cleaning.md#runtime-evidence). |
 | DPWH status mapping | Implemented as approved mapping `dpwh-status-2026-10-v1` (D-40). Runtime-validated in Databricks on Oct 11. See [Run on rule version 5](silver_project_cleaning.md#run-on-rule-version-5). |
 | DPWH region aliases | Implemented as approved alias version `dpwh-region-aliases-2026-10-v1` (D-41). Runtime-validated in Databricks on Oct 9. See [project-region runtime evidence](silver_project_region_mapping.md#runtime-evidence). |
 | Census Table C aliases | Implemented as approved alias version `census-table-c-aliases-2026-10-v1` (D-48). See [Census Table C aliases](#census-table-c-aliases). |
 | Manual geographic overrides | None approved. The table stays empty, which is valid. |
+| Table C uppercase row-role exceptions | None approved. The table stays empty, which is valid. |
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
@@ -40,6 +41,25 @@ The notebooks require Databricks and Unity Catalog.
 Local tests validate their structure but do not create Delta tables.
 
 ## Table contracts
+
+### `config_table_c_row_role_exception`
+
+Grain: one approved uppercase Table C barangay exception for an exact source
+file, sheet, and standardized raw place name per mapping version.
+
+Natural key:
+
+- `source_system`
+- `source_file`
+- `sheet_name`
+- `raw_place_name_standardized`
+- `mapping_version`
+
+The only active approved role is `BARANGAY`. An exception permits the exact
+source row to enter the existing contextual barangay waterfall. It never assigns
+a PSGC code itself. Blank source-file or sheet values are invalid, so a common
+uppercase string cannot be authorized globally. The table begins empty pending
+human review of source evidence.
 
 ### `config_place_name_alias`
 
@@ -392,7 +412,10 @@ Changing that shared table now could break Bronze validation.
   `source_release` that Bronze `psgc` holds for the alias's target code. Table 13
   joins these aliases on the code alone, so this check is the only version guard
   (#114). A missing alias `psgc_version` fails too. The validation version is
-  `silver_config_validation_v3`.
+  `silver_config_validation_v4`.
+- active Table C row-role exceptions. They must use the exact source-file and
+  sheet scope, controlled `BARANGAY` role, approval evidence, and a unique
+  active-approved source identity.
 
 `flag` checks cover:
 
@@ -400,6 +423,7 @@ Changing that shared table now could break Bronze validation.
 - unmapped or pending Bronze statuses
 - unmapped or pending MGB codes
 - an empty manual geographic override table
+- an empty Table C row-role exception table
 
 An empty manual table is valid.
 Its flag only confirms that no exception has been approved.
