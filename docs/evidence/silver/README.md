@@ -557,3 +557,82 @@ After this run, every Silver table's newest validation has 0 FAIL.
   writing the same results.
 - Gold `01`, `02`, `05`, `06`, and `07` and the Gold validator did not rerun.
   They still describe the earlier Silver runs.
+
+## October 13, 2026 fail closed after an unresolved heading-like row (issue #113)
+
+### What changed (#113 follow-up)
+
+Review asked that the population match fail closed whenever a heading-like row
+cannot be resolved. An all-caps row that is not the sheet subtotal and names no
+PSGC locality is tried as a barangay. Before this change, when that row matched
+nothing, the rows below it kept the previous locality.
+
+Now that row is treated as a heading this run could not resolve. Every later row
+up to the next heading becomes `UNMATCHED` with the reason
+`Follows an unresolved heading-like row, so no locality is trusted`. The rule
+version is `silver-population-place-v4`. Validator 03 adds the FLAG
+`Rows under an unresolved heading-like row remain visible`, as validation
+version `silver-geography-population-validation-v3`.
+
+### Check before the change (#113 follow-up)
+
+[`issue-113-unmatched-rows-before-2026-10-13.csv`](issue-113-unmatched-rows-before-2026-10-13.csv)
+lists every unmatched row and the accepted rows that follow it:
+
+| Row | All caps | Sheet first row | Accepted rows after it |
+| --- | --- | --- | ---: |
+| `NEGROS ORIENTAL 1` | Yes | Yes | 0 |
+| `SPECIAL GEOGRAPHIC AREA 1` | Yes | Yes | 0 |
+| `MAGUINDANAO DEL NORTE 1` | Yes | Yes | 0 |
+| `MAGUINDANAO DEL SUR 1` | Yes | Yes | 0 |
+| `NEGROS OCCIDENTAL 1*` | Yes | Yes | 0 |
+| `SIQUIJOR 1` | Yes | Yes | 0 |
+| `San Rafael` | No | No | 5 |
+| `Sawata` | No | No | 0 |
+
+The six all-caps rows are sheet subtotals, which are never tried as barangays.
+`San Rafael` and `Sawata` are the two known unmatched barangays, not headings. So
+no row in this snapshot triggers the rule.
+
+### Run identity and outcome (#113 follow-up)
+
+Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `aa8b7d2`,
+October 13, 2026 at 06:05 UTC.
+
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 | `02_silver_population_place_reconciliation` | Completed. Rule version `silver-population-place-v4`. |
+| 2 | `03_silver_region_population` | Completed. Every gate passed. |
+| 3 | `03_validation_silver_geography_population` | 35 checks on three tables. All 22 STOP checks passed. 8 FLAG findings. 0 FAIL. |
+
+The reconciliation now has 19 checks, up from 18. The STOP and FLAG counts did
+not change, so the new FLAG passed with 0 rows. The run IDs are in
+[`issue-113-validator-run-summary-2026-10-13.csv`](issue-113-validator-run-summary-2026-10-13.csv).
+
+### Rows and population (#113 follow-up)
+
+From [`issue-113-fail-closed-run-2026-10-13.csv`](issue-113-fail-closed-run-2026-10-13.csv):
+
+| Disposition | Match status | Source rows | Population | Failed closed |
+| --- | --- | ---: | ---: | ---: |
+| `ACCEPTED_PRIMARY` | `MATCHED_ALIAS` | 15 | 46,612 | 0 |
+| `ACCEPTED_PRIMARY` | `MATCHED_EXACT_CONTEXT` | 41,902 | 111,627,666 | 0 |
+| `ACCEPTED_PRIMARY` | `MATCHED_NORMALIZED_CONTEXT` | 80 | 1,048,709 | 0 |
+| `INVALID_POPULATION` | `MATCHED_EXACT_CONTEXT` | 11 | 0 | 0 |
+| `INVALID_POPULATION` | `MATCHED_NORMALIZED_CONTEXT` | 1 | 0 | 0 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_ALIAS` | 2 | 37,766 | 0 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_EXACT_CONTEXT` | 1,730 | 196,723,997 | 0 |
+| `MATCHED_NON_PRIMARY_LEVEL` | `MATCHED_NORMALIZED_CONTEXT` | 1 | 26,292 | 0 |
+| `UNMATCHED` | `UNMATCHED` | 8 | 6,437,703 | 0 |
+
+Every count equals the v3 run above. Regional population stays 112,722,987. The
+rule changed 0 rows in this snapshot and protects later snapshots.
+
+### What this run does not prove (#113 follow-up)
+
+- No row in this snapshot triggers the rule, so the fail-closed path ran only in
+  tests. The new test fails on the v3 notebook.
+- A misspelled heading that happens to match a real barangay in the previous
+  locality still passes as a barangay. The at-most-once STOP catches it if that
+  accepts one barangay twice.
+- Gold `05` and the Gold validator read population and have not rerun on v4.
