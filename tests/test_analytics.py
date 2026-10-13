@@ -338,9 +338,7 @@ def test_16_docs_describe_the_views():
     assert d54[0].startswith("| D-54 | Oct 13 |")
     assert "The team agreed in the group chat." in d54[0]
     if "## Proposed decisions awaiting team approval" in decisions:
-        proposed = decisions.split(
-        "## Proposed decisions awaiting team approval", 1
-        )[1]
+        proposed = decisions.split("## Proposed decisions awaiting team approval", 1)[1]
         assert "| D-54 |" not in proposed
 
 
