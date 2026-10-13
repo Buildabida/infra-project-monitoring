@@ -259,7 +259,10 @@ def test_table_c_row_role_exception_table_starts_empty_and_is_source_scoped():
     assert "approved_row_role <> 'BARANGAY'" in validation
     assert "TRIM(source_file) = ''" in validation
     assert "TRIM(sheet_name) = ''" in validation
-    assert "at most one active approved exception exists for each source identity" in validation
+    assert (
+        "at most one active approved exception exists for each source identity"
+        in validation
+    )
 
 
 def test_rerun_path_does_not_blindly_append_config_rows():

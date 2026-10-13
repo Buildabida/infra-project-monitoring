@@ -382,11 +382,20 @@ def test_unresolved_heading_like_row_fails_closed_before_matching():
     assert "'APPROVED_UPPERCASE_BARANGAY'" in sql
     assert "'NORMAL_BARANGAY_CANDIDATE'" in sql
     assert "row_role = 'UNRESOLVED_HEADING_LIKE' AS is_unresolved_heading_like" in sql
-    assert "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN CAST(NULL AS STRING)" in sql
+    assert (
+        "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN CAST(NULL AS STRING)"
+        in sql
+    )
     assert "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN 'UNMATCHED'" in sql
-    assert "Unresolved uppercase heading-like row; locality context cleared before barangay matching" in sql
+    assert (
+        "Unresolved uppercase heading-like row; locality context cleared before barangay matching"
+        in sql
+    )
     assert sql.index("role_classified AS (") < sql.index("table_c_match_candidates")
-    assert "source.row_role IN ('APPROVED_UPPERCASE_BARANGAY', 'NORMAL_BARANGAY_CANDIDATE')" in sql
+    assert (
+        "source.row_role IN ('APPROVED_UPPERCASE_BARANGAY', 'NORMAL_BARANGAY_CANDIDATE')"
+        in sql
+    )
     assert "row_role_exception_version" in sql
     assert "NO_APPROVED_ROW_ROLE_EXCEPTION" in sql
 
@@ -412,9 +421,15 @@ def test_misspelled_uppercase_heading_cannot_match_a_barangay_in_previous_locali
     sql = notebook_code(NOTEBOOKS[1])
     assert sql.index("role_classified AS (") < sql.index("table_c_alias_candidates")
     assert sql.index("role_classified AS (") < sql.index("table_c_match_candidates")
-    assert "WHEN is_uppercase_heading\n                AND TRY_CAST(source_row_number AS BIGINT) <> sheet_first_row_number\n                THEN 'UNRESOLVED_HEADING_LIKE'" in sql
+    assert (
+        "WHEN is_uppercase_heading\n                AND TRY_CAST(source_row_number AS BIGINT) <> sheet_first_row_number\n                THEN 'UNRESOLVED_HEADING_LIKE'"
+        in sql
+    )
     assert "WHEN source.row_role = 'UNRESOLVED_HEADING_LIKE' THEN 'UNMATCHED'" in sql
-    assert "WHEN row_role = 'UNRESOLVED_HEADING_LIKE' OR follows_unresolved_heading THEN CAST(NULL AS STRING)" in sql
+    assert (
+        "WHEN row_role = 'UNRESOLVED_HEADING_LIKE' OR follows_unresolved_heading THEN CAST(NULL AS STRING)"
+        in sql
+    )
     assert "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING" in sql
 
 
@@ -457,5 +472,11 @@ def test_unresolved_heading_like_row_clears_later_context_and_matching():
         "'Rows under an unresolved heading-like row remain visible',\n"
         "        rows_after_unresolved_heading, silver_rows_1, 'flag'" in validator
     )
-    assert "'Unresolved heading-like rows cannot produce a trusted match or locality'" in validator
-    assert "'Rows after unresolved headings cannot inherit a trusted locality'" in validator
+    assert (
+        "'Unresolved heading-like rows cannot produce a trusted match or locality'"
+        in validator
+    )
+    assert (
+        "'Rows after unresolved headings cannot inherit a trusted locality'"
+        in validator
+    )
