@@ -635,4 +635,60 @@ rule changed 0 rows in this snapshot and protects later snapshots.
 - A misspelled heading that happens to match a real barangay in the previous
   locality still passes as a barangay. The at-most-once STOP catches it if that
   accepts one barangay twice.
-- Gold `05` and the Gold validator read population and have not rerun on v4.
+- Gold `05` and the Gold validator read population. They reran on v4 in the
+  next section.
+
+## October 13, 2026 Gold rerun on the final Silver tables (issues #109 to #115)
+
+### Run identity and outcome (Gold rerun)
+
+Databricks serverless, branch `fix/issue-109-stale-mgb-gate`, commit `dbd1824`,
+October 13, 2026. Gold `00` started at about 06:38 UTC. The validator wrote its
+rows at 06:59:25 UTC.
+
+| Step | Notebook | Result |
+| ---: | --- | --- |
+| 1 to 8 | Gold `00` to `07` | Completed. |
+| 9 | `09_validation_gold` | 75 checks. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing. 0 FAIL. The gate returned no error. |
+
+The validation run ID is `eb6145ab846c3ddac3f5ed2fbe33809524ab54b8d2f04efe995c4c9cc0ebbd4f`,
+with rule version `gold-validation-v2`. Every row is in
+[`issue-109-115-gold-validation-2026-10-13.csv`](issue-109-115-gold-validation-2026-10-13.csv).
+
+### Gold equals Silver (Gold rerun)
+
+| Measure | Gold | Silver |
+| --- | ---: | ---: |
+| Projects (`dim_project`, current `fact_project_snapshot` rows) | 265,656 | 265,656 |
+| Current reported budget (PHP) | 6,535,616,688,962.02 | 6,535,616,688,962.02 |
+| Project count and budget by region | No differences | |
+| Primary population | 112,722,987 | 112,722,987 |
+| Flood area (sq km) | 44,218.7219 | 44,218.7219 |
+| Region and level pairs with no area | 20 | 20 |
+| Official regions | 18 | 18 |
+
+Gold read Silver project run `c6317d2b…`, region map run `54441fa4…`, population
+run `c0d36ec4…`, and flood exposure run `5e09d886…`. The full IDs are in the CSV.
+
+### FLAG findings (Gold rerun)
+
+| Check | Rows | Out of |
+| --- | ---: | ---: |
+| Projects without a region (key `0`): 306 Central Office, 266 unmatched | 572 | 265,656 |
+| Projects without a flood level (key `0`): 250 ambiguous, 50,518 with no map point, 102,178 unmatched | 152,946 | 265,656 |
+| Projects without a status (key `0`) | 76 | 265,656 |
+| Progress not published because Silver did not mark it `VALID` | 98 | 265,656 |
+| Long-running flag is empty: no start date, or completion before start | 20,045 | 265,656 |
+| Region and level pairs with no area data | 20 | 72 |
+| Official regions without a boundary | 1 | 18 |
+| Active statuses that look like numbers: `0.00` and `121.0181138` | 2 | 18 |
+| Table C rows behind the 4,789-person gap to the 2024 census total: San Rafael 637, Sawata 4,152 | 2 | 43,750 |
+
+Boundary shapes marked not valid found nothing. Every FLAG count equals the
+October 12 run for #116 and #119 in [`docs/gold_model.md`](../../gold_model.md).
+
+### What this run does not prove (Gold rerun)
+
+- The FLAG counts match the October 12 run, but this run does not compare
+  row-level values against it.
+- The Power BI report was not refreshed in this run.

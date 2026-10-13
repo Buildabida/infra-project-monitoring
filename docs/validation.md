@@ -926,6 +926,13 @@ passed. 9 FLAG checks had findings, and 1 found nothing. The long-running FLAG
 now counts 20,045 projects: 20,039 without a start date and 6 with a completion
 before the start (D-49).
 
+On October 13, 2026, `09_validation_gold.ipynb` ran again after the Silver audit
+fixes for issues #109 to #115, from commit `dbd1824` of branch
+`fix/issue-109-stale-mgb-gate`. It wrote 75 checks under validation run ID
+`eb6145ab…`. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found
+nothing. Every FLAG count equals the run above. The rows are in
+[`issue-109-115-gold-validation-2026-10-13.csv`](evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
+
 ## Future validation documents
 
 Keep layer-specific checks separate as the pipeline grows:
