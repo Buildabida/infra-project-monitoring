@@ -201,7 +201,7 @@ Blocking checks fail when row accounting, keys, lineage, accepted population gra
 official region coverage, or population totals are unsafe. Findings such as ambiguous
 matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
 
-Validation version `silver-geography-population-validation-v2` adds these checks:
+Validation version `silver-geography-population-validation-v3` adds these checks:
 
 - `One reconciliation run ID reproduces from its lineage` is a STOP (#112). Every row
   must carry the run ID that the Table C snapshot, the selected PSGC snapshot, the alias
@@ -212,6 +212,8 @@ Validation version `silver-geography-population-validation-v2` adds these checks
   aliases that resolved no sheet and matched no row. The validator cannot see the
   notebook's candidate views, so an alias whose only candidate stayed `AMBIGUOUS` also
   counts as unused.
+- `Rows under an unresolved heading-like row remain visible` is a FLAG (#113). It counts
+  rows that failed closed because they follow an all-caps row that matched nothing.
 
 The exact Table C accounting rule is:
 

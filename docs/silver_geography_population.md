@@ -109,6 +109,10 @@ Context comes first:
    resolve, the context is cleared. Its barangays stay `UNMATCHED` and never inherit
    the previous locality (#113). Before its first heading, a city or municipality
    sheet is its own locality.
+4. Fail closed after an unresolved heading-like row. An all-caps row that is tried as
+   a barangay and matches nothing is treated as a heading this run could not resolve.
+   Every later row up to the next heading becomes `UNMATCHED` with the reason
+   `Follows an unresolved heading-like row, so no locality is trusted` (#113).
 
 Each row then follows a four-rank waterfall. A later rank runs only when every
 earlier rank found nothing for that row.
@@ -226,7 +230,8 @@ identity.
 The reconciliation `run_id` hashes the Table C snapshot, the selected PSGC snapshot,
 the alias version, and the rule version. The PSGC snapshot comes from the selected
 PSGC load, not from each row. So unmatched rows share the run ID of matched rows, and
-one run publishes one run ID (#112). The rule version is `silver-population-place-v3`.
+one run publishes one run ID (#112). The rule version is `silver-population-place-v4`,
+which adds the fail-closed rule for unresolved heading-like rows (#113).
 `silver_region_population` stops when the reconciliation table holds more than one
 run ID.
 
@@ -293,9 +298,12 @@ Results are stored before the validator enforces the stop gate.
   City of Calaca, Batangas (637 people). No PSGC barangay in either place has a close
   name, so they need a source check before any alias.
 - A heading is found by its candidates or by its PSGC name. A misspelled heading that
-  matches neither looks like an all-caps barangay, so its barangays still inherit the
-  previous locality (#113). If that accepts one PSGC barangay twice, the validator
-  stops the run.
+  matches neither is tried as an all-caps barangay. When that fails, the rows below it
+  fail closed as `UNMATCHED` instead of inheriting the previous locality (#113). A
+  misspelled heading that happens to match a real barangay in the previous locality
+  would still pass, and then the at-most-once STOP is the backstop. On October 13,
+  2026 no all-caps row in the middle of a sheet was unmatched, so the rule changed 0
+  rows.
 - Historical evidence says 43,748 of 43,750 rows matched PSGC population during an earlier
   review. The current snapshots determine the actual result.
 - The historical national population reference of 112,727,776 applies only when the selected

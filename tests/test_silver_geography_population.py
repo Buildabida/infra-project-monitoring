@@ -315,14 +315,14 @@ def test_reconciliation_run_id_hashes_the_selected_psgc_snapshot():
     # one run published two run IDs
     sql = notebook_code(NOTEBOOKS[1])
     assert "SELECT snapshot_id AS psgc_snapshot_id\n" in sql
-    assert "FROM latest_psgc_load_for_population\n),\nresolved AS (" in sql
+    assert "FROM latest_psgc_load_for_population\n),\nselected AS (" in sql
     assert "        selected_psgc.psgc_snapshot_id,\n" in sql
     assert "CROSS JOIN selected_psgc;" in sql
     assert (
         "CONCAT_WS('|', source_snapshot_id, psgc_source_snapshot_id, alias_version"
         not in sql
     )
-    assert "'silver-population-place-v3' AS transformation_rule_version" in sql
+    assert "'silver-population-place-v4' AS transformation_rule_version" in sql
 
 
 def test_region_population_and_validator_require_one_reconciliation_run_id():
@@ -340,7 +340,7 @@ def test_region_population_and_validator_require_one_reconciliation_run_id():
         "'One reconciliation run ID reproduces from its lineage',\n"
         "        unreproduced_run_id_rows, silver_rows_1, 'stop'" in sql
     )
-    assert "'silver-geography-population-validation-v2'" in sql
+    assert "'silver-geography-population-validation-v3'" in sql
 
 
 def test_unresolved_heading_clears_the_locality_context():
@@ -375,4 +375,40 @@ def test_validation_flags_aliases_that_produced_no_accepted_match():
     assert (
         "'Every active approved alias produced an accepted match',\n"
         "        unused_alias_rows, active_alias_rows, 'flag'" in sql
+    )
+
+
+def test_unresolved_heading_like_row_fails_closed():
+    # issue #113 review: an all-caps row tried as a barangay that matches nothing is an
+    # unresolved heading, so every later row up to the next heading fails closed
+    sql = notebook_code(NOTEBOOKS[1])
+    assert "heading_context IS NOT NULL AS is_heading_row," in sql
+    assert (
+        "is_uppercase_heading\n            AND is_barangay_candidate_row\n"
+        "            AND match_status IN ('UNMATCHED', 'AMBIGUOUS') AS is_unresolved_heading_like"
+        in sql
+    )
+    squashed = " ".join(sql.split())
+    assert (
+        "WHEN is_heading_row THEN FALSE WHEN is_unresolved_heading_like THEN TRUE END, TRUE"
+        in squashed
+    )
+    assert "ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING" in sql
+    assert ") AS follows_unresolved_heading" in sql
+    assert (
+        "CASE WHEN NOT follows_unresolved_heading THEN matched_psgc_code END AS matched_psgc_code"
+        in sql
+    )
+    assert (
+        "WHEN follows_unresolved_heading AND match_status <> 'INVALID_SOURCE' THEN 'UNMATCHED'"
+        in sql
+    )
+    reason = "Follows an unresolved heading-like row, so no locality is trusted"
+    assert f"follows_unresolved_heading THEN '{reason}'" in sql
+
+    validator = notebook_code(VALIDATION_NOTEBOOK)
+    assert f"ambiguity_or_exception_reason = '{reason}'" in validator
+    assert (
+        "'Rows under an unresolved heading-like row remain visible',\n"
+        "        rows_after_unresolved_heading, silver_rows_1, 'flag'" in validator
     )
