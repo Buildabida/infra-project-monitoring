@@ -12,7 +12,8 @@ It shows where funding is concentrated and which areas receive relatively less i
 Team Buildabida built this project for the 2026 FTW Foundation Data Engineering Track capstone.
 
 > [!NOTE]
-> Bronze, Silver, Gold, Gold validation and the six analytics views are built and checked in the team workspace.
+> Bronze, Silver, Gold, Gold validation and the analytics views are built and checked in the team workspace.
+> The six Gold dimensions are implemented, and so are the three Gold facts.
 > The end-to-end workflow (#129) and the dashboard come next.
 
 ## Why we built it
@@ -39,6 +40,7 @@ We answer them at the regional level ([D-25](docs/decisions.md), [D-34](docs/dec
 5. How does flood-control investment and project coverage compare with flood-risk exposure across Philippine regions?
 
 A sixth analytics view splits each region's budget by infrastructure type, for the TWG-IDI ([D-51](docs/decisions.md)).
+Five more views help us watch the portfolio: projects and budgets by infrastructure year, by year and sector, delivery by year, project size by region, and the work of each implementing office ([D-54](docs/decisions.md)).
 
 ## Who it is for
 
@@ -86,7 +88,7 @@ The numbers show the pipeline order.
 | `02-silver` | Cleaned, standardized, reconciled, and geographically matched data |
 | `03-gold` | Analytical facts and dimensions for the dashboard and Genie |
 | `04-validation` | Data-quality and pipeline-validation results |
-| `05-analytics` | Six views that answer our questions, built from Gold. The dashboard and Genie read only these. |
+| `05-analytics` | Eleven views built from Gold. Six answer our questions, and five are for monitoring. The dashboard and Genie read only these. |
 | `06-data-quality` | Data-quality work across the whole pipeline. Planned. |
 
 The analytics notebook creates `05-analytics` when it is missing.
@@ -121,8 +123,9 @@ See the [Gold model](docs/gold_model.md).
 Gold validation runs 75 checks over every Gold table and compares the totals with Silver.
 It saves its results to `04-validation.gold_dq_results` before its STOP gate ([D-47](docs/decisions.md)).
 
-Analytics holds six views in `05-analytics`, one per question ([D-50](docs/decisions.md)).
-The analytics validator rebuilds every view from Gold and compares them row by row, with 74 STOP checks ([D-52](docs/decisions.md)).
+Analytics holds eleven views in `05-analytics`.
+Six answer the business questions, one per question ([D-50](docs/decisions.md)), and five are for monitoring ([D-54](docs/decisions.md)).
+The analytics validator rebuilds every view from Gold and compares them row by row, with 132 STOP checks ([D-52](docs/decisions.md)).
 See the [analytics views](notebooks/05_analytics/README.md).
 
 ### Tools we use
@@ -137,7 +140,7 @@ See the [analytics views](notebooks/05_analytics/README.md).
 | GitHub | Holds the code, reviews, issues and the [project board](https://github.com/orgs/Buildabida/projects/1) ([D-06](docs/decisions.md), [D-09](docs/decisions.md)) |
 | GitHub Actions | Runs five checks on every pull request: Ruff with pytest, SQLFluff, markdownlint, lychee and Vale |
 | VS Code with the Databricks extension | Where we write code and send it to the team workspace ([D-11](docs/decisions.md)) |
-| Databricks AI/BI dashboard and Genie | Planned. The dashboard and the question space for the TWG-IDI, reading only the six analytics views. |
+| Databricks AI/BI dashboard and Genie | Planned. The dashboard and the question space for the TWG-IDI, reading only the analytics views. |
 
 ### Main decisions
 
@@ -159,6 +162,7 @@ Every choice has a row in our [decisions log](docs/decisions.md), with its date 
 - **MGB polygons are parsed once in Silver**, and invalid shapes are repaired with a zero-distance buffer (D-42, D-43).
 - **A project inside more than one flood level stays ambiguous**, and stalled is out of scope (D-45, D-46).
 - **Each check layer keeps its own result table** (D-47, D-52).
+- **The dashboard and Genie read only the analytics views.** Six answer the questions, and five are for monitoring (D-50, D-51, D-54).
 
 ## Quickstart
 
@@ -194,10 +198,10 @@ If a blocking check fails, stop there. Fix the cause, then rerun that step.
 1. **Set up.** Run `00_setup/00_setup_workspace.sql`, then `00_setup/01_check_sources.py`.
 2. **Load and check Bronze.** Run `notebooks/run_all.py`.
    It loads the six sources, then runs `04_validation/01_validation_bronze.py`.
-3. **Build and check Silver.** Run steps 11 to 28 in the [notebooks guide](notebooks/README.md#documented-sequence), then `02_silver/10_silver_project_flood_map` and `04_validation/08_validation_silver_project_flood_map`.
+3. **Build and check Silver.** Run steps 11 to 30 in the [notebooks guide](notebooks/README.md#documented-sequence).
    Each Silver notebook is followed by its own check notebook.
 4. **Build and check Gold.** Run `03_gold/00_gold_dim_date` to `03_gold/07_gold_fact_project_snapshot` in the [Gold build order](docs/gold_model.md#build-order), then `04_validation/09_validation_gold`.
-5. **Build and check analytics.** Run `05_analytics/01_business_questions`, then `04_validation/10_validation_analytics`.
+5. **Build and check analytics.** Run `05_analytics/01_business_questions`, which builds the eleven views, then `04_validation/10_validation_analytics`.
 6. **Run the end-to-end workflow.** Planned as a Databricks Workflow ([#129](https://github.com/Buildabida/infra-project-monitoring/issues/129)). One failed check stops the run.
 7. **Refresh the dashboard and Genie.** Planned for Oct 17.
 
@@ -307,7 +311,7 @@ See [data-quality checks](docs/validation.md) for each check.
 | The same budget could be counted twice. | Silver keeps one project per Contract ID. Different budgets are never added up. The flood list cost is never added to the DPWH budget. | `04_validation_silver_projects` and `05_validation_silver_source_reconciliation` |
 | Some values don't parse: 1 start date, 16 completion dates, 6 amounts paid and 5 progress values. | Bronze keeps the raw text. Silver keeps the raw value next to a safe `TRY_CAST` value. Bad values are flagged, not fixed. | Bronze cast checks and `04_validation_silver_projects` |
 | 17 DPWH rows show progress outside 0 to 100. | We keep them and flag them. | Bronze progress check and `04_validation_silver_projects` |
-| Census Table C has no PSGC codes. | Silver matches each row to a PSGC place by its sheet and section, then by 19 approved aliases (D-48). The gap to the 2024 census total is 4,789 people, in two rows that stay visible. | `03_validation_silver_geography_population` |
+| Census Table C has no PSGC codes. | Silver matches each row to a PSGC place by its sheet and section, then by 19 approved aliases (D-48). Since Oct 13, 5 heading-like rows that can't be matched safely stay unmatched, and so do the 41 rows after them (D-53, proposed). Every unmatched row stays visible. Silver and Gold count 112,348,732 people, 379,044 below the 2024 census total. | `03_validation_silver_geography_population` and `09_validation_gold` |
 | 23 MGB flood areas have no rating: 7 blank codes and 16 `No rating`. | We keep them. The checks count them as unrated without changing the source. After the Oct 10 reload, no shape is blank. | Bronze MGB checks, Oct 11 run |
 | 297 MGB polygons break the OGC shape rules, but cover about 22,739 sq km. | Silver repairs them with a zero-distance buffer and marks them `REPAIRED_GEOMETRY` (D-43). A shape that can't be repaired stays marked as invalid. | `06a_validation_silver_mgb_flood_area` |
 | Five regions have no safe boundary shape. The 2023 shapes of Western Visayas, Central Visayas, Zamboanga Peninsula and BARMM no longer match today's regions, and Negros Island Region has no shape. | Flood exposure by region shows them as no data, not zero. | `07_validation_silver_region_flood_exposure` |
@@ -353,6 +357,11 @@ See [data-quality checks](docs/validation.md) for each check.
   sit inside polygons of more than one level, and 102,178 fall outside every
   approved polygon. That is not evidence of low or zero flood risk.
   See [project flood mapping](docs/silver_project_flood_mapping.md#runtime-evidence).
+- **The year views compare groups of projects, not history.**
+  `infra_year` is a project attribute in our one DPWH snapshot.
+  The views compare projects by their year. They don't show what the portfolio looked like in past years (D-54).
+- **There is no contractor view yet.**
+  Contractor names are not standardized, so one firm can appear under several names (D-54).
 
 ## Find your way around
 
@@ -360,7 +369,7 @@ See [data-quality checks](docs/validation.md) for each check.
 - **Look up a table:** the [data model](docs/data-model.md) is our data dictionary. It gives the grain, key and main columns of every table. The [Gold model](docs/gold_model.md) and the [analytics views](notebooks/05_analytics/README.md) go deeper.
 - **Look something up:** [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), and [Silver geography and population](docs/silver_geography_population.md).
   Continue with [Silver project foundation](docs/silver_project_cleaning.md), [source reconciliation](docs/silver_source_reconciliation.md), [project-to-region mapping](docs/silver_project_region_mapping.md), [MGB flood areas](docs/silver_mgb_flood_area.md), [regional flood exposure](docs/silver_region_flood_exposure.md), [project flood mapping](docs/silver_project_flood_mapping.md), or the [style guide](docs/style-guide.md).
-- **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md), [Gold validation evidence](docs/validation.md#gold-validation-runtime-evidence) and [analytics evidence](docs/evidence/analytics-views/README.md)
+- **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md), [Gold validation evidence](docs/validation.md#gold-validation-runtime-evidence), [analytics evidence](docs/evidence/analytics-views/README.md) and [monitoring views evidence](docs/evidence/exploratory-analytics-views/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)
 
@@ -375,7 +384,7 @@ See [data-quality checks](docs/validation.md) for each check.
 │   ├── 02_silver/        clean, match and map
 │   ├── 03_gold/          dimensions and facts
 │   ├── 04_validation/    checks for every layer
-│   ├── 05_analytics/     the six views behind the dashboard
+│   ├── 05_analytics/     the eleven views behind the dashboard
 │   └── 06_data_quality/  data-quality work, planned
 ├── src/               shared Python modules and their current or legacy status
 ├── docs/              model, validation, evidence, decisions, and guides
