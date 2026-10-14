@@ -134,6 +134,7 @@ Silver currently implements:
 - Silver source-reconciliation validation
 - silver_project_region_map
 - Silver project-region mapping validation
+- read-only provincial reporting readiness profile
 - silver_mgb_flood_area
 - Silver MGB flood-area validation
 - silver_region_flood_exposure
@@ -302,6 +303,29 @@ version differences, and optional publisher-version gaps.
 See [Silver project-to-region mapping](../docs/silver_project_region_mapping.md)
 for the Table 13 grain, D-03 resolution, methods, statuses, lineage, spatial cost
 controls, and Gold handoff.
+
+### Provincial reporting readiness profile
+
+Provincial reporting remains a pending team decision. D-34 still keeps the
+production capstone at region level. Run the read-only profile only after the
+current Silver project, PSGC, boundary, and project-region checks pass:
+
+1. `02_silver/08b_profile_project_province_readiness.ipynb`
+
+The notebook creates temporary views only. It extracts DPWH
+`location.province` as source evidence, compares it with official PSGC province
+names by normalized exact equality, and performs one longitude-first
+`ST_COVERS` join against selected province boundaries. Candidate fan-out is
+collapsed immediately to one row per canonical project.
+
+Export every result set before the team chooses strict provinces or governed
+province reporting areas. The notebook asserts that project count and reported
+budget do not change, but it does not publish a mapping table or claim that a
+candidate is approved.
+
+See [province reporting readiness](../docs/province_reporting_readiness.md) for
+the options, proposed D-55 text, required evidence, blockers, and execution
+checklist.
 
 ### Regional flood exposure
 
