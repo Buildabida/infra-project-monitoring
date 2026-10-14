@@ -101,6 +101,14 @@ def test_mgb_missing_rating_values_are_explicit():
     assert source["rating_reference"]["missing"] == 23
 
 
+def test_dpwh_sources_enable_quoted_multiline_csv_parsing():
+    for source_name in ("dpwh_projects", "flood_control_projects"):
+        source = config.source_config(source_name)
+
+        assert source["multi_line"] is True
+        assert source["escape_char"] == "\\"
+
+
 def test_current_table_must_match_requested_snapshot_and_artifact():
     metadata = {
         "path": "/Volumes/catalog/source/volume/example.csv",
@@ -261,6 +269,33 @@ def test_row_preservation_compares_the_file_with_the_parser_and_the_table():
         bronze._check_row_preservation(10, 10, 9)
     with pytest.raises(RuntimeError, match="no data rows"):
         bronze._check_row_preservation(0, 0, 0)
+
+
+def test_logical_csv_count_handles_multiline_fields_and_backslash_quotes(tmp_path):
+    path = tmp_path / "multiline.csv"
+    path.write_text(
+        "id,description,payload\n"
+        '1,"first line\nsecond line","{\\"key\\":\\"value\\"}"\n'
+        '2,single-line,"{\\"key\\":2}"\n',
+        encoding="utf-8",
+    )
+
+    assert (
+        bronze._count_csv_records(
+            path,
+            ["id", "description", "payload"],
+            escape_char="\\",
+        )
+        == 2
+    )
+
+
+def test_logical_csv_count_rejects_wrong_record_width(tmp_path):
+    path = tmp_path / "wrong-width.csv"
+    path.write_text("id,value\n1,valid\n2,too,many\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="logical record 2"):
+        bronze._count_csv_records(path, ["id", "value"])
 
 
 class _FakeCatalog:

@@ -395,11 +395,13 @@ def _check_header_line(header_line, expected_header):
         raise ValueError("The first text line is not the CSV header")
 
 
-def _check_row_preservation(physical_records, parsed_rows, bronze_rows):
+def _check_row_preservation(source_records, parsed_rows, bronze_rows):
     """Fail when the file, the parsed frame, and the Bronze table disagree on rows.
 
-    ``physical_records`` counts data lines in the file without the CSV parser, so a
-    record the parser drops or skips shows up as a difference.
+    ``source_records`` is counted independently of the Spark frame. For multiline
+    CSVs it counts logical records with Python's CSV parser. For line-oriented
+    sources it counts physical data lines without the CSV parser. Either path makes
+    a record the Spark parser drops or duplicates visible as a difference.
     """
     if parsed_rows <= 0:
         raise RuntimeError(
@@ -409,9 +411,9 @@ def _check_row_preservation(physical_records, parsed_rows, bronze_rows):
         raise RuntimeError(
             f"Source-to-Bronze row preservation failed: parsed={parsed_rows}, Bronze={bronze_rows}"
         )
-    if physical_records != parsed_rows:
+    if source_records != parsed_rows:
         raise RuntimeError(
-            f"File-to-parser row preservation failed: file data lines={physical_records}, "
+            f"File-to-parser row preservation failed: file records={source_records}, "
             f"parsed={parsed_rows}"
         )
 
@@ -487,6 +489,46 @@ def _count_text_records(spark, path):
     return {"lines": int(row["lines"]), "data_lines": int(row["nonempty_lines"]) - 1}
 
 
+def _count_csv_records(path, expected_header, escape_char=None):
+    """Count and validate logical CSV records without materializing them.
+
+    The independent parser is used only for sources that explicitly allow quoted
+    multiline fields. It keeps constant memory, validates every record width, and
+    prevents embedded line breaks from being mistaken for additional source rows.
+    """
+    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
+    reader_options = {"strict": True}
+    if escape_char is not None:
+        reader_options["escapechar"] = escape_char
+
+    with open(path, "r", encoding="utf-8-sig", newline="") as source_file:
+        reader = csv.reader(source_file, **reader_options)
+        try:
+            header = next(reader)
+        except (StopIteration, csv.Error) as error:
+            raise ValueError(f"CSV has no readable header row: {path}") from error
+        if header != list(expected_header):
+            raise ValueError("The logical CSV header changed after source inspection")
+
+        records = 0
+        try:
+            for row in reader:
+                if not row:
+                    continue
+                records += 1
+                if len(row) != len(expected_header):
+                    raise ValueError(
+                        f"CSV logical record {records} has {len(row)} columns; "
+                        f"expected exactly {len(expected_header)}"
+                    )
+        except csv.Error as error:
+            raise ValueError(
+                f"CSV contains an unreadable logical record near physical line "
+                f"{reader.line_num}"
+            ) from error
+    return records
+
+
 def _table_version(spark, target):
     """Return the current Delta version of a table, or None when it does not exist."""
     if not spark.catalog.tableExists(target):
@@ -507,9 +549,10 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
 
     The function checks the artifact and header before replacement, fails closed on
     snapshot conflicts, verifies current table state before a skip, reads business
-    values as strings, adds technical lineage, and reconciles the file's data lines with
-    the parsed and written rows. The MGB text path counts lines during the write, so it
-    scans its large file once. The Spark CSV path counts lines in one extra text scan.
+    values as strings, adds technical lineage, and reconciles the file's independent
+    record count with the parsed and written rows. The MGB text path counts lines during
+    the write, while quoted multiline CSVs use a constant-memory logical-record scan.
+    Other Spark CSV sources use one inexpensive text count.
     Delta overwrite is atomic. When a row check fails after the commit, the loader
     restores the previous table version, so readers never keep a bad load.
     """
@@ -628,14 +671,27 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         if source.get("line_sep"):
             frame, text_lines = _read_csv_as_text(spark, source, metadata, clean_header)
         else:
-            text_counts = _count_text_records(spark, metadata["path"])
-            frame = (
+            multi_line = bool(source.get("multi_line", False))
+            if multi_line:
+                source_record_count = _count_csv_records(
+                    metadata["path"],
+                    metadata["header"],
+                    escape_char=source.get("escape_char"),
+                )
+            else:
+                source_record_count = _count_text_records(spark, metadata["path"])[
+                    "data_lines"
+                ]
+
+            reader = (
                 spark.read.option("header", "true")
                 .option("inferSchema", "false")
                 .option("mode", "FAILFAST")
-                .option("multiLine", "false")
-                .csv(metadata["path"])
+                .option("multiLine", str(multi_line).lower())
             )
+            if source.get("escape_char") is not None:
+                reader = reader.option("escape", source["escape_char"])
+            frame = reader.csv(metadata["path"])
         if len(frame.columns) != len(clean_header):
             raise ValueError(
                 f"Spark read {len(frame.columns)} columns but the header has {len(clean_header)}"
@@ -672,10 +728,8 @@ def load_csv_snapshot(spark, source, snapshot_id="", force_reload=False):
         try:
             if text_lines is not None:
                 _check_header_count(int(text_lines.get["header_lines"]))
-                physical_records = int(text_lines.get["lines"]) - 1
-            else:
-                physical_records = text_counts["data_lines"]
-            _check_row_preservation(physical_records, source_rows, rows_loaded)
+                source_record_count = int(text_lines.get["lines"]) - 1
+            _check_row_preservation(source_record_count, source_rows, rows_loaded)
         except Exception as check_error:
             # the checks need the write's own counts, so they run after the commit.
             # put the previous table back so a bad load is never left in Bronze.
