@@ -1,10 +1,12 @@
 # Gold model
 
-This doc defines the nine Gold tables in the `03-gold` schema.
+This doc defines the regional Gold model and the three D-55 province
+reporting-area additions in the `03-gold` schema.
 
 Gold holds the facts and dimensions that answer the project questions. The dashboard and Genie read these tables.
 
-Status: five notebooks in `notebooks/03_gold` build the six dimensions. Three more notebooks build the three facts. The Gold validator is planned.
+Status: the notebooks build eight dimensions and four facts. Regional runtime
+evidence is retained below. Province reporting-area runtime evidence is pending.
 
 ## Build rules
 
@@ -141,6 +143,52 @@ Uniqueness: `region_key`, `boundary_version`.
 
 `psgc_run_id` is the run of `02-silver.silver_psgc_place` and `exposure_run_id` is the run of `02-silver.silver_region_flood_exposure` (Table 14) behind each row in `dim_region` and `dim_region_boundary`. They make a row traceable to its Silver runs without recomputing the `run_id` hash (issue #93). `run_id` and every key keep their recipe. `CREATE TABLE IF NOT EXISTS` does not add columns to an existing table, so `01_gold_dim_region` adds the two columns once with `ALTER TABLE ... ADD COLUMNS` when `information_schema.columns` does not list them. A STOP check blocks a row without either value.
 
+#### `dim_province_reporting_area`
+
+Grain: one governed reporting area per selected PSGC version, plus one Unknown.
+Uniqueness: `reporting_area_key`.
+
+| Key | Column | Type |
+| --- | --- | --- |
+| PK | `reporting_area_key` | BIGINT |
+| None | `psgc_reporting_area_code` | STRING |
+| None | `reporting_area_name` | STRING |
+| None | `reporting_area_short_name` | STRING |
+| None | `reporting_area_type` | STRING |
+| FK | `region_key` | BIGINT |
+| None | `psgc_version` | STRING |
+| None | `is_geographic_area` | BOOLEAN |
+| None | `centroid_latitude` | DOUBLE |
+| None | `centroid_longitude` | DOUBLE |
+| None | `run_id` | STRING |
+| None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `boundary_run_id` | STRING |
+
+Allowed `reporting_area_type` values are `PROVINCE`, `INDEPENDENT_CITY`, `NCR`,
+and `UNKNOWN`. Key `0` is the one Unknown member. Region is the required parent
+for every geographic member.
+
+#### `dim_province_reporting_area_boundary`
+
+Grain: one selected boundary-status row per reporting area and boundary version.
+Unavailable or unsafe geometry stays `NULL`; its status is never presented as
+zero area or a valid boundary.
+
+| Key | Column | Type |
+| --- | --- | --- |
+| PK | `boundary_key` | BIGINT |
+| FK | `reporting_area_key` | BIGINT |
+| None | `boundary_geometry` | GEOMETRY(4326) |
+| None | `boundary_version` | STRING |
+| None | `coordinate_reference_system` | STRING |
+| None | `geometry_valid_flag` | BOOLEAN |
+| None | `boundary_status` | STRING |
+| None | `run_id` | STRING |
+| None | `source_load_ts` | TIMESTAMP |
+| None | `psgc_run_id` | STRING |
+| None | `boundary_run_id` | STRING |
+
 ### Facts
 
 #### `fact_project_snapshot`
@@ -153,6 +201,7 @@ Uniqueness: `project_key`, `source_snapshot_id`.
 | PK | `project_snapshot_key` | BIGINT |
 | FK | `project_key` | BIGINT |
 | FK | `region_key` | BIGINT |
+| FK | `reporting_area_key` | BIGINT |
 | FK | `status_key` | INT |
 | FK | `flood_susceptibility_key` | INT |
 | FK | `snapshot_date_key` | INT |
@@ -167,6 +216,9 @@ Uniqueness: `project_key`, `source_snapshot_id`.
 | None | `region_match_status` | STRING |
 | None | `region_match_method` | STRING |
 | None | `region_match_confidence` | STRING |
+| None | `reporting_area_match_status` | STRING |
+| None | `reporting_area_match_method` | STRING |
+| None | `reporting_area_match_quality` | STRING |
 | None | `flood_match_status` | STRING |
 | None | `long_running_flag` | BOOLEAN |
 | None | `zero_progress_flag` | BOOLEAN |
@@ -227,6 +279,28 @@ After the final Issue #113 fail-closed rerun on October 13, Gold and Silver both
 
 Gold copies the Silver totals and does not fill the gap. The Gold population checks flag it.
 
+#### `fact_province_reporting_area_population`
+
+Grain: one reporting area per population reference year, authoritative source,
+and deterministic Silver run. Population is the sum of reconciled Table C
+`ACCEPTED_PRIMARY` barangay rows. Missing population remains `NULL`.
+
+| Key | Column | Type |
+| --- | --- | --- |
+| PK | `reporting_area_population_fact_key` | BIGINT |
+| FK | `reporting_area_key` | BIGINT |
+| None | `reference_year` | INT |
+| None | `population_count` | BIGINT |
+| None | `source_name` | STRING |
+| None | `is_primary_source` | BOOLEAN |
+| None | `population_match_status` | STRING |
+| None | `source_row_count` | BIGINT |
+| None | `source_snapshot_id` | STRING |
+| None | `run_id` | STRING |
+| None | `source_load_ts` | TIMESTAMP |
+| None | `population_reconciliation_run_id` | STRING |
+| None | `reporting_area_population_run_id` | STRING |
+
 ## Relationships
 
 Every relationship is one-to-many, from a dimension to a fact or to another dimension.
@@ -239,9 +313,13 @@ Every relationship is one-to-many, from a dimension to a fact or to another dime
 | `dim_flood_susceptibility.flood_susceptibility_key` | `fact_project_snapshot` | `flood_susceptibility_key` |
 | `dim_flood_susceptibility.flood_susceptibility_key` | `fact_region_flood_exposure` | `flood_susceptibility_key` |
 | `dim_region.region_key` | `fact_project_snapshot` | `region_key` |
+| `dim_region.region_key` | `dim_province_reporting_area` | `region_key` |
 | `dim_region.region_key` | `fact_region_flood_exposure` | `region_key` |
 | `dim_region.region_key` | `fact_region_population` | `region_key` |
 | `dim_region.region_key` | `dim_region_boundary` | `region_key` |
+| `dim_province_reporting_area.reporting_area_key` | `fact_project_snapshot` | `reporting_area_key` |
+| `dim_province_reporting_area.reporting_area_key` | `fact_province_reporting_area_population` | `reporting_area_key` |
+| `dim_province_reporting_area.reporting_area_key` | `dim_province_reporting_area_boundary` | `reporting_area_key` |
 
 Two rules apply:
 
@@ -335,7 +413,10 @@ Gold does not repeat cleaning, matching, or mapping. Each Gold table reads a Sil
 | `dim_project` | `04_gold_dim_project` | `02-silver.silver_project` and `02-silver.silver_project_source_match` |
 | `fact_region_population` | `05_gold_fact_region_population` | `02-silver.silver_region_population` |
 | `fact_region_flood_exposure` | `06_gold_fact_region_flood_exposure` | `02-silver.silver_region_flood_exposure` |
-| `fact_project_snapshot` | `07_gold_fact_project_snapshot` | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_flood_map` |
+| `dim_province_reporting_area` | `01a_gold_dim_province_reporting_area` | `02-silver.silver_province_reporting_area`, `02-silver.silver_province_reporting_area_boundary`, `dim_region` |
+| `dim_province_reporting_area_boundary` | `01a_gold_dim_province_reporting_area` | `02-silver.silver_province_reporting_area_boundary` |
+| `fact_province_reporting_area_population` | `05a_gold_fact_province_reporting_area_population` | `02-silver.silver_province_reporting_area_population`, `dim_province_reporting_area` |
+| `fact_project_snapshot` | `07_gold_fact_project_snapshot` | `02-silver.silver_project`, `02-silver.silver_project_region_map`, `02-silver.silver_project_province_map`, `02-silver.silver_project_flood_map` |
 
 Gold runs no spatial matching, clipping, or area work. Region shapes are parsed only to store them for maps. The parser is the Table 13 rule. Its two patterns are written as raw literals, `r'...'`, and a test proves the rule is the same.
 
@@ -356,18 +437,26 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 
 1. `notebooks/03_gold/00_gold_dim_date.ipynb`
 2. `notebooks/03_gold/01_gold_dim_region.ipynb`, which builds `dim_region` and `dim_region_boundary`
-3. `notebooks/03_gold/02_gold_dim_flood_susceptibility.ipynb`
-4. `notebooks/03_gold/03_gold_dim_project_status.ipynb`
-5. `notebooks/03_gold/04_gold_dim_project.ipynb`
-6. `notebooks/03_gold/05_gold_fact_region_population.ipynb`
-7. `notebooks/03_gold/06_gold_fact_region_flood_exposure.ipynb`
-8. `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`
+3. `notebooks/03_gold/01a_gold_dim_province_reporting_area.ipynb`
+4. `notebooks/03_gold/02_gold_dim_flood_susceptibility.ipynb`
+5. `notebooks/03_gold/03_gold_dim_project_status.ipynb`
+6. `notebooks/03_gold/04_gold_dim_project.ipynb`
+7. `notebooks/03_gold/05_gold_fact_region_population.ipynb`
+8. `notebooks/03_gold/05a_gold_fact_province_reporting_area_population.ipynb`
+9. `notebooks/03_gold/06_gold_fact_region_flood_exposure.ipynb`
+10. `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`
+11. `notebooks/04_validation/09_validation_gold.ipynb`
+12. `notebooks/04_validation/09a_validation_gold_province_reporting.ipynb`
 
 ## Validation
 
 The analytical checks live in [Data model](data-model.md#required-analytical-validation). Keep them there.
 
-`notebooks/04_validation/09_validation_gold.ipynb` runs them after step 8 of the build order. It writes to `04-validation.gold_dq_results` (D-47). See [Gold validation](validation.md#gold-validation) and the [Notebooks guide](../notebooks/README.md).
+`notebooks/04_validation/09_validation_gold.ipynb` retains the regional checks.
+`09a_validation_gold_province_reporting.ipynb` then persists D-55 evidence to
+the same `gold_dq_results` table before its STOP gate. See
+[Gold validation](validation.md#gold-validation) and the
+[Notebooks guide](../notebooks/README.md).
 
 `fact_region_population` and `fact_region_flood_exposure` have no current flag, and their `MERGE` never deletes. A new PSGC version, MGB snapshot, or boundary version leaves the old rows in place. The validator stops the run when Gold has more rows than Silver. Adding a current flag needs its own decision.
 
@@ -375,7 +464,7 @@ The analytical checks live in [Data model](data-model.md#required-analytical-val
 
 Before you finish any Gold task, check that:
 
-- [ ] Only the nine tables in this doc were created or changed.
+- [ ] Only the documented regional and D-55 tables in this doc were created or changed.
 - [ ] Every table and column name matches this doc, in the listed order.
 - [ ] Every data type, precision, and scale matches this doc.
 - [ ] Every PK and FK matches the tables and the relationships above.

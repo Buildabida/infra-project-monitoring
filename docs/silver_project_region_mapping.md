@@ -481,3 +481,16 @@ responsible for surrogate `region_key` values and population-ratio exclusions.
 
 This milestone does not implement project-flood mapping, regional flood
 exposure, Gold facts or dimensions, dashboard assets, or Genie logic.
+
+## Relationship to D-55 reporting areas
+
+The regional mapping remains the parent-geography contract and is not replaced.
+`silver_project_province_map` adds a separate reporting-area result at one row
+per canonical project. Gold retains both `region_key` and `reporting_area_key`,
+and validators reconcile each independently to the same project and reported
+budget totals.
+
+The two mappings share fail-closed principles but not aliases. Province aliases
+require `match_rule = 'DPWH_PROVINCE_REPORTING_AREA'`, so D-41 region aliases do
+not authorize a province. See
+[Silver project-to-reporting-area mapping](silver_project_province_mapping.md).
