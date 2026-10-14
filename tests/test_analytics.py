@@ -32,6 +32,13 @@ EXPLORATORY_VIEWS = {
     ),
 }
 VIEW_GRAINS = {**OFFICIAL_VIEWS, **EXPLORATORY_VIEWS}
+REPORTING_AREA_VIEWS = (
+    "analytics_reporting_area_investment",
+    "analytics_reporting_area_category",
+    "analytics_reporting_area_delivery_status",
+    "analytics_reporting_area_population_equity",
+    "analytics_reporting_area_project_size_concentration",
+)
 REGIONAL_VIEWS = [
     "analytics_regional_investment",
     "analytics_project_delivery_status",
@@ -63,6 +70,8 @@ GOLD_TABLES = {
     "fact_project_snapshot",
     "fact_region_population",
     "fact_region_flood_exposure",
+    "dim_province_reporting_area",
+    "fact_province_reporting_area_population",
 }
 
 
@@ -154,14 +163,16 @@ def test_04_one_current_snapshot_is_asserted_before_any_view_is_built():
     ) in squash(code)
 
 
-def test_05_builds_the_official_and_exploratory_views_and_nothing_else():
+def test_05_builds_reporting_area_official_and_exploratory_views_only():
     code = without_comments(sql(VIEWS))
     views = re.findall(r"CREATE OR REPLACE VIEW `05-analytics`\.(\w+) \(", code)
-    # the six official views first, in question order, then the exploratory views
+    # D-55 reporting areas are built first, followed by the retained view groups.
     assert len(OFFICIAL_VIEWS) == 6
     assert len(EXPLORATORY_VIEWS) == 5
     assert not set(OFFICIAL_VIEWS) & set(EXPLORATORY_VIEWS)
-    assert views == list(OFFICIAL_VIEWS) + list(EXPLORATORY_VIEWS)
+    assert views == (
+        list(REPORTING_AREA_VIEWS) + list(OFFICIAL_VIEWS) + list(EXPLORATORY_VIEWS)
+    )
     writes = re.findall(
         r"(?:MERGE INTO|INSERT INTO|DELETE FROM|UPDATE|ALTER TABLE|DROP \w+|TRUNCATE TABLE"
         r"|CREATE (?:OR REPLACE )?TABLE)\b",
@@ -178,7 +189,7 @@ def test_06_reads_only_gold_and_its_own_views():
     analytics = {table for schema, table in tables if schema == "05-analytics"}
     assert {schema for schema, _ in tables} == {"03-gold", "05-analytics"}
     assert gold == GOLD_TABLES
-    assert analytics == set(VIEW_GRAINS)
+    assert analytics == set(VIEW_GRAINS) | set(REPORTING_AREA_VIEWS)
 
 
 def test_07_every_view_states_its_grain():

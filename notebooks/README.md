@@ -134,7 +134,11 @@ Silver currently implements:
 - Silver source-reconciliation validation
 - silver_project_region_map
 - Silver project-region mapping validation
-- read-only provincial reporting readiness profile
+- retained read-only provincial reporting readiness profile
+- Silver province reporting-area reference and selected boundaries
+- Silver province reporting-area population
+- Silver one-row-per-project reporting-area mapping
+- Silver province-reporting validation
 - silver_mgb_flood_area
 - Silver MGB flood-area validation
 - silver_region_flood_exposure
@@ -534,3 +538,70 @@ Thin notebooks keep source intent visible. One shared loader owns the mechanics.
 A seventh CSV source needs one source contract and one documented notebook.
 It also needs source-specific validation and focused tests. This structure avoids
 copying ingestion logic or introducing an enterprise framework.
+
+## D-55 production rerun order
+
+The bundle file does not define a Databricks job DAG, so `databricks.yml` is
+unchanged. Run the files in this dependency order. Stop immediately after any
+failed STOP gate; no Gold reporting-area task may bypass Silver validation, and
+no reporting-area Analytics task may bypass Gold validation.
+
+1. `00_setup/00_setup_workspace.sql`
+2. `00_setup/01_check_sources.py`
+3. `run_all.py`, which runs all six Bronze loads and Bronze validation
+4. `04_validation/02_bronze_acceptance_evidence.sql`
+5. `02_silver/00_config_mappings.ipynb`
+6. `04_validation/02_validation_silver_config.ipynb`
+7. `02_silver/01_silver_psgc_place.ipynb`
+8. `02_silver/01a_silver_province_reporting_area.ipynb`
+9. `02_silver/02_silver_population_place_reconciliation.ipynb`
+10. `02_silver/03_silver_region_population.ipynb`
+11. `02_silver/03a_silver_province_reporting_area_population.ipynb`
+12. `04_validation/03_validation_silver_geography_population.ipynb`
+13. `02_silver/04_silver_dpwh_project_component.ipynb`
+14. `02_silver/05_silver_project.ipynb`
+15. `04_validation/04_validation_silver_projects.ipynb`
+16. `02_silver/06_silver_flood_control_component.ipynb`
+17. `02_silver/07_silver_project_source_match.ipynb`
+18. `04_validation/05_validation_silver_source_reconciliation.ipynb`
+19. `02_silver/08_silver_project_region_map.ipynb`
+20. `04_validation/06_validation_silver_project_region_map.ipynb`
+21. `02_silver/08b_profile_project_province_readiness.ipynb`, optional and
+    read-only, for capturing current readiness evidence
+22. `02_silver/08c_silver_project_province_map.ipynb`
+23. `04_validation/03b_validation_silver_province_reporting.ipynb`
+24. `02_silver/08a_silver_mgb_flood_area.ipynb`
+25. `04_validation/06a_validation_silver_mgb_flood_area.ipynb`
+26. `02_silver/09_silver_region_flood_exposure.ipynb`
+27. `04_validation/07_validation_silver_region_flood_exposure.ipynb`
+28. `02_silver/10_silver_project_flood_map.ipynb`
+29. `04_validation/08_validation_silver_project_flood_map.ipynb`
+30. `03_gold/00_gold_dim_date.ipynb`
+31. `03_gold/01_gold_dim_region.ipynb`
+32. `03_gold/01a_gold_dim_province_reporting_area.ipynb`
+33. `03_gold/02_gold_dim_flood_susceptibility.ipynb`
+34. `03_gold/03_gold_dim_project_status.ipynb`
+35. `03_gold/04_gold_dim_project.ipynb`
+36. `03_gold/05_gold_fact_region_population.ipynb`
+37. `03_gold/05a_gold_fact_province_reporting_area_population.ipynb`
+38. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
+39. `03_gold/07_gold_fact_project_snapshot.ipynb`
+40. `04_validation/09_validation_gold.ipynb`
+41. `04_validation/09a_validation_gold_province_reporting.ipynb`
+42. `05_analytics/01_business_questions.ipynb`
+43. `04_validation/10_validation_analytics.ipynb`
+44. `04_validation/10a_validation_provincial_analytics.ipynb`
+45. `04_validation/11_publish_acceptance_evidence.sql`
+
+Province flood exposure has no task in this order. It is deferred until a
+separate Databricks feasibility run proves that the reporting-area boundary and
+MGB intersection is safe and affordable. Regional flood tasks remain required
+for the unchanged regional model and existing Analytics.
+
+Expected D-55 outcomes are persisted PASS rows for every STOP check, with FLAG
+rows allowed for real coverage limitations. Capture mapped and unmapped project
+and budget coverage, mappings by method, conflicts, ambiguity, missing
+coordinates, NCR, independent-city, BARMM, population coverage, excluded
+population, selected versions, and exact-rerun identities. Do not claim runtime
+approval until all three D-55 validators have executed and their saved evidence
+passes.

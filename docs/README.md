@@ -12,7 +12,8 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review DPWH component preservation, project consolidation, budget protection, and project validation | [Silver project foundation](silver_project_cleaning.md) |
 | Review flood-list component preservation, exact Contract-ID matching, cost protection, and reconciliation validation | [Silver source reconciliation](silver_source_reconciliation.md) |
 | Review project-to-region precedence, Central Office handling, spatial fallback, conflicts, lineage, and validation | [Silver project-to-region mapping](silver_project_region_mapping.md) |
-| Review the pre-decision province profile, reporting-grain options, runtime checklist, and current blockers | [Province reporting readiness](province_reporting_readiness.md) |
+| Review the approved D-55 reporting-area policy, implementation status, runtime checklist, and flood deferral | [Province reporting readiness and production status](province_reporting_readiness.md) |
+| Review project-to-reporting-area precedence, configuration, spatial rules, lineage, and validation | [Silver project-to-reporting-area mapping](silver_project_province_mapping.md) |
 | Review the parsed MGB flood polygons (`silver_mgb_flood_area`), the Esri parser, the skip rule, and validation | [Silver MGB flood areas](silver_mgb_flood_area.md) |
 | Review regional MGB flood exposure, the equal-area CRS, zero versus no data, overlap, lineage, and validation | [Silver regional flood exposure](silver_region_flood_exposure.md) |
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver_project_flood_mapping.md) |

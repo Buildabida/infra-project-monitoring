@@ -1,211 +1,142 @@
-# Province reporting readiness
+# Province reporting readiness and production status
 
-## Status
+## Decision status
 
-Runtime status: not run in Databricks.
+Option B is approved as D-55 on October 14, 2026. D-34 remains approved for the
+regional model and its existing consumers, but D-55 supersedes D-34's earlier
+restriction against building a province drill-down.
 
-D-34 remains approved. It keeps the capstone at regional level and leaves
-province drill-down unbuilt. The proposed D-55 in `docs/decisions.md` does not
-supersede D-34 until the team approves it.
+The governed reporting areas are:
 
-This change is a pre-decision evidence package. It adds one read-only profiler
-and no persistent Silver, Gold, Analytics, or validation table.
+- official PSGC provinces;
+- cities with no province parent in the selected PSGC hierarchy, classified as
+  `INDEPENDENT_CITY`;
+- NCR as one `NCR` reporting area;
+- reserved key `0` as `UNKNOWN`.
 
-## Current architecture reviewed
+Region remains the parent, reconciliation level, fallback for existing regional
+consumers, and the level used for national, BARMM, and lineage checks. The new
+name is deliberately `province_reporting_area`: not every member is a province.
 
-The current pipeline keeps one canonical DPWH project in
-`02-silver.silver_project`, maps it once to a governed region, and carries the
-region key into Gold. Region also owns population reconciliation and safe flood
-exposure. The project fact keeps one row per canonical project snapshot and
-protects the reported-budget total.
+## Runtime status
 
-The province extension must preserve that architecture:
+Production notebooks and local contract tests are implemented. Databricks runtime evidence
+is still pending. No project coverage, reported-budget
+coverage, population coverage, row count, or runtime success is claimed by this
+document.
 
-```text
-Bronze source evidence
-    -> canonical Silver project
-    -> governed project-to-province or reporting-area map
-    -> Gold geography dimension and project fact key
-    -> validated provincial Analytics views
-```
+The retained readiness profiler is
+`notebooks/02_silver/08b_profile_project_province_readiness.ipynb`. It remains a
+read-only diagnostic. It creates temporary views only and is useful before a
+production rerun for reviewing source values, boundary compatibility, NCR,
+BARMM, and cities without province parents.
 
-Region remains the parent geography, national reconciliation level, unresolved
-project fallback, and existing consumer contract.
+## Source findings carried into production
 
-## Problem found
+- DPWH `location.province` is preserved source evidence. It can hold District
+  Engineering Office text and is never trusted as a PSGC key.
+- Exact official-name evidence is diagnostic until an active approved alias
+  authorizes the source value.
+- No fuzzy, substring, nearest-boundary, first-candidate, or proportional rule
+  is allowed.
+- Spatial matching uses longitude-first EPSG:4326 points and `ST_COVERS` over
+  selected valid reporting-area boundaries.
+- Zero boundary candidates remain unmapped. Multiple candidates remain
+  ambiguous. Name-coordinate disagreement remains a conflict.
+- Pending and inactive configuration never participates.
 
-The current contracts cannot safely publish provincial Analytics yet:
+## Approved matching precedence
 
-- D-34 explicitly keeps the capstone at region level.
-- DPWH `location.province` is inside preserved source JSON, but it is not a
-  canonical Silver field and may contain a District Engineering Office.
-- `silver_psgc_place` identifies official provinces and cities, but it does not
-  classify cities as highly urbanized or independent component cities.
-- NCR has no official province.
-- The boundary snapshot can differ from the selected PSGC hierarchy.
-- No approved province alias, manual exception, precedence, reporting-area
-  policy, or unknown-member contract exists.
-- No provincial project or reported-budget coverage evidence has been run.
+1. Explicit non-geographic classification.
+2. Approved manual exception.
+3. Valid and uniquely resolved project PSGC evidence, when a legitimate source
+   field exists. The current canonical project contract has none.
+4. Approved exact source-name alias.
+5. Unique coordinate containment in one approved reporting-area boundary.
+6. Unknown, unmapped, or ambiguous.
 
-These are governance and source-contract gaps, not reasons to guess a province.
+Every candidate path aggregates back to one project before publication.
+`silver_project_province_map` asserts that project count, unique project count,
+mapping-key count, and reported-budget total reconcile to `silver_project`.
 
-## Reporting-grain decision
+## Population contract
 
-### Option A: strict official provinces
+`silver_province_reporting_area_population` aggregates only positive Table C
+rows whose reconciliation disposition is `ACCEPTED_PRIMARY` and whose matched
+place type is `BARANGAY`. Province, city, municipality, region, and other
+subtotal rows never enter the measure.
 
-The dimension contains only official PSGC provinces plus the repository's
-governed unknown member.
+NCR barangays roll to NCR. Barangays with a province parent roll to that
+province. A barangay whose city has no province parent rolls to that independent
+city. Accepted rows that cannot resolve remain under key `0`. Missing population
+stays `NULL`; it is never converted to zero. Accepted population is reconciled
+before and after aggregation, and excluded or unresolved diagnostics remain
+visible.
 
-Tradeoffs:
+## Production outputs
 
-- simple and administratively precise.
-- NCR has no province.
-- HUC and independent-city projects may remain outside comparisons.
-- national project, budget, and population coverage will be incomplete.
-- comparisons need explicit exclusions and denominators.
+Silver:
 
-### Option B: governed province reporting areas
+- `silver_province_reporting_area`
+- `silver_province_reporting_area_boundary`
+- `silver_province_reporting_area_population`
+- `silver_project_province_map`
 
-Recommended when the analytical goal is nationally comparable coverage.
+Gold:
 
-The dimension may contain official provinces, explicitly approved independent
-city areas, NCR, and one unknown member. It must be named
-`dim_province_reporting_area`, not `dim_province`, because not every member is a
-province. A governed `reporting_area_type` distinguishes `PROVINCE`,
-`INDEPENDENT_CITY`, `NCR`, and `UNKNOWN`.
+- `dim_province_reporting_area`
+- `dim_province_reporting_area_boundary`
+- `fact_province_reporting_area_population`
+- `fact_project_snapshot.reporting_area_key`, while retaining `region_key`
 
-Tradeoffs:
+Analytics:
 
-- supports a clearer national comparison.
-- requires an approved HUC and independent-city classification source.
-- requires explicit population and boundary aggregation rules.
-- is a reporting construct and must not be described as the official province
-  hierarchy.
+- `analytics_reporting_area_investment`
+- `analytics_reporting_area_category`
+- `analytics_reporting_area_delivery_status`
+- `analytics_reporting_area_population_equity`
+- `analytics_reporting_area_project_size_concentration`
 
-Expected project, reported-budget, and population coverage remain unknown until
-the profiler runs and the selected policy is applied. Do not insert an estimated
-or target percentage.
+The regional views remain unchanged for reconciliation and backward
+compatibility. Reporting-area Analytics includes Unknown where national totals
+must reconcile. Population equity uses one disclosed comparable-area set for
+both investment and population denominators; it is descriptive and is not a
+fairness judgment.
 
-## Proposed decision text
+## Deterministic lineage and reruns
 
-The exact proposed text is also recorded as proposed D-55:
+The project mapping run ID includes the selected project snapshot, project run,
+project ingest run, PSGC version and run, boundary version and run, approved
+alias and manual-config versions, and mapping-rule version. The mapping key is
+an `XXHASH64` of the fixed mapping label, unchanged `project_key`, and that run
+ID. An exact rerun therefore produces the same key and run ID; any governed
+input or rule change changes the run identity.
 
-> Use governed province reporting areas as the primary province-level analytical
-> grain. The dimension contains official PSGC provinces, NCR, explicitly
-> approved highly urbanized or independent-city reporting areas, and one unknown
-> member. `reporting_area_type` states which contract each member follows.
-> Region remains the parent, reconciliation, fallback, and backwards-compatible
-> analytical geography. DPWH province text is source evidence only. Production
-> matching uses approved exact evidence and unique `ST_COVERS` containment. It
-> never uses fuzzy, substring, nearest-place, or arbitrary allocation. This
-> extends D-34 only after the readiness profile, coverage review, and team
-> approval are complete.
+Gold uses deterministic keys and idempotent `MERGE`. Analytics uses `CREATE OR
+REPLACE VIEW`. Each validator merges deterministic evidence before its STOP
+gate, so a failure remains reviewable.
 
-Approval must record the reviewer, date, profile run ID, selected PSGC and
-boundary versions, and accepted coverage limitations.
+## Province flood exposure
 
-## Read-only profiling contract
+Province-level flood exposure is deferred. The readiness package contains no
+Databricks evidence that the province-boundary and MGB intersection is safe and
+affordable on Free Edition. The implementation does not allocate regional flood
+exposure to reporting areas and does not reparse MGB geometry merely to claim
+feature parity. A later implementation must reuse `silver_mgb_flood_area`, use
+only valid selected reporting-area boundaries, intersect once, dissolve to the
+final grain, and validate additivity and lineage.
 
-Run `notebooks/02_silver/08b_profile_project_province_readiness.ipynb` only after
-the current Bronze, Silver project, PSGC, boundary, and project-region checks
-pass.
+## Evidence required from Databricks
 
-The final temporary view has this grain:
+After the documented rerun, capture persisted Silver, Gold, and Analytics DQ
+rows plus:
 
-```text
-one canonical project
-per selected project run
-per selected PSGC snapshot
-per selected boundary snapshot
-```
+- total, mapped, and unmapped projects and their percentage;
+- total, mapped, and unmapped reported budget and its percentage;
+- mappings by method, conflicts, ambiguity, and missing coordinates;
+- NCR, independent-city, and BARMM totals;
+- population coverage and excluded or unresolved population;
+- selected PSGC, boundary, config, and rule versions;
+- exact rerun results proving stable keys and run IDs.
 
-The profiler:
-
-- extracts DPWH `location.province` from preserved source JSON.
-- normalizes case and repeated whitespace for exact comparison only.
-- keeps missing and conflicting source values visible.
-- matches exact official province names as candidate evidence only.
-- parses the selected province boundaries once.
-- constructs points longitude-first with SRID 4326.
-- uses `ST_COVERS` without nearest-place or fuzzy matching.
-- counts zero, one, and multiple province candidates.
-- compares exact-name and coordinate evidence.
-- aggregates candidate fan-out back to one row per project.
-- asserts project count and reported-budget totals are unchanged.
-- reports NCR and BARMM separately.
-- reports that HUC versus independent-city classification is unavailable in the
-  current Silver contract.
-- reports PSGC and boundary-version gaps.
-- lists nonofficial source province values for human review.
-
-It creates temporary views only. It does not write runtime evidence to the
-repository or create a production map.
-
-## Required result capture
-
-Export these result sets with the Databricks workflow run ID and execution date:
-
-1. overall project and reported-budget coverage.
-2. evidence groups and their reported-budget totals.
-3. NCR, BARMM, and other-region results.
-4. boundary-versus-PSGC gaps.
-5. city rows without an official province parent.
-6. nonofficial DPWH province text values.
-
-Record unexpected values without converting them into rules. In particular,
-District Engineering Office names, blank text, generic labels, and conflicting
-name-coordinate evidence stay unresolved until a reviewed rule exists.
-
-## Recommended governed rules after approval
-
-The production mapping should apply this precedence only after each applicable
-stage has an approved contract:
-
-1. explicit non-geographic classification.
-2. approved manual exception.
-3. verified project PSGC evidence, if a legitimate field becomes available.
-4. approved exact province or reporting-area alias.
-5. unique coordinate containment in one approved boundary.
-6. unknown, unmapped, or ambiguous.
-
-Raw source province text must not act as a foreign key. A name-coordinate
-conflict must preserve both candidates and publish a conflict status. Multiple
-spatial candidates must remain ambiguous. Zero candidates must remain unmapped.
-
-## Deferred production scope
-
-Until D-55 or an alternative decision is approved, do not add:
-
-- `silver_project_province_map`.
-- province or reporting-area population aggregation.
-- province flood-exposure intersections.
-- a province or reporting-area Gold dimension.
-- a province key on `fact_project_snapshot`.
-- provincial Analytics views.
-- production province STOP gates.
-
-Province flood exposure should remain a later phase unless the team explicitly
-requires it. It is the highest-cost part of the design and must reuse parsed MGB
-geometry rather than parse it again.
-
-## Databricks execution checklist
-
-1. Confirm latest Bronze and Silver validation evidence has no failed STOP check.
-2. Run the readiness notebook as a workflow on Serverless compute.
-3. Export all six required result sets and note the workflow run ID.
-4. Verify the project total equals `silver_project`.
-5. Verify the reported-budget total equals `silver_project` with NULL-safe
-   equality.
-6. Review zero and multiple spatial candidates.
-7. Review exact-name and coordinate conflicts.
-8. Review NCR, BARMM, and no-province city evidence.
-9. Review boundary-versus-PSGC version gaps.
-10. Choose Option A or Option B and approve the exact decision text.
-11. Only then design the production Silver, Gold, Analytics, and validation
-    notebooks.
-
-## Readiness conclusion
-
-Provincial Analytics is not ready for use. The repository now has deterministic
-profiling SQL and local contract tests, but it has no Databricks runtime results
-and no approved reporting grain.
+Coverage does not need to be 100%. It must be honest, reconciled, and visible.

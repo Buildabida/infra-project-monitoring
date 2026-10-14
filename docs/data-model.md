@@ -421,3 +421,25 @@ Bronze does not clean names, cast business types, map places, or deduplicate sou
 It does not standardize categories, calculate measures, or perform spatial joins.
 These decisions begin in Silver and remain traceable.
 Traceability uses snapshot IDs, run IDs, mapping statuses, rule versions, and source versions.
+
+## Province reporting-area extension (D-55)
+
+The approved reporting-area hierarchy adds official provinces, independent
+cities with no selected PSGC province parent, NCR, and Unknown. It does not
+replace region. Region remains the parent, national reconciliation level, BARMM
+control, and existing consumer contract.
+
+Silver publishes one reporting-area reference and boundary-status row per area,
+one population row per area/year/source/run, and exactly one project mapping row
+per canonical project. Only reconciled `ACCEPTED_PRIMARY` Table C barangays
+enter population. Raw DPWH province text is never a foreign key.
+
+Gold adds `dim_province_reporting_area`, its boundary dimension,
+`fact_province_reporting_area_population`, and `reporting_area_key` plus mapping
+status fields to `fact_project_snapshot`. The fact keeps `region_key`, unchanged
+`project_key`, one current row per project, and the same reported-budget total.
+
+Analytics adds five `analytics_reporting_area_*` views. Unknown remains in
+national project and budget totals. Population comparisons use one disclosed
+comparable-area set. Province flood exposure is not part of this implementation;
+regional exposure is never allocated to reporting areas.

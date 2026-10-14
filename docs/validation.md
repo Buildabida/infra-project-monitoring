@@ -1112,3 +1112,27 @@ docs/validation/
 
 Split this document only when the remaining Silver or Gold validators are implemented.
 Update existing links in the same pull request.
+
+## Province reporting-area validation
+
+`03b_validation_silver_province_reporting` persists checks for the reporting-area
+reference, selected boundary status, accepted-primary population, and final
+project map. STOP checks cover one row per project, unique deterministic keys,
+valid targets, complete lineage, config ambiguity, accepted population,
+canonical project count, and reported-budget reconciliation. FLAG checks retain
+missing coordinates, zero and multiple candidates, conflicts, unresolved areas,
+NCR, independent-city, and BARMM findings.
+
+`09a_validation_gold_province_reporting` then checks dimension and fact keys,
+one Unknown, parent regions, reporting-area orphans, unchanged current project
+grain, unchanged reported budget, population reconciliation, one current
+snapshot, and lineage.
+
+`10a_validation_provincial_analytics` validates all five view grains, one DPWH
+snapshot, dimension keys, mapped plus Unknown national totals, category and
+delivery totals, population comparable-set denominators, project-size totals,
+and NULL preservation.
+
+All three validators `MERGE` evidence before their STOP gate. Their local tests
+prove contract text and ordering only. Databricks must execute them before the
+implementation is runtime-approved.

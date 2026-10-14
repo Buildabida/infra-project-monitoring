@@ -384,3 +384,23 @@ evidence supports it. A null `proposed_row_role` means no approval has been made
 Gold will add surrogate keys and serving contracts. This milestone does not calculate budget
 share, population share, budget per resident, or a budget-to-population ratio. Future results
 must describe allocation differences and regional patterns, not fairness or sufficiency.
+
+## D-55 reporting-area population
+
+`silver_province_reporting_area` derives the approved areas from the selected
+PSGC hierarchy and keeps each area's parent region. NCR is one area. A city is an
+`INDEPENDENT_CITY` only when PSGC gives it no province parent and it is outside
+NCR. Unknown is key `0`.
+
+`silver_province_reporting_area_population` reuses the reconciled Table C
+output. Only positive `ACCEPTED_PRIMARY` barangay rows contribute; province,
+city, municipality, region, and other subtotal rows do not. NCR barangays roll
+to NCR, province-parented barangays roll to the province, and barangays under a
+city with no province parent roll to that city. Each accepted row resolves once
+or remains visibly unresolved under Unknown.
+
+The table grain is one reporting area per population reference year,
+authoritative source, and deterministic run. Missing area population remains
+`NULL`. Source snapshot, ingest, PSGC, alias, row-role, reconciliation, and
+reporting-area run lineage are retained. The validator reconciles accepted
+population before and after aggregation and reports excluded diagnostics.

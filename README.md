@@ -249,3 +249,25 @@ Tasks are tracked on the [project board](https://github.com/orgs/Buildabida/proj
 Project code uses the [MIT License](LICENSE).
 Source data remains subject to each publisher's terms.
 We thank DPWH, PSA, BetterGov.ph, OCHA HDX, and FTW Foundation.
+
+## Province reporting-area extension
+
+D-55 approves governed province reporting areas: official PSGC provinces,
+independent cities whose selected PSGC hierarchy has no province parent, NCR as
+one reporting area, and Unknown key `0`. Region remains the parent and the
+backward-compatible reconciliation geography.
+
+Production notebooks now add the Silver reporting-area reference, boundary,
+Table C population aggregation, and one-row-per-project mapping; the Gold
+reporting-area dimensions and population fact; `reporting_area_key` on the
+project snapshot fact; five current-snapshot Analytics views; and layer-specific
+validation. DPWH `location.province` is evidence only. Matching is governed,
+exact, and fail-closed, with one longitude-first `ST_COVERS` fallback.
+
+Databricks runtime evidence for this extension is pending. No provincial
+coverage percentage or runtime success is claimed. Province flood exposure is
+deferred until selected boundaries and the MGB intersection are shown to be
+safe and affordable on Free Edition. See the
+[production contract](docs/province_reporting_readiness.md),
+[Silver mapping](docs/silver_project_province_mapping.md), and
+[Gold model](docs/gold_model.md).
