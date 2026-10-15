@@ -1,12 +1,13 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer contains six official business-question views plus five exploratory monitoring views. Each official view answers one business question. The exploratory views support broader monitoring and exploration (D-54). All views read current-snapshot Gold, live in the `05-analytics` schema, and hold no data of their own.
+This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer contains six official business-question views plus five exploratory monitoring views. Each official view answers one business question. The exploratory views support broader monitoring and exploration (D-54). Those eleven views read current-snapshot Gold. A separate proposed extension, `analytics_region_project_progress` (D-55, proposed), compares the current and immediately preceding Gold project snapshots without changing their grain. All Analytics outputs are views in `05-analytics` and hold no data of their own.
 
 ## Run order
 
 1. `09_validation_gold` must pass first.
 2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, and the eleven views with `CREATE OR REPLACE VIEW`. These are the six official views (D-50, D-51) and the five exploratory views (D-54).
 3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and the Gold validation again, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` (D-52). It stops the run if any STOP check fails. See [analytics validation](../../docs/validation.md#analytics-validation).
+4. After D-55 receives team approval, run `02_regional_project_progress.ipynb` and then `04_validation/11_validation_regional_project_progress.ipynb`. The current regional status map works with one Gold snapshot. Snapshot-change measures remain `NULL` until Gold contains an earlier DPWH snapshot.
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice.
 
@@ -32,6 +33,7 @@ A rerun replaces the view definitions and updates the same validation rows, so i
 | `analytics_delivery_cohort` | Do older cohorts still hold active, long-running, or zero-progress projects? | `infra_year`, status group, and status mapping status |
 | `analytics_project_size_concentration` | Is a region's budget spread over many smaller projects or held by a few larger ones? | Official region |
 | `analytics_implementing_office_portfolio` | Which implementing offices carry the largest observed workload? | `implementing_office`, including `NULL` |
+| `analytics_region_project_progress` | Proposed. What is the current regional status mix, and what changed since the immediately preceding DPWH snapshot? | Current official PSGC region |
 
 The exploratory views add views. They never change the six official views.
 
@@ -56,6 +58,8 @@ Every view and column has a comment, so Genie can read what each one means.
 - `analytics_project_size_concentration` takes its regions and coverage from Q1 and leaves key `0` out. Its median and p90 are exact `PERCENTILE_CONT` values over projects with a reported budget that is not `NULL`. A reported 0 stays in. There are no budget bands, because bands need their own decision.
 - `analytics_implementing_office_portfolio` keeps a `NULL` office as its own row with no rank. Gold does not say whether that office was missing or conflicting.
 - No exploratory view reads contractors. A contractor view waits for Gold to carry contractor resolution status and for a name standardization rule (D-54).
+- `analytics_region_project_progress` is the only proposed Analytics view that reads an earlier project snapshot. It reports `NO_PRIOR_SNAPSHOT` and leaves historical measures `NULL` in a fresh workspace with only one Gold snapshot. A zero must never replace unavailable history.
+- `ACTIVE` is the approved project-status group. It includes `For Procurement`, so it is not synonymous with construction actively under way.
 
 ## For the dashboard
 
@@ -78,6 +82,6 @@ Every view and column has a comment, so Genie can read what each one means.
 - Q4 uses Gold's population, which is about 3.4% below the census total (#61).
 - Stalled projects are not reported (D-46).
 - Gold has no reason column for a `NULL` `infra_year` or a `NULL` `implementing_office`, so the views cannot say why either is empty.
-- The cohort views read one current snapshot. Showing how the portfolio changed over time would need older snapshots in Gold.
+- The cohort views still read one current snapshot. `analytics_region_project_progress` can show change only when Gold actually contains at least two DPWH source snapshots.
 
-See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md).
+See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md). The proposed regional progress extension has separate [runtime evidence](../../docs/evidence/regional-project-progress/README.md) for its current-status and no-prior-snapshot contracts.

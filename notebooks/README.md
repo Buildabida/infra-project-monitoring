@@ -418,6 +418,15 @@ Analytics notebooks live in `05_analytics`. After `09_validation_gold` passes, r
 1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and eleven persisted views. Six are official views, one per business question. Five are exploratory monitoring views (D-54). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
 2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. Then it rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
 
+The proposed regional progress extension (D-55) runs only after that base sequence:
+
+1. `05_analytics/02_regional_project_progress.ipynb` builds the current regional status map and, when available, compares the immediately preceding DPWH snapshot preserved in Gold.
+2. `04_validation/11_validation_regional_project_progress.ipynb` validates its region grain, current measures, snapshot lineage, transition bounds, and no-prior-snapshot behavior. It persists evidence before its STOP gate.
+
+In a fresh workspace with one Gold snapshot, current status is available but every change measure is `NULL`. Process a second distinct DPWH snapshot through Gold before interpreting change.
+
+The October 15 one-snapshot run is recorded in the [regional project progress evidence](../docs/evidence/regional-project-progress/README.md). It validates current status and no-prior-snapshot safety, not historical change.
+
 The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).
 
 ## Validation connection
