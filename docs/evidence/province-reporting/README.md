@@ -1,4 +1,11 @@
-# D-55 province-reporting runtime evidence
+# D-57 province-reporting runtime evidence
+
+> [!NOTE]
+> This run was recorded under the branch decision ID D-55, now D-57, because `main` already used D-55.
+> Its Silver and Gold results stay valid for the identities below. Its Analytics rows validated the five
+> `analytics_reporting_area_*` views, which D-56 (proposed) retires. Province Analytics now lives in the six
+> views and is validated by `10_validation_analytics`. Silver and Gold province validators moved to rule
+> version v2 with added population and hierarchy checks, which have not run on Databricks yet.
 
 ## Scope
 
@@ -134,7 +141,7 @@ equity remains descriptive and is not evidence of fairness or unfairness.
 
 ## Acceptance statement
 
-D-55 is runtime-validated for the identities and source snapshot recorded here.
+D-57 is runtime-validated for the identities and source snapshot recorded here.
 The result does not claim complete geographic coverage, authorize inferred
 assignments, or approve province flood exposure. A changed source snapshot,
 PSGC version, boundary version, configuration version, or rule version requires

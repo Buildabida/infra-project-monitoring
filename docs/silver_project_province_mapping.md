@@ -2,7 +2,7 @@
 
 ## Purpose and name
 
-`02-silver.silver_project_province_map` publishes one D-55 reporting-area result
+`02-silver.silver_project_province_map` publishes one D-57 reporting-area result
 for every canonical DPWH project. The table keeps `province_map` in its name for
 discoverability, but its target can be an official province, an independent
 city, NCR, or Unknown. It must not be described as a strict province map.

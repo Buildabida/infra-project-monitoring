@@ -2,8 +2,8 @@
 
 ## Decision status
 
-Option B is approved as D-55 on October 14, 2026. D-34 remains approved for the
-regional model and its existing consumers, but D-55 supersedes D-34's earlier
+Option B is approved as D-57 on October 14, 2026. D-34 remains approved for the
+regional model and its existing consumers, but D-57 supersedes D-34's earlier
 restriction against building a province drill-down.
 
 The governed reporting areas are:
@@ -92,17 +92,16 @@ Gold:
 
 Analytics:
 
-- `analytics_reporting_area_investment`
-- `analytics_reporting_area_category`
-- `analytics_reporting_area_delivery_status`
-- `analytics_reporting_area_population_equity`
-- `analytics_reporting_area_project_size_concentration`
+- The six D-56 views read the reporting area from Gold. View 1,
+  `analytics_investment_distribution`, has a `REGION` and a `REPORTING_AREA`
+  level. View 2, `analytics_population_equity`, has one row per reporting area.
+  Views 4, 5, and 6 carry the reporting area per project.
+- The five `analytics_reporting_area_*` views first built here are retired by
+  D-56 and dropped by `01_business_questions`. Their October 15 run stays as
+  history in the [province-reporting evidence](evidence/province-reporting/README.md).
 
-The regional views remain unchanged for reconciliation and backward
-compatibility. Reporting-area Analytics includes Unknown where national totals
-must reconcile. Population equity uses one disclosed comparable-area set for
-both investment and population denominators; it is descriptive and is not a
-fairness judgment.
+Population equity uses one disclosed comparable-area set for both investment and
+population denominators. It is descriptive and is not a fairness judgment.
 
 ## Deterministic lineage and reruns
 

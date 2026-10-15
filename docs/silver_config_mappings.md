@@ -449,9 +449,9 @@ Therefore, local values are not claimed to be the exact selected Bronze snapshot
 
 Run the notebooks against current Databricks Bronze tables before approving downstream use.
 
-## D-55 project reporting-area configuration
+## D-57 project reporting-area configuration
 
-D-55 reuses `config_place_name_alias` and `config_manual_geographic_match`.
+D-57 reuses `config_place_name_alias` and `config_manual_geographic_match`.
 Province/reporting-area aliases require `source_system = 'dpwh_projects'` and
 `match_rule = 'DPWH_PROVINCE_REPORTING_AREA'`; existing region aliases cannot
 join accidentally. Manual exceptions require `source_system = 'DPWH'` and

@@ -137,15 +137,15 @@ def test_boundary_and_psgc_version_gaps_are_reported():
         assert f"'{finding}'" in text
 
 
-def test_docs_keep_d34_and_record_d55_as_approved():
+def test_docs_keep_d34_and_record_d57_as_approved():
     readiness = READINESS_DOC.read_text(encoding="utf-8")
     decisions = DECISIONS.read_text(encoding="utf-8")
     assert "D-34 remains approved" in readiness
     assert "Databricks runtime evidence" in readiness
     assert "Option B" in readiness
     proposed = decisions.split("## Proposed decisions awaiting team approval", 1)[1]
-    assert "| D-55 |" not in proposed
+    assert "| D-57 |" not in proposed
     made = decisions.split("## Made", 1)[1].split(
         "## Proposed decisions awaiting team approval", 1
     )[0]
-    assert "| D-55 |" in made
+    assert "| D-57 |" in made

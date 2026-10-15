@@ -385,7 +385,7 @@ Gold will add surrogate keys and serving contracts. This milestone does not calc
 share, population share, budget per resident, or a budget-to-population ratio. Future results
 must describe allocation differences and regional patterns, not fairness or sufficiency.
 
-## D-55 reporting-area population
+## D-57 reporting-area population
 
 `silver_province_reporting_area` derives the approved areas from the selected
 PSGC hierarchy and keeps each area's parent region. NCR is one area. A city is an

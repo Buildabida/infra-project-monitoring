@@ -1,4 +1,9 @@
-# D-55 province reporting-area change manifest
+# D-57 province reporting-area change manifest
+
+> [!WARNING]
+> **Superseded.** This manifest describes the province branch before it was merged with the six-view Analytics
+> design. `10a_validation_provincial_analytics.ipynb` and the five `analytics_reporting_area_*` views are removed.
+> The decision recorded here as D-55 is D-57 in `docs/decisions.md`.
 
 ## Scope
 

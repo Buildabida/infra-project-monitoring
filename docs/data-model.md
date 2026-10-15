@@ -12,11 +12,12 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. The category taxonomy (D-39), status mapping (D-40), DPWH region aliases (D-41), and Census Table C aliases (D-48) are approved. No manual geographic override is approved yet. |
 | Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
+| Analytics | Implemented, awaiting a Databricks run and team approval | Six governed views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../notebooks/05_analytics/README.md). |
 
 ```text
-R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
-                      ↓                    ↓                         ↓
-                 04-validation shared results for Bronze, Silver, and Gold
+R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
+                      ↓                    ↓                         ↓                       ↓
+                 04-validation shared results for Bronze, Silver, Gold, and Analytics
 ```
 
 ## Bronze source contracts (implemented)
@@ -399,17 +400,22 @@ See [Gold validation](validation.md#gold-validation).
 10. Spatial areas use an appropriate projected CRS instead of square degrees.
 
 Check 6 covers the population fact today: no population row uses region key `0`.
-When the dashboard datasets exist, they need the same check for their ratios (#61).
+`10_validation_analytics` runs the same check on the per-person ratios of
+`analytics_population_equity` (#61).
 
-## Business-question coverage (planned)
+## Analytics coverage
 
-| Analysis | Main tables | Interpretation boundary |
-| --- | --- | --- |
-| Regional investment concentration | `fact_project_snapshot` and `dim_region` | Use reported budgets. Show coordinate and match coverage. |
-| Infrastructure portfolio and categories | `fact_project_snapshot` and `dim_project` | Category rules are versioned and explainable. |
-| Project delivery and status | Project fact plus status, date, and region dimensions | Use long-running or zero-progress rules. Do not claim that a project is delayed without evidence. |
-| Investment relative to population | Project fact plus region population fact and region dimension | Describe allocation differences, not fairness. Exclude non-geographic Central Office. |
-| Flood-control alignment | Project fact, project and susceptibility dimensions, flood-exposure and population facts, and region | Report comparative patterns. Do not claim proof of insufficient protection or causation. |
+The six Analytics views answer the capstone insights from Gold. The full
+contracts are in the [Analytics views guide](../notebooks/05_analytics/README.md).
+
+| Insight | View | Main Gold tables | Interpretation boundary |
+| --- | --- | --- | --- |
+| Where does the money go? | `analytics_investment_distribution` | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area` | Reported budget by region or reporting area and `infra_year` cohort (D-57). Never add the two levels. A cohort is not a past portfolio. |
+| Are investments proportional to population? | `analytics_population_equity` | `fact_province_reporting_area_population` and view 1 | Per reporting area. A screening indicator, not fairness. Key `0` is excluded. |
+| Do flood-control investments overlap with flood-prone areas? | `analytics_flood_alignment` | `fact_project_snapshot`, `dim_flood_susceptibility`, `fact_region_flood_exposure` | Overlap does not prove protection. A point outside mapped zones is not low risk. |
+| Which projects need a closer look? | `analytics_implementation_monitoring` | `fact_project_snapshot`, `dim_project_status`, `dim_date` | Review indicators, not findings. No overdue flag, because no trustworthy target date exists. |
+| Are we seeing projects or a connected infrastructure network? | `analytics_infrastructure_network` | `fact_project_snapshot` and its dimensions | Spatial patterns only. No network topology exists. |
+| What can we see only after connecting the datasets? | `analytics_integration_coverage` | `fact_project_snapshot`, `dim_project`, `dim_project_status`, `fact_region_population` | "Not linked" means the governed rules could not connect a record. |
 
 The available need proxies are population and flood-risk exposure.
 They do not represent every form of infrastructure need.
@@ -422,7 +428,7 @@ It does not standardize categories, calculate measures, or perform spatial joins
 These decisions begin in Silver and remain traceable.
 Traceability uses snapshot IDs, run IDs, mapping statuses, rule versions, and source versions.
 
-## Province reporting-area extension (D-55)
+## Province reporting-area extension (D-57)
 
 The approved reporting-area hierarchy adds official provinces, independent
 cities with no selected PSGC province parent, NCR, and Unknown. It does not
@@ -439,7 +445,11 @@ Gold adds `dim_province_reporting_area`, its boundary dimension,
 status fields to `fact_project_snapshot`. The fact keeps `region_key`, unchanged
 `project_key`, one current row per project, and the same reported-budget total.
 
-Analytics adds five `analytics_reporting_area_*` views. Unknown remains in
-national project and budget totals. Population comparisons use one disclosed
-comparable-area set. Province flood exposure is not part of this implementation;
-regional exposure is never allocated to reporting areas.
+Analytics reads the reporting area in the six D-56 views. View 1 reports both
+levels, region and reporting area, each from its own Gold key. View 2 compares
+investment and population per reporting area. Views 4, 5, and 6 carry the
+reporting area per project, and view 6 shows where the project region and the
+parent region of its reporting area disagree. Unknown stays visible in views 4,
+5, and 6 and in the key `0` checks. The five `analytics_reporting_area_*` views
+first built for D-57 are retired. Province flood exposure is not part of this
+implementation, and regional exposure is never allocated to reporting areas.

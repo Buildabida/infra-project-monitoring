@@ -1,12 +1,11 @@
 # Gold model
 
-This doc defines the regional Gold model and the three D-55 province
+This doc defines the regional Gold model and the three D-57 province
 reporting-area additions in the `03-gold` schema.
 
-Gold holds the facts and dimensions that answer the project questions. The dashboard and Genie read these tables.
+Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard and Genie read the views. See [Analytics views](../notebooks/05_analytics/README.md).
 
-Status: the notebooks build eight dimensions and four facts. Regional runtime
-evidence is retained below. Province reporting-area runtime evidence is pending.
+Status: Gold notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the province reporting-area model. Runtime evidence for both is in [Runtime evidence](#runtime-evidence) and the [province-reporting evidence](evidence/province-reporting/README.md).
 
 ## Build rules
 
@@ -453,7 +452,7 @@ Facts need dimension keys, so build the dimensions first. Run each notebook in D
 The analytical checks live in [Data model](data-model.md#required-analytical-validation). Keep them there.
 
 `notebooks/04_validation/09_validation_gold.ipynb` retains the regional checks.
-`09a_validation_gold_province_reporting.ipynb` then persists D-55 evidence to
+`09a_validation_gold_province_reporting.ipynb` then persists D-57 evidence to
 the same `gold_dq_results` table before its STOP gate. See
 [Gold validation](validation.md#gold-validation) and the
 [Notebooks guide](../notebooks/README.md).
@@ -464,7 +463,7 @@ the same `gold_dq_results` table before its STOP gate. See
 
 Before you finish any Gold task, check that:
 
-- [ ] Only the documented regional and D-55 tables in this doc were created or changed.
+- [ ] Only the documented regional and D-57 tables in this doc were created or changed.
 - [ ] Every table and column name matches this doc, in the listed order.
 - [ ] Every data type, precision, and scale matches this doc.
 - [ ] Every PK and FK matches the tables and the relationships above.

@@ -1,4 +1,3 @@
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -8,70 +7,59 @@ VIEWS = ROOT / "notebooks/05_analytics/01_business_questions.ipynb"
 VIEWS_README = ROOT / "notebooks/05_analytics/README.md"
 DECISIONS = ROOT / "docs/decisions.md"
 
-# the six official business-question views (D-50, D-51)
-OFFICIAL_VIEWS = {
-    "analytics_regional_investment": "One row per official PSGC region",
-    "analytics_category_portfolio": "One row per DPWH sector and mapping status",
-    "analytics_project_delivery_status": "One row per region, category, and status group",
-    "analytics_population_equity": "One row per official region",
-    "analytics_flood_control_exposure": "One row per official region",
-    "analytics_region_category": "One row per official region, DPWH sector, and mapping status",
-}
-# the exploratory monitoring views (D-54)
-EXPLORATORY_VIEWS = {
-    "analytics_infrastructure_year_trend": "One row per infrastructure year, including NULL",
-    "analytics_infrastructure_year_sector": (
-        "One row per infrastructure year, DPWH sector, and mapping status"
+# the six capstone insight views (D-56), in insight order, with the grain each comment states
+VIEW_GRAINS = {
+    "analytics_investment_distribution": (
+        "One row per geography level, geography key, and infra_year cohort"
     ),
-    "analytics_delivery_cohort": (
-        "One row per infrastructure year, status group, and status mapping status"
-    ),
-    "analytics_project_size_concentration": "One row per official PSGC region",
-    "analytics_implementing_office_portfolio": (
-        "One row per implementing office, including NULL"
+    "analytics_population_equity": "One row per province reporting area (D-57)",
+    "analytics_flood_alignment": "One row per official PSGC region and flood point class",
+    "analytics_implementation_monitoring": "One row per current DPWH project",
+    "analytics_infrastructure_network": "One row per current DPWH project",
+    "analytics_integration_coverage": (
+        "One row per integration link, link outcome, and region key"
     ),
 }
-VIEW_GRAINS = {**OFFICIAL_VIEWS, **EXPLORATORY_VIEWS}
-REPORTING_AREA_VIEWS = (
+# the views of the retired d-50, d-51, d-54, and d-55 designs. analytics_population_equity kept its name
+RETIRED_VIEWS = [
+    "analytics_regional_investment",
+    "analytics_category_portfolio",
+    "analytics_project_delivery_status",
+    "analytics_flood_control_exposure",
+    "analytics_region_category",
+    "analytics_infrastructure_year_trend",
+    "analytics_infrastructure_year_sector",
+    "analytics_delivery_cohort",
+    "analytics_project_size_concentration",
+    "analytics_implementing_office_portfolio",
+    "analytics_region_project_progress",
     "analytics_reporting_area_investment",
     "analytics_reporting_area_category",
     "analytics_reporting_area_delivery_status",
     "analytics_reporting_area_population_equity",
     "analytics_reporting_area_project_size_concentration",
-)
+]
 REGIONAL_VIEWS = [
-    "analytics_regional_investment",
-    "analytics_project_delivery_status",
+    "analytics_investment_distribution",
     "analytics_population_equity",
-    "analytics_flood_control_exposure",
-    "analytics_region_category",
-    "analytics_project_size_concentration",
+    "analytics_flood_alignment",
 ]
-COHORT_VIEWS = [
-    "analytics_infrastructure_year_trend",
-    "analytics_infrastructure_year_sector",
-    "analytics_delivery_cohort",
+PROJECT_VIEWS = [
+    "analytics_implementation_monitoring",
+    "analytics_infrastructure_network",
 ]
-# sha-256 of each official view cell on main when the exploratory views were added.
-# a change here needs a documented bug fix or decision, never a quiet edit
-OFFICIAL_VIEW_SHA256 = {
-    "analytics_regional_investment": "1e848a8a6d7c3def5f4f64606b4f0f6c08d261b51baf05a9be8b0dc2ea93d740",
-    "analytics_category_portfolio": "20700c02adc8460ae3148d7ce88e1d475211161eac6c82077ab6e95767e7be11",
-    "analytics_project_delivery_status": "e8ade126c1df8701be8be8ed2de2c6d1684fd5c92a5db87ba0855eadee3e2c24",
-    "analytics_population_equity": "a5a0c25ddd0c5a65257eab76c7e0b1fc21faa999357632823bf022950a083f65",
-    "analytics_flood_control_exposure": "929f538c7fa8b4ac70156f94c6b8f7403e114b44bad908a26057a970865f7964",
-    "analytics_region_category": "0f7a6ce961f24bc1d95922e23a19ea58673bb1d5b009d3113fa89faebef713cb",
-}
 GOLD_TABLES = {
+    "dim_date",
     "dim_project",
     "dim_region",
     "dim_project_status",
     "dim_flood_susceptibility",
+    "dim_province_reporting_area",
+    "dim_province_reporting_area_boundary",
+    "fact_province_reporting_area_population",
     "fact_project_snapshot",
     "fact_region_population",
     "fact_region_flood_exposure",
-    "dim_province_reporting_area",
-    "fact_province_reporting_area_population",
 }
 
 
@@ -113,10 +101,22 @@ def view_sql(name):
     return own[0]
 
 
+def view_code(name):
+    return squash(without_comments(view_sql(name)))
+
+
 def column_list(name):
     text = view_sql(name)
     start = text.index(f"`05-analytics`.{name} (\n") + len(f"`05-analytics`.{name} (\n")
     return text[start : text.index("\n)\nCOMMENT '", start)]
+
+
+def columns(name):
+    return [line.split()[0] for line in column_list(name).splitlines() if line.strip()]
+
+
+def view_comment(name):
+    return view_sql(name).split("\n)\nCOMMENT '", 1)[1].split("'\nAS\n", 1)[0]
 
 
 def test_01_notebook_is_a_valid_nbformat_sql_notebook():
@@ -140,17 +140,35 @@ def test_02_every_code_cell_has_markdown_before_it():
     for index, cell in enumerate(cells):
         if cell["cell_type"] == "code":
             assert cells[index - 1]["cell_type"] == "markdown", index
-    text = markdown(VIEWS)
-    for label in ["**What:**", "**Why:**", "**Expected result:**"]:
-        assert label in text
 
 
-def test_03_first_sql_uses_the_project_catalog():
+def test_03_every_view_section_has_the_required_parts():
+    # each view has one markdown cell with its question, grain, rule, and expected result
+    cells = notebook(VIEWS)["cells"]
+    for name in VIEW_GRAINS:
+        index = next(
+            i
+            for i, cell in enumerate(cells)
+            if f"CREATE OR REPLACE VIEW `05-analytics`.{name} ("
+            in "".join(cell["source"])
+        )
+        text = "".join(cells[index - 1]["source"])
+        for label in [
+            f"`{name}`",
+            "**Business question:**",
+            "**Grain:**",
+            "**Interpretation rule:**",
+            "**Expected result:**",
+        ]:
+            assert label in text, (name, label)
+
+
+def test_04_first_sql_uses_the_project_catalog():
     first_code = sql(VIEWS).split("%sql\n", 1)[1]
     assert "USE CATALOG `buildabida-capstone`;" in first_code.split("\n%sql")[0]
 
 
-def test_04_one_current_snapshot_is_asserted_before_any_view_is_built():
+def test_05_one_current_snapshot_is_asserted_before_any_view_is_built():
     code = sql(VIEWS)
     gate = code.index("SELECT ASSERT_TRUE(")
     assert gate < code.index("CREATE SCHEMA IF NOT EXISTS `05-analytics`")
@@ -163,19 +181,24 @@ def test_04_one_current_snapshot_is_asserted_before_any_view_is_built():
     ) in squash(code)
 
 
-def test_05_builds_reporting_area_official_and_exploratory_views_only():
+def test_06_builds_exactly_the_six_views_in_insight_order():
     code = without_comments(sql(VIEWS))
     views = re.findall(r"CREATE OR REPLACE VIEW `05-analytics`\.(\w+) \(", code)
-    # D-55 reporting areas are built first, followed by the retained view groups.
-    assert len(OFFICIAL_VIEWS) == 6
-    assert len(EXPLORATORY_VIEWS) == 5
-    assert not set(OFFICIAL_VIEWS) & set(EXPLORATORY_VIEWS)
-    assert views == (
-        list(REPORTING_AREA_VIEWS) + list(OFFICIAL_VIEWS) + list(EXPLORATORY_VIEWS)
-    )
+    assert len(VIEW_GRAINS) == 6
+    assert views == list(VIEW_GRAINS)
+    for name in RETIRED_VIEWS:
+        assert f"CREATE OR REPLACE VIEW `05-analytics`.{name} " not in code, name
+
+
+def test_07_drops_every_retired_view_and_writes_nothing_else():
+    code = without_comments(sql(VIEWS))
+    drops = re.findall(r"DROP VIEW IF EXISTS `05-analytics`\.(\w+);", code)
+    assert drops == RETIRED_VIEWS
+    # the drops come before the first view is built
+    assert code.index("DROP VIEW IF EXISTS") < code.index("CREATE OR REPLACE VIEW")
     writes = re.findall(
-        r"(?:MERGE INTO|INSERT INTO|DELETE FROM|UPDATE|ALTER TABLE|DROP \w+|TRUNCATE TABLE"
-        r"|CREATE (?:OR REPLACE )?TABLE)\b",
+        r"(?:MERGE INTO|INSERT INTO|DELETE FROM|UPDATE|ALTER TABLE|TRUNCATE TABLE"
+        r"|CREATE (?:OR REPLACE )?TABLE|DROP TABLE)\b",
         code,
         flags=re.IGNORECASE,
     )
@@ -183,32 +206,61 @@ def test_05_builds_reporting_area_official_and_exploratory_views_only():
     assert "CREATE SCHEMA IF NOT EXISTS `05-analytics`" in code
 
 
-def test_06_reads_only_gold_and_its_own_views():
+def test_08_reads_only_gold_and_its_own_views():
     tables = set(re.findall(r"`(\d\d-[a-z]+)`\.(\w+)", without_comments(sql(VIEWS))))
     gold = {table for schema, table in tables if schema == "03-gold"}
     analytics = {table for schema, table in tables if schema == "05-analytics"}
     assert {schema for schema, _ in tables} == {"03-gold", "05-analytics"}
     assert gold == GOLD_TABLES
-    assert analytics == set(VIEW_GRAINS) | set(REPORTING_AREA_VIEWS)
+    assert analytics == set(VIEW_GRAINS) | set(RETIRED_VIEWS)
+    # views 2 and 3 take their regions from view 1. no other view reads a view
+    for name in VIEW_GRAINS:
+        reads = set(re.findall(r"FROM `05-analytics`\.(\w+)", view_code(name)))
+        expected = (
+            {"analytics_investment_distribution"}
+            if name in ("analytics_population_equity", "analytics_flood_alignment")
+            else set()
+        )
+        assert reads == expected, name
 
 
-def test_07_every_view_states_its_grain():
-    for name, grain in VIEW_GRAINS.items():
-        comment = view_sql(name).split("\n)\nCOMMENT '", 1)[1]
+def test_09_no_bronze_silver_python_or_spatial_work():
+    code = without_comments(sql(VIEWS))
+    lowered = code.lower()
+    for token in [
+        "01-bronze",
+        "02-silver",
+        "%python",
+        "h3_",
+        "geometry_json",
+        "boundary_geometry",
+        "uuid(",
+        "rand(",
+        "random(",
+        "monotonically_increasing_id",
+    ]:
+        assert token not in lowered, token
+    # no geometry function runs in analytics. silver did the spatial work once
+    assert not re.search(r"\bst_\w+\(", lowered)
+
+
+def test_10_every_view_states_its_grain_and_names_its_insight():
+    for number, (name, grain) in enumerate(VIEW_GRAINS.items(), start=1):
+        comment = view_comment(name)
+        assert comment.startswith(f"Insight {number}, "), name
         assert comment.split(". ", 1)[1].startswith(grain), name
 
 
-def test_08_every_column_has_a_comment_and_a_snapshot_column():
+def test_11_every_column_has_a_comment_and_a_snapshot_column():
     for name in VIEW_GRAINS:
         lines = [line for line in column_list(name).splitlines() if line.strip()]
         for line in lines:
             assert re.match(r"^\s{4}\w+ COMMENT '.+',?$", line), (name, line)
-        columns = [line.split()[0] for line in lines]
-        assert "source_snapshot_id" in columns, name
-    assert "mgb_source_snapshot_id" in column_list("analytics_flood_control_exposure")
+        assert "source_snapshot_id" in columns(name), name
+    assert "mgb_source_snapshot_id" in columns("analytics_flood_alignment")
 
 
-def test_09_every_project_read_uses_current_rows_only():
+def test_12_every_project_read_uses_current_rows_only():
     code = squash(without_comments(sql(VIEWS)))
     reads = re.findall(r"FROM `03-gold`\.fact_project_snapshot(?: AS fact)?", code)
     current = re.findall(r"WHERE (?:fact\.)?is_current_snapshot = TRUE", code)
@@ -216,373 +268,281 @@ def test_09_every_project_read_uses_current_rows_only():
     assert len(reads) == len(current)
 
 
-def test_10_regional_views_leave_region_key_zero_out():
-    for name in REGIONAL_VIEWS:
-        code = squash(without_comments(view_sql(name)))
-        if name in {"analytics_population_equity"}:
-            # population is filtered, and regions come from q1
-            assert "AND region_key <> 0" in code
-            assert "FROM `05-analytics`.analytics_regional_investment AS region" in code
-            continue
-        assert re.search(r"(?:fact\.)?region_key <> 0", code), name
-    q1 = squash(without_comments(view_sql("analytics_regional_investment")))
-    assert "WHERE region.region_key <> 0" in q1
-    # q3 to q6 take their regions and coverage status from q1
-    for name in REGIONAL_VIEWS[1:]:
-        assert (
-            "FROM `05-analytics`.analytics_regional_investment AS region"
-            in view_sql(name)
-        )
-    # q2 is national, so it keeps key 0 projects
-    assert "region_key" not in without_comments(
-        view_sql("analytics_category_portfolio")
-    )
-
-
-def test_11_q2_has_a_strict_and_a_broad_flood_share():
-    code = squash(without_comments(view_sql("analytics_category_portfolio")))
+def test_13_geographic_views_leave_key_zero_out_and_project_views_keep_it():
+    first = view_code("analytics_investment_distribution")
+    # each level comes from its own gold key, and key 0 is left out at both
     assert (
-        "100.0 * SUM(CASE WHEN is_dpwh_flood_related THEN total_reported_budget_pesos "
-        "ELSE 0 END) OVER () / NULLIF(SUM(total_reported_budget_pesos) OVER (), 0), 4 ) "
-        "AS flood_control_share_of_portfolio_pct"
-    ) in code
-    assert (
-        "CASE WHEN standardized_sector = 'Flood Control and Drainage' THEN "
-        "total_reported_budget_pesos ELSE 0 END ) OVER () / "
-        "NULLIF(SUM(total_reported_budget_pesos) OVER (), 0), 4 ) "
-        "AS flood_control_single_sector_share_pct"
-    ) in code
-    # every current project stays in the portfolio, even with no dimension row (D-36)
-    assert "LEFT JOIN `03-gold`.dim_project AS project" in code
-
-
-def test_12_q4_shares_use_one_comparable_set_of_regions():
-    code = squash(without_comments(view_sql("analytics_population_equity")))
-    comparable = (
-        "WHEN region.source_coverage_status = 'REPORTED' AND "
-        "region.total_reported_budget_pesos IS NOT NULL AND "
-        "population.population_count IS NOT NULL THEN {value} END AS {name}"
+        "region_key AS geography_key, project_key, reported_budget_pesos, infra_year FROM current_projects WHERE region_key <> 0"
+        in first
     )
     assert (
-        comparable.format(
-            value="region.total_reported_budget_pesos", name="comparable_budget_pesos"
-        )
-        in code
+        "reporting_area_key AS geography_key, project_key, reported_budget_pesos, infra_year FROM current_projects WHERE reporting_area_key <> 0"
+        in first
     )
-    assert (
-        comparable.format(
-            value="population.population_count", name="comparable_population"
-        )
-        in code
-    )
-    for recipe in [
-        (
-            "100.0 * comparable_budget_pesos / NULLIF(SUM(comparable_budget_pesos) OVER (), 0), 4 ) "
-            "AS investment_share_pct"
-        ),
-        (
-            "100.0 * comparable_population / NULLIF(SUM(comparable_population) OVER (), 0), 4 ) "
-            "AS comparable_population_share_pct"
-        ),
-        "investment_share_pct - comparable_population_share_pct AS equity_gap_pp",
-        (
-            "ROUND(comparable_budget_pesos / NULLIF(comparable_population, 0), 2) "
-            "AS investment_per_capita_pesos"
-        ),
-        # only the newest primary census year, so two years never add up
-        "QUALIFY reference_year = MAX(reference_year) OVER ()",
-    ]:
-        assert recipe in code, recipe
+    assert "WHERE region.region_key <> 0" in first
+    assert "WHERE area.reporting_area_key <> 0" in first
+    assert "AND reporting_area_key <> 0" in view_code("analytics_population_equity")
+    assert "AND fact.region_key <> 0" in view_code("analytics_flood_alignment")
+    for name in PROJECT_VIEWS + ["analytics_integration_coverage"]:
+        code = view_code(name)
+        assert "fact.region_key <> 0" not in code, name
+        assert "fact.reporting_area_key <> 0" not in code, name
+        assert "LEFT JOIN `03-gold`.dim_project AS project" in code, name
 
 
-def test_13_q5_adds_level_areas_only_when_they_do_not_overlap():
-    code = squash(without_comments(view_sql("analytics_flood_control_exposure")))
-    for recipe in [
-        (
-            "WHEN COUNT_IF(exposure.level_area_additivity_status = 'NOT_EVALUATED') > 0 "
-            "THEN 'NOT_EVALUATED'"
-        ),
-        (
-            "WHEN COUNT_IF(NOT exposure.level_area_additivity_status <=> "
-            "'ADDITIVE_WITHIN_TOLERANCE') > 0 THEN 'NON_ADDITIVE_CROSS_LEVEL_OVERLAP'"
-        ),
-        (
-            "WHEN exposure.exposure_area_status = 'ADDITIVE_WITHIN_TOLERANCE' THEN "
-            "exposure.summed_level_area_sqkm END AS total_susceptible_area_sqkm"
-        ),
-        "NULLIF(total_susceptible_area_sqkm, 0)",
-        # the newest exposure run only, so older mgb snapshots never add up
-        "QUALIFY ROW_NUMBER() OVER (ORDER BY source_load_ts DESC, run_id) = 1",
-    ]:
-        assert recipe in code, recipe
-
-
-def test_14_no_view_writes_placeholder_text():
+def test_14_no_view_writes_placeholder_or_verdict_text():
     code = without_comments(sql(VIEWS))
     assert not re.search(r"'(?:Unknown|Unmapped|UNKNOWN|UNMAPPED)'", code)
-
-
-def test_15_no_random_values_or_python():
-    code = without_comments(sql(VIEWS)).lower()
-    for token in [
-        "uuid(",
-        "rand(",
-        "random(",
-        "monotonically_increasing_id",
-        "%python",
-    ]:
-        assert token not in code, token
-
-
-def test_16_docs_describe_the_views():
-    readme = VIEWS_README.read_text(encoding="utf-8")
+    # no value a view writes claims a verdict. comments may say what a value does not mean
+    assert not re.search(
+        r"THEN '[A-Z_]*(?:OVERDUE|DELAY|STALL|FAIR|ADEQUA|CONNECTED)[A-Z_]*'", code
+    )
+    # every column name stays free of verdict words too
     for name in VIEW_GRAINS:
-        assert f"`{name}`" in readme, name
-    assert readme.index("09_validation_gold") < readme.index("01_business_questions")
-    decisions = DECISIONS.read_text(encoding="utf-8")
-    for decision in ["| D-50 |", "| D-51 |", "| D-54 |"]:
-        assert decision in decisions, decision
-    # the team approved d-54, so it is a made decision with its approval recorded
-    made = decisions.split("## Made", 1)[1].split("## Resolved questions", 1)[0]
-    d54 = [line for line in made.splitlines() if line.startswith("| D-54 |")]
-    assert len(d54) == 1
-    assert d54[0].startswith("| D-54 | Oct 13 |")
-    assert "The team agreed in the group chat." in d54[0]
-    if "## Proposed decisions awaiting team approval" in decisions:
-        proposed = decisions.split("## Proposed decisions awaiting team approval", 1)[1]
-        assert "| D-54 |" not in proposed
+        for column in columns(name):
+            for word in [
+                "overdue",
+                "delay",
+                "stalled",
+                "fair",
+                "adequa",
+                "connectivity",
+            ]:
+                assert word not in column, (name, column)
 
 
-def exploratory_code(name):
-    return squash(without_comments(view_sql(name)))
+def test_15_province_comes_from_the_governed_gold_key_only():
+    code = without_comments(sql(VIEWS))
+    # never the raw dpwh location field, and no province name or code is written in analytics
+    assert "location" not in code.lower()
+    assert not re.search(
+        r"(?:reporting_area_name|geography_name|psgc_code|psgc_reporting_area_code)\s*(?:=|IN)\s*\(?'",
+        code,
+    )
+    assert not re.search(r"'\d{10}'", code)
+    for name in [
+        "analytics_investment_distribution",
+        "analytics_implementation_monitoring",
+        "analytics_infrastructure_network",
+        "analytics_integration_coverage",
+    ]:
+        assert "fact.reporting_area_key" in view_code(name), name
+    for name in PROJECT_VIEWS:
+        assert "reporting_area_key" in columns(name), name
+    assert "region_province_hierarchy_status" in columns(
+        "analytics_infrastructure_network"
+    )
+    text = markdown(VIEWS)
+    assert "DPWH `location.province` never decides it." in text
+    assert "Never derive region totals by adding reporting areas." in text
 
 
-def test_17_official_q1_to_q6_views_are_unchanged():
-    # the exploratory work adds views and never edits the six official ones
-    for name, digest in OFFICIAL_VIEW_SHA256.items():
-        assert hashlib.sha256(view_sql(name).encode("utf-8")).hexdigest() == digest, (
-            name
-        )
-
-
-def test_18_exploratory_views_are_labeled_and_cite_their_decision():
-    for name in EXPLORATORY_VIEWS:
-        comment = view_sql(name).split("\n)\nCOMMENT '", 1)[1]
-        assert comment.startswith("Exploratory "), name
-        assert "(D-54)" in comment.split(". ", 1)[0], name
-    header = cell_sources(VIEWS, "markdown")[0]
-    assert "6 official business-question views" in header
-    assert "5 exploratory monitoring views" in header
-
-
-def test_19_infra_year_is_a_cohort_in_the_current_snapshot():
-    for name in COHORT_VIEWS:
-        comment = view_sql(name).split("\n)\nCOMMENT '", 1)[1]
-        assert "infra_year is a project cohort in the current snapshot" in comment, name
-        assert "not a historical snapshot of the DPWH portfolio" in comment, name
+def test_16_infra_year_is_a_cohort_in_the_current_snapshot():
+    for name in [
+        "analytics_investment_distribution",
+        "analytics_implementation_monitoring",
+        "analytics_infrastructure_network",
+    ]:
         year = [
             line
             for line in column_list(name).splitlines()
             if line.startswith("    infra_year ")
         ]
         assert len(year) == 1, name
-        assert (
-            "A project cohort in the current snapshot, not a past state" in year[0]
-        ), name
-    assert "How did DPWH perform in 2016?" not in markdown(VIEWS).replace(
-        'They cannot answer "how did DPWH perform in 2016?"', ""
+        assert "cohort" in year[0], name
+    first = view_code("analytics_investment_distribution")
+    # no year filter and no placeholder year, so a null year keeps its own row
+    assert "infra_year IS NOT NULL" not in first
+    assert not re.search(r"\b20[12]\d\b", first)
+    assert "WHEN cohort.infra_year IS NULL THEN 'NO_INFRA_YEAR'" in first
+    assert (
+        "infra_year is a project cohort in the current snapshot, not a historical snapshot"
+        in view_comment("analytics_investment_distribution")
+    )
+    assert 'never "DPWH investment in 2018"' in markdown(VIEWS)
+
+
+def test_17_investment_distribution_ranks_only_reported_members_within_a_level():
+    code = view_code("analytics_investment_distribution")
+    for recipe in [
+        "WHEN COALESCE(totals.geography_project_count, 0) = 0 THEN 'NO_MAPPED_PROJECT_DATA'",
+        "WHEN member.is_barmm THEN 'LIMITED_SOURCE_COVERAGE'",
+        "WHEN ranked_cohorts.source_coverage_status = 'REPORTED' THEN ranked_cohorts.cohort_budget_rank_in_status",
+        "PARTITION BY geography_level, source_coverage_status ORDER BY geography_budget_pesos DESC NULLS LAST",
+        "PARTITION BY geography_level, infra_year, source_coverage_status ORDER BY total_reported_budget_pesos DESC NULLS LAST",
+        # a missing budget stays null, never 0
+        "totals.geography_budget_pesos,",
+        "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW",
+        "SUM(total_reported_budget_pesos) OVER (PARTITION BY geography_level, infra_year) AS cohort_budget_pesos",
+        "SUM(geography_budget_pesos) OVER (PARTITION BY geography_level) AS level_budget_pesos",
+    ]:
+        assert recipe in code, recipe
+    assert "COALESCE(totals.geography_budget_pesos" not in code
+    assert "COALESCE(cohort.total_reported_budget_pesos" not in code
+    # every share and rank window is inside one level, so the levels never mix
+    for window in re.findall(r"OVER \(([^)]*)\)", code):
+        if "PARTITION BY" in window:
+            assert "geography_level" in window or "reporting_area_key" in window, window
+    assert (
+        "geography_level COMMENT 'REGION for an official PSGC region or REPORTING_AREA"
+        in column_list("analytics_investment_distribution")
     )
 
 
-def test_20_null_infra_year_keeps_its_own_row():
-    for name in COHORT_VIEWS:
-        code = exploratory_code(name)
-        # no year filter, no placeholder year, and a left join so no project drops out
-        assert "infra_year IS NOT NULL" not in code, name
-        assert not re.search(r"infra_year (?:BETWEEN|>|<|>=|<=|IN) ", code), name
-        assert "COALESCE(project.infra_year" not in code, name
-        assert not re.search(r"\b20[12]\d\b", code), name
-        assert "LEFT JOIN `03-gold`.dim_project AS project" in code, name
-        assert "project.infra_year," in code, name
+def test_18_population_equity_uses_one_comparable_set_and_no_fairness_flag():
+    code = view_code("analytics_population_equity")
+    for recipe in [
+        "WHEN area.source_coverage_status <> 'REPORTED' THEN 'EXCLUDED_SOURCE_COVERAGE'",
+        "WHEN area.geography_budget_pesos IS NULL THEN 'EXCLUDED_NO_REPORTED_BUDGET'",
+        "WHEN population.population_count IS NULL THEN 'EXCLUDED_NO_POPULATION'",
+        "CASE WHEN equity_comparison_status = 'COMPARABLE' THEN total_reported_budget_pesos END AS comparable_budget_pesos",
+        "CASE WHEN equity_comparison_status = 'COMPARABLE' THEN population_count END AS comparable_population",
+        "investment_share_pct - comparable_population_share_pct AS share_gap_pp",
+        "FROM `03-gold`.fact_province_reporting_area_population WHERE is_primary_source = TRUE AND reporting_area_key <> 0",
+        "QUALIFY reference_year = MAX(reference_year) OVER ()",
+        "FROM `05-analytics`.analytics_investment_distribution WHERE geography_level = 'REPORTING_AREA'",
+    ]:
+        assert recipe in code, recipe
+    assert "fact_region_population" not in code
+    assert "screening indicator, not a verdict on fairness" in markdown(VIEWS)
+    # no threshold invents a "substantially different" flag
+    assert not [
+        column for column in columns("analytics_population_equity") if "flag" in column
+    ]
 
 
-def test_21_year_sector_share_divides_by_the_same_year():
-    code = exploratory_code("analytics_infrastructure_year_sector")
+def test_19_flood_alignment_reuses_the_gold_flood_result():
+    code = view_code("analytics_flood_alignment")
     assert (
-        "ROUND( 100.0 * total_reported_budget_pesos / NULLIF(SUM(total_reported_budget_pesos) "
-        "OVER (PARTITION BY infra_year), 0), 4 ) AS share_of_year_budget_pct"
-    ) in code
-    # no share of a sector across years until a denominator is approved
-    columns = [
-        line.split()[0]
-        for line in column_list("analytics_infrastructure_year_sector").splitlines()
-    ]
-    assert "share_of_sector_budget_pct" not in columns
-    # the strict flood sector, so is_dpwh_flood_related is not read here
-    assert "is_dpwh_flood_related" not in code
-
-
-def test_22_long_running_rate_uses_the_q3_evaluated_denominator():
-    q3 = exploratory_code("analytics_project_delivery_status")
-    rules = [
-        "COUNT(fact.long_running_flag) AS long_running_evaluated_count",
-        "COUNT_IF(fact.long_running_flag = TRUE) AS long_running_count",
-        "ROUND(100.0 * long_running_count / NULLIF(long_running_evaluated_count, 0), 2) AS pct_long_running",
-    ]
-    for rule in rules:
-        assert rule in q3, rule
-    for name in [
-        "analytics_infrastructure_year_trend",
-        "analytics_delivery_cohort",
-        "analytics_implementing_office_portfolio",
-    ]:
-        code = exploratory_code(name)
-        for rule in rules:
-            assert rule in code, (name, rule)
-        assert "Long-running does not mean delayed." in view_sql(name), name
-
-
-def test_23_zero_progress_rate_uses_the_q3_denominator_and_discloses_for_procurement():
-    rules = [
-        "COUNT(fact.zero_progress_flag) AS zero_progress_evaluated_count",
-        "COUNT_IF(fact.zero_progress_flag = TRUE) AS zero_progress_count",
-        "ROUND(100.0 * zero_progress_count / NULLIF(zero_progress_evaluated_count, 0), 2) AS pct_zero_progress",
-    ]
-    for name in [
-        "analytics_infrastructure_year_trend",
-        "analytics_delivery_cohort",
-        "analytics_implementing_office_portfolio",
-    ]:
-        code = exploratory_code(name)
-        for rule in rules:
-            assert rule in code, (name, rule)
-        rate = [
-            line
-            for line in column_list(name).splitlines()
-            if line.startswith("    pct_zero_progress ")
-        ]
-        assert (
-            "so it includes For Procurement projects (D-46). Not a stalled rate."
-            in rate[0]
-        ), name
-    # the two cohort views also count for procurement projects, from the source status
-    for name in ["analytics_infrastructure_year_trend", "analytics_delivery_cohort"]:
-        code = exploratory_code(name)
-        assert (
-            "COUNT(DISTINCT CASE WHEN status.source_status = 'For Procurement' THEN fact.project_key END) "
-            "AS for_procurement_count"
-        ) in code, name
-        assert "for_procurement_count COMMENT" in column_list(name), name
-    for name in EXPLORATORY_VIEWS:
-        assert "stalled_flag" not in view_sql(name), name
-
-
-def test_24_trend_status_counts_use_the_approved_groups():
-    code = exploratory_code("analytics_infrastructure_year_trend")
-    for group, column in [
-        ("FINISHED", "finished_count"),
-        ("ACTIVE", "active_count"),
-        ("INACTIVE", "inactive_count"),
-    ]:
-        assert (
-            f"COUNT(DISTINCT CASE WHEN status.status_group = '{group}' THEN fact.project_key END) AS {column}"
-        ) in code
+        "WHEN fact.flood_match_status = 'MATCHED' THEN level.flood_susceptibility_level"
+        in code
+    )
     assert (
-        "COUNT(DISTINCT CASE WHEN status.status_group IS NULL THEN fact.project_key END) AS unmapped_status_count"
-    ) in code
-    for name in EXPLORATORY_VIEWS:
-        assert not re.search(
-            r"'(?:Completed|Ongoing|Delayed)'", without_comments(view_sql(name))
-        ), name
-    # the cohort view gives an unresolved status the q3 reason
-    q3_reason = (
+        "('AMBIGUOUS'), ('OUTSIDE_MAPPED_ZONES'), ('NO_USABLE_POINT'), ('INVALID_SOURCE')"
+        in code
+    )
+    # areas come from the newest exposure run and fill only level rows
+    assert (
+        "QUALIFY ROW_NUMBER() OVER (ORDER BY source_load_ts DESC, run_id) = 1" in code
+    )
+    assert "AND point_class.flood_point_class = exposure.flood_point_class" in code
+    # a region with no mapped project keeps null project figures, never 0
+    assert (
+        "WHEN region.source_coverage_status <> 'NO_MAPPED_PROJECT_DATA' THEN COALESCE(totals.project_count, 0)"
+        in code
+    )
+    assert "COALESCE(totals.total_reported_budget_pesos" not in code
+    assert "OUTSIDE_MAPPED_ZONES is not low risk" in column_list(
+        "analytics_flood_alignment"
+    )
+
+
+def test_20_shared_rules_are_written_the_same_in_every_view():
+    flood = (
+        "WHEN fact.flood_match_status = 'UNMATCHED' AND fact.coordinate_status = 'VALID_PAIR' "
+        "THEN 'OUTSIDE_MAPPED_ZONES' WHEN fact.flood_match_status = 'UNMATCHED' THEN 'NO_USABLE_POINT' "
+        "ELSE fact.flood_match_status END"
+    )
+    for name in [
+        "analytics_flood_alignment",
+        "analytics_infrastructure_network",
+        "analytics_integration_coverage",
+    ]:
+        assert flood in view_code(name), name
+    status = (
         "CASE WHEN fact.status_key = 0 THEN 'NO_SOURCE_STATUS' WHEN status.status_group IS NULL "
         "THEN 'NO_APPROVED_STATUS_RULE' ELSE 'MAPPED' END AS status_mapping_status"
     )
-    assert q3_reason in exploratory_code("analytics_project_delivery_status")
-    assert q3_reason in exploratory_code("analytics_delivery_cohort")
-    assert (
-        "ROUND( 100.0 * project_count / NULLIF(SUM(project_count) OVER (PARTITION BY infra_year), 0), 2 ) "
-        "AS pct_of_year_projects"
-    ) in exploratory_code("analytics_delivery_cohort")
+    for name in PROJECT_VIEWS + ["analytics_integration_coverage"]:
+        assert status in view_code(name), name
 
 
-def test_25_size_view_leaves_region_key_zero_out_and_takes_regions_from_q1():
-    code = exploratory_code("analytics_project_size_concentration")
-    assert "WHERE is_current_snapshot = TRUE AND region_key <> 0" in code
-    assert "FROM `05-analytics`.analytics_regional_investment AS region" in code
+def test_21_implementation_monitoring_keeps_states_apart_and_builds_no_overdue():
+    code = view_code("analytics_implementation_monitoring")
+    for recipe in [
+        "status.source_status <=> 'For Procurement' AS is_for_procurement",
+        "WHEN fact.physical_progress_pct IS NULL THEN 'NOT_PUBLISHED'",
+        "WHEN fact.physical_progress_pct = 0 THEN 'ZERO'",
+        "status_group = 'ACTIVE' AND NOT is_for_procurement AND zero_progress_flag, FALSE",
+        "COALESCE(status_group = 'ACTIVE' AND long_running_flag, FALSE) AS review_active_long_running",
+        "status_group = 'ACTIVE' AND NOT is_for_procurement AND physical_progress_pct IS NULL, FALSE",
+        "COALESCE(status_group = 'INACTIVE', FALSE) AS review_inactive_status",
+        "status_group IS NULL AS review_unresolved_status",
+    ]:
+        assert recipe in code, recipe
+    names = columns("analytics_implementation_monitoring")
     for column in [
-        "source_coverage_status",
-        "project_count",
-        "total_reported_budget_pesos",
+        "zero_progress_flag",
+        "long_running_flag",
+        "physical_progress_pct",
+        "needs_review",
     ]:
-        assert f"region.{column}," in code, column
-    # no budget bands: no threshold literal compares a budget
-    assert not re.search(r"reported_budget_pesos\s*(?:<|>|BETWEEN)", code)
+        assert column in names, column
+    # the long-running rule is gold's. no view sets its own threshold or reads today's date
+    lowered = code.lower()
+    for token in ["months_between", "current_date", "now()", "datediff"]:
+        assert token not in lowered, token
+    assert "**Overdue is not built.**" in markdown(VIEWS)
 
 
-def test_26_median_and_p90_use_only_known_reported_budgets():
-    for name, cuts in [
-        ("analytics_project_size_concentration", ["0.5", "0.9"]),
-        ("analytics_implementing_office_portfolio", ["0.5"]),
-    ]:
-        code = exploratory_code(name)
-        for cut in cuts:
-            assert f"PERCENTILE_CONT({cut}) WITHIN GROUP (ORDER BY " in code, (
-                name,
-                cut,
-            )
-        # an aggregate skips null budgets, so nothing may turn a null into 0 first
-        assert "COALESCE(fact.reported_budget_pesos" not in code, name
-        assert "COALESCE(reported_budget_pesos" not in code, name
-        lowered = code.lower()
-        for approximate in [
-            "percentile_approx",
-            "approx_percentile",
-            "approx_count_distinct",
-        ]:
-            assert approximate not in lowered, (name, approximate)
-    size = exploratory_code("analytics_project_size_concentration")
-    assert "COUNT_IF(reported_budget_pesos = 0) AS projects_with_zero_budget" in size
-
-
-def test_27_null_implementing_office_stays_visible_with_no_rank():
-    code = exploratory_code("analytics_implementing_office_portfolio")
+def test_22_infrastructure_network_is_lightweight_and_claims_no_connectivity():
+    code = view_code("analytics_infrastructure_network")
+    assert "fact.coordinate_status <=> 'VALID_PAIR' AS is_mappable" in code
     assert (
-        "implementing_office IS NOT NULL THEN project_count_rank_in_group END AS project_count_rank"
+        "CASE WHEN fact.coordinate_status <=> 'VALID_PAIR' THEN FLOOR(fact.latitude * 10) / 10 END AS map_grid_latitude"
         in code
     )
-    assert (
-        "implementing_office IS NOT NULL THEN budget_rank_in_group END AS budget_rank"
-        in code
-    )
-    assert "WHERE project.implementing_office IS NOT NULL" not in code
-    assert "COALESCE(project.implementing_office" not in code
-    assert "LEFT JOIN `03-gold`.dim_project AS project" in code
-    # ties share a rank
-    assert (
-        "RANK() OVER ( PARTITION BY implementing_office IS NULL ORDER BY project_count DESC )"
-        in code
-    )
-    assert not re.search(
-        r"'(?:Missing|Conflict|No office)'",
-        without_comments(view_sql("analytics_implementing_office_portfolio")),
+    lowered = code.lower()
+    assert "cross join `03-gold`.fact_project_snapshot" not in lowered
+    assert not re.search(r"\bst_\w+\(", lowered)
+    # one fact read, joined to its dimensions once
+    assert code.count("FROM `03-gold`.fact_project_snapshot") == 2
+    assert "It cannot show network connectivity" in view_comment(
+        "analytics_infrastructure_network"
     )
 
 
-def test_28_every_exploratory_view_publishes_the_current_snapshot():
-    snapshot = (
-        "current_snapshot AS ( SELECT MAX(source_snapshot_id) AS source_snapshot_id "
-        "FROM `03-gold`.fact_project_snapshot WHERE is_current_snapshot = TRUE )"
-    )
-    for name in EXPLORATORY_VIEWS:
-        code = exploratory_code(name)
-        if name == "analytics_project_size_concentration":
-            # its snapshot comes from q1, which reads the same current snapshot
-            assert (
-                "region.source_snapshot_id FROM `05-analytics`.analytics_regional_investment"
-                in code
-            )
-            continue
-        assert snapshot in code, name
-        assert "current_snapshot.source_snapshot_id" in code, name
+def test_23_integration_coverage_has_every_documented_link_once():
+    code = view_code("analytics_integration_coverage")
+    links = re.findall(r"'integration_link', '(\w+)'", code)
+    assert links == [
+        "PSGC_REGION",
+        "PSGC_REPORTING_AREA",
+        "REGION_PROVINCE_HIERARCHY",
+        "COORDINATES",
+        "POPULATION_VIA_REGION",
+        "POPULATION_VIA_REPORTING_AREA",
+        "FLOOD_SUSCEPTIBILITY",
+        "PROJECT_CATEGORY",
+        "PROJECT_STATUS",
+        "REPORTED_BUDGET",
+        "OFFICIAL_FLOOD_LIST",
+    ]
+    for link in links:
+        assert f"WHEN '{link}' THEN '" in code, link
+    # a missing budget is summed as null, never as 0
+    assert "SUM(reported_budget_pesos) AS reported_budget_pesos" in code
+    assert "COALESCE(projects.reported_budget_pesos" not in code
+    assert "LEFT JOIN `03-gold`.dim_region AS region" in code
+
+
+def test_24_budget_is_never_coalesced_to_zero():
+    for name in VIEW_GRAINS:
+        code = view_code(name)
+        assert not re.search(r"COALESCE\([\w.]*reported_budget_pesos, 0\)", code), name
+        assert not re.search(r"COALESCE\([\w.]*budget_pesos, 0\)", code), name
+
+
+def test_25_docs_describe_the_six_views():
+    readme = VIEWS_README.read_text(encoding="utf-8")
+    for name in VIEW_GRAINS:
+        assert f"`{name}`" in readme, name
+    assert readme.index("09_validation_gold") < readme.index("01_business_questions")
+    assert "02_regional_project_progress" not in readme
+    decisions = DECISIONS.read_text(encoding="utf-8")
+    assert "| D-56 |" in decisions
+    # d-56 waits for team approval, so it is proposed and not recorded as made
+    made = decisions.split("## Made", 1)[1].split("## Resolved questions", 1)[0]
+    assert "| D-56 |" not in made
+    # d-55 is withdrawn, not silently deleted
+    assert "| D-55 |" in decisions.split("## Withdrawn proposals", 1)[1]

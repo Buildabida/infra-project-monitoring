@@ -328,7 +328,7 @@ budget do not change, but it does not publish a mapping table or claim that a
 candidate is approved.
 
 See [province reporting readiness](../docs/province_reporting_readiness.md) for
-the options, proposed D-55 text, required evidence, blockers, and execution
+the options, proposed D-57 text, required evidence, blockers, and execution
 checklist.
 
 ### Regional flood exposure
@@ -441,12 +441,14 @@ Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01
 
 ## Build the analytics views
 
-Analytics notebooks live in `05_analytics`. After `09_validation_gold` passes, run:
+Analytics lives in one notebook, `05_analytics/01_business_questions.ipynb`. After `09_validation_gold` passes, run:
 
-1. `05_analytics/01_business_questions.ipynb` stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, and eleven persisted views. Six are official views, one per business question. Five are exploratory monitoring views (D-54). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
-2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. Then it rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, drops the retired views, and builds six persisted views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. It also stops unless the latest province Gold validation passed. Then it proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
 
-The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).
+The retired regional progress notebooks (`02_regional_project_progress` and `11_validation_regional_project_progress`, D-55) are removed. Their one-snapshot run stays as [retired evidence](../docs/evidence/regional-project-progress/README.md).
+
+The dashboard and Genie read only these six views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
 
 ## Validation connection
 
@@ -539,7 +541,7 @@ A seventh CSV source needs one source contract and one documented notebook.
 It also needs source-specific validation and focused tests. This structure avoids
 copying ingestion logic or introducing an enterprise framework.
 
-## D-55 production rerun order
+## D-57 production rerun order
 
 The bundle file does not define a Databricks job DAG, so `databricks.yml` is
 unchanged. Run the files in this dependency order. Stop immediately after any
@@ -590,17 +592,16 @@ no reporting-area Analytics task may bypass Gold validation.
 41. `04_validation/09a_validation_gold_province_reporting.ipynb`
 42. `05_analytics/01_business_questions.ipynb`
 43. `04_validation/10_validation_analytics.ipynb`
-44. `04_validation/10a_validation_provincial_analytics.ipynb`
-45. `04_validation/11_publish_acceptance_evidence.sql`
+44. `04_validation/11_publish_acceptance_evidence.sql`
 
-Step 45 is the compact PR evidence publisher. It materializes the latest D-55
+Step 44 is the compact PR evidence publisher. It materializes the latest D-57
 Silver, Gold, and Analytics checks, project and reported-budget coverage,
 mapping-method totals, separate NCR, independent-city, and BARMM totals,
 population coverage and exclusions, selected versions, and a mapping-identity
 checksum. Its outputs do not reinterpret or remap any project.
 
-For exact-rerun evidence, run step 45 once, rerun steps 22 and 23 with unchanged
-inputs, and then run step 45 again. The final `exact_rerun_status` must be
+For exact-rerun evidence, run step 44 once, rerun steps 22 and 23 with unchanged
+inputs, and then run step 44 again. The final `exact_rerun_status` must be
 `PASS`. `RERUN_REQUIRED` is expected after the first evidence capture.
 
 Province flood exposure has no task in this order. It is deferred until a
@@ -608,12 +609,12 @@ separate Databricks feasibility run proves that the reporting-area boundary and
 MGB intersection is safe and affordable. Regional flood tasks remain required
 for the unchanged regional model and existing Analytics.
 
-Expected D-55 outcomes are persisted PASS rows for every STOP check, with FLAG
+Expected D-57 outcomes are persisted PASS rows for every STOP check, with FLAG
 rows allowed for real coverage limitations. Capture mapped and unmapped project
 and budget coverage, mappings by method, conflicts, ambiguity, missing
 coordinates, NCR, independent-city, BARMM, population coverage, excluded
 population, selected versions, and exact-rerun identities. Do not claim runtime
-approval until all three D-55 validators have executed and their saved evidence
+approval until `03b`, `09a`, and `10_validation_analytics` have executed and their saved evidence
 passes. The evidence publisher must also show no blocking failures. A claim of
 exact-rerun stability requires two captures with the same project-map run ID
 and mapping-identity checksum.

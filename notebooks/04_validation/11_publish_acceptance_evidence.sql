@@ -1,8 +1,9 @@
 -- Databricks notebook source
 -- MAGIC %md
--- MAGIC # D-55 province-reporting acceptance evidence
+-- MAGIC # D-57 province-reporting acceptance evidence
 -- MAGIC
--- MAGIC Run this notebook after the Silver, Gold, and Analytics D-55 validators.
+-- MAGIC Run this notebook after `03b_validation_silver_province_reporting`,
+-- MAGIC `09a_validation_gold_province_reporting`, and `10_validation_analytics`.
 -- MAGIC It publishes the latest blocking-check evidence, project and budget coverage,
 -- MAGIC mapping-method totals, special-geography totals, population coverage, selected
 -- MAGIC versions, and a repeatable mapping-identity capture.
@@ -21,14 +22,14 @@ CREATE SCHEMA IF NOT EXISTS `04-validation`;
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Latest D-55 validation results
+-- MAGIC ## Latest D-57 validation results
 
 -- COMMAND ----------
 
 CREATE OR REPLACE TABLE
     `04-validation`.province_reporting_acceptance_evidence
 USING DELTA
-COMMENT 'Latest Silver, Gold, and Analytics blocking-check evidence for D-55 province reporting.'
+COMMENT 'Latest Silver, Gold, and Analytics blocking-check evidence for D-57 province reporting.'
 AS
 WITH combined_evidence AS (
     SELECT
@@ -48,7 +49,7 @@ WITH combined_evidence AS (
         details,
         run_ts
     FROM `04-validation`.silver_dq_results
-    WHERE rule_version = 'silver-province-reporting-validation-v1'
+    WHERE rule_version = 'silver-province-reporting-validation-v2'
 
     UNION ALL
 
@@ -69,7 +70,7 @@ WITH combined_evidence AS (
         details,
         run_ts
     FROM `04-validation`.gold_dq_results
-    WHERE rule_version = 'gold-province-reporting-validation-v1'
+    WHERE rule_version = 'gold-province-reporting-validation-v2'
 
     UNION ALL
 
@@ -90,7 +91,7 @@ WITH combined_evidence AS (
         details,
         run_ts
     FROM `04-validation`.analytics_dq_results
-    WHERE rule_version = 'province-reporting-analytics-validation-v1'
+    WHERE rule_version = 'analytics-validation-v4'
 ),
 ranked_evidence AS (
     SELECT
@@ -127,7 +128,7 @@ SELECT ASSERT_TRUE(
     AND COUNT(DISTINCT layer) = 3
     AND COUNT_IF(action = 'stop' AND status = 'FAIL') = 0,
     CONCAT(
-        'D-55 acceptance failed: ',
+        'D-57 acceptance failed: ',
         COUNT_IF(action = 'stop' AND status = 'FAIL'),
         ' blocking failures across ',
         COUNT(DISTINCT layer),
@@ -331,7 +332,7 @@ CREATE TABLE IF NOT EXISTS
         mapping_identity_checksum BIGINT
     )
 USING DELTA
-COMMENT 'Append-only D-55 coverage and deterministic rerun evidence captures.';
+COMMENT 'Append-only D-57 coverage and deterministic rerun evidence captures.';
 
 INSERT INTO `04-validation`.province_reporting_acceptance_runs
 SELECT
@@ -350,7 +351,7 @@ FROM province_reporting_current_acceptance_metrics AS metrics;
 CREATE OR REPLACE TABLE
     `04-validation`.province_reporting_acceptance_mapping_methods
 USING DELTA
-COMMENT 'Current D-55 project counts and budgets by governed mapping outcome.'
+COMMENT 'Current D-57 project counts and budgets by governed mapping outcome.'
 AS
 WITH latest_capture AS (
     SELECT capture_id, captured_at

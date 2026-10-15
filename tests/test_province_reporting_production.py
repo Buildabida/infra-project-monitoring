@@ -20,9 +20,7 @@ GOLD_VALIDATION = (
     ROOT / "notebooks/04_validation/09a_validation_gold_province_reporting.ipynb"
 )
 ANALYTICS = ROOT / "notebooks/05_analytics/01_business_questions.ipynb"
-ANALYTICS_VALIDATION = (
-    ROOT / "notebooks/04_validation/10a_validation_provincial_analytics.ipynb"
-)
+ANALYTICS_VALIDATION = ROOT / "notebooks/04_validation/10_validation_analytics.ipynb"
 ACCEPTANCE_EVIDENCE = (
     ROOT / "notebooks/04_validation/11_publish_acceptance_evidence.sql"
 )
@@ -211,8 +209,9 @@ def test_gold_schema_adds_reporting_area_without_removing_region():
     assert "selected.province_map_run_id" in project
 
 
-def test_five_reporting_area_views_have_required_reconciliation_denominators():
+def test_six_views_read_province_only_from_the_governed_gold_key():
     analytics = sql(ANALYTICS)
+    # d-56 keeps exactly six views. the first province views are retired, not rebuilt
     for view in [
         "analytics_reporting_area_investment",
         "analytics_reporting_area_category",
@@ -220,18 +219,15 @@ def test_five_reporting_area_views_have_required_reconciliation_denominators():
         "analytics_reporting_area_population_equity",
         "analytics_reporting_area_project_size_concentration",
     ]:
-        assert f"CREATE OR REPLACE VIEW `05-analytics`.{view}" in analytics
-    investment = analytics.split("analytics_reporting_area_investment AS", 1)[1].split(
-        "COMMENT ON VIEW", 1
-    )[0]
-    assert "WHERE reporting_area_key <> 0" not in investment
-    assert "SUM(total_reported_budget_pesos) OVER ()" in analytics
-    assert "PARTITION BY reporting_area_key" in analytics
-    assert "PARTITION BY standardized_sector" in analytics
-    assert "is_comparable_area" in analytics
-    assert "excluded_reporting_area_count" in analytics
-    assert "PERCENTILE_CONT(0.5)" in analytics
-    assert "PERCENTILE_CONT(0.9)" in analytics
+        assert f"CREATE OR REPLACE VIEW `05-analytics`.{view}" not in analytics
+        assert f"DROP VIEW IF EXISTS `05-analytics`.{view};" in analytics
+    assert analytics.count("CREATE OR REPLACE VIEW `05-analytics`.") == 6
+    assert "reporting_area_key AS geography_key" in analytics
+    assert "FROM `03-gold`.fact_province_reporting_area_population" in analytics
+    assert "location" not in analytics.lower()
+    assert not (
+        ROOT / "notebooks/04_validation/10a_validation_provincial_analytics.ipynb"
+    ).exists()
 
 
 def test_validators_persist_evidence_before_stop_gates():
@@ -249,7 +245,23 @@ def test_validators_persist_evidence_before_stop_gates():
     assert "reported budget total equals canonical Silver projects" in sql(
         GOLD_VALIDATION
     )
-    assert "mapped plus Unknown budget equals current Gold" in sql(ANALYTICS_VALIDATION)
+    assert "Each level plus key 0 adds up to every current project and budget" in sql(
+        ANALYTICS_VALIDATION
+    )
+    for added in [
+        "contributing Table C rows are counted once",
+        "every reporting area has one official parent region",
+        "region minus reporting-area population equals unresolved population",
+    ]:
+        assert added in sql(SILVER_VALIDATION), added
+    for added in [
+        "PSGC reporting area code is unique per PSGC version",
+        "parent region key exists in dim_region",
+        "reporting area key 0 holds exactly the unresolved and non-geographic projects",
+        "project region differs from the parent region of its reporting area",
+        "region minus reporting-area population equals unresolved population",
+    ]:
+        assert added in sql(GOLD_VALIDATION), added
 
 
 def test_acceptance_evidence_publishes_coverage_and_exact_rerun_identity():

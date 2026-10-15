@@ -482,7 +482,7 @@ responsible for surrogate `region_key` values and population-ratio exclusions.
 This milestone does not implement project-flood mapping, regional flood
 exposure, Gold facts or dimensions, dashboard assets, or Genie logic.
 
-## Relationship to D-55 reporting areas
+## Relationship to D-57 reporting areas
 
 The regional mapping remains the parent-geography contract and is not replaced.
 `silver_project_province_map` adds a separate reporting-area result at one row

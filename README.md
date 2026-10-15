@@ -16,7 +16,9 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 > Silver configuration, geography and population, DPWH project foundation,
 > flood-list source reconciliation, project-region mapping, regional flood-exposure,
 > and project-flood mapping outputs are implemented.
-> The six Gold dimensions are implemented. The three Gold facts are implemented. Gold validation remains planned.
+> The six Gold dimensions are implemented. The three Gold facts are implemented. `09_validation_gold` validates them.
+> The Analytics layer is being rebuilt as six views, one per capstone insight (proposed D-56).
+> The six-view design has not run on Databricks yet.
 
 ## Why we built it
 
@@ -32,13 +34,16 @@ Our brief asks one main question:
 In simple terms, we want to know where funding goes and what it supports.
 We also compare investment with population and infrastructure-need indicators.
 
-These supporting questions guide the analysis:
+The dashboard tells six stories, one per Analytics view:
 
-1. How much reported project budget goes to each region and province?
-2. Which projects are ongoing, inactive, long-running, or showing no progress?
-3. How do reported budget and physical progress compare?
-4. How does flood-control investment compare with other project categories?
-5. Which places have high population or flood exposure but relatively low reported investment?
+1. Where does the money go?
+2. Are investments proportional to population?
+3. Do flood-control investments overlap with flood-prone areas?
+4. Which projects need a closer look?
+5. Are we seeing projects or a connected infrastructure network?
+6. What can we see only after connecting the datasets?
+
+The analysis reports regions and governed province reporting areas (D-57). See [Province reporting-area extension](#province-reporting-area-extension).
 
 ## Who it is for
 
@@ -53,10 +58,12 @@ flowchart LR
     S["R2 source snapshots<br>six CSV datasets"]:::src --> B["bronze"]:::bronze
     B --> SV["silver"]:::silver
     SV --> G["gold"]:::gold
-    G --> D["Dashboard and Genie"]:::dash
+    G --> A["analytics<br>six views"]:::gold
+    A --> D["Dashboard and Genie"]:::dash
     B -. "Bronze checks" .-> V["validation"]:::val
     SV -. "Silver checks" .-> V
     G -. "Gold checks" .-> V
+    A -. "Analytics checks" .-> V
     classDef src fill:#D7E8FF,stroke:#2B2A4C,color:#2B2A4C
     classDef bronze fill:#FFDCC8,stroke:#2B2A4C,color:#2B2A4C
     classDef silver fill:#D2F4E4,stroke:#2B2A4C,color:#2B2A4C
@@ -73,8 +80,9 @@ The numbers show the pipeline order.
 | `00-source` | Cloudflare R2 snapshots exposed through a Unity Catalog volume |
 | `01-bronze` | Selected raw source snapshots with technical lineage |
 | `02-silver` | Cleaned, standardized, reconciled, and geographically matched data |
-| `03-gold` | Analytical facts and dimensions for the dashboard and Genie |
+| `03-gold` | Analytical facts and dimensions |
 | `04-validation` | Data-quality and pipeline-validation results |
+| `05-analytics` | Six views, one per capstone insight, that the dashboard and Genie read |
 
 Python preserves six selected source snapshots in `01-bronze`.
 Grouped Spark checks write Bronze results to `04-validation`.
@@ -100,9 +108,11 @@ geographic precedence, budget protection, lineage, and retained source-quality
 findings. It also checks flood-exposure area, CRS, and overlap.
 For project-flood mapping, it independently recomputes every project's MGB candidates.
 
-Gold dimensions and facts are implemented. Gold validation remains planned.
+Gold dimensions and facts are implemented, and `09_validation_gold` checks them.
 See the [Gold model](docs/gold_model.md).
-Gold owns the analytical models used by the dashboard and Genie.
+Six thin Analytics views read Gold only, one per capstone insight.
+See [Analytics views](notebooks/05_analytics/README.md) and the
+[dashboard build specification](dashboard/dashboard_spec.md).
 
 ## Quickstart
 
@@ -202,6 +212,7 @@ Three important source rules apply:
 - **Run it:** [quickstart](#quickstart), [notebooks guide](notebooks/README.md), and [VS Code setup](docs/vscode-setup.md)
 - **Look something up:** [data model](docs/data-model.md), [validation](docs/validation.md), [Silver mappings](docs/silver_config_mappings.md), and [Silver geography and population](docs/silver_geography_population.md).
   Continue with [Silver project foundation](docs/silver_project_cleaning.md), [source reconciliation](docs/silver_source_reconciliation.md), [project-to-region mapping](docs/silver_project_region_mapping.md), [regional flood exposure](docs/silver_region_flood_exposure.md), [project flood mapping](docs/silver_project_flood_mapping.md), or the [style guide](docs/style-guide.md).
+- **Build the dashboard:** [Analytics views](notebooks/05_analytics/README.md) and the [dashboard build specification](dashboard/dashboard_spec.md)
 - **Review evidence:** [Bronze validation evidence](docs/evidence/bronze-r2/README.md)
 - **See why we chose something:** [decisions](docs/decisions.md)
 - **Contribute:** [how we work](CONTRIBUTING.md)
@@ -214,7 +225,7 @@ Three important source rules apply:
 ├── notebooks/         Databricks notebooks organized by pipeline step
 ├── src/               shared Python modules and their current or legacy status
 ├── docs/              model, validation, evidence, decisions, and guides
-├── dashboard/         dashboard artifacts
+├── dashboard/         dashboard build specification and exports
 ├── tests/             automated tests for shared code
 ├── resources/         Databricks job and bundle settings
 ├── assets/            repository images
@@ -252,7 +263,7 @@ We thank DPWH, PSA, BetterGov.ph, OCHA HDX, and FTW Foundation.
 
 ## Province reporting-area extension
 
-D-55 approves governed province reporting areas: official PSGC provinces,
+D-57 approves governed province reporting areas: official PSGC provinces,
 independent cities whose selected PSGC hierarchy has no province parent, NCR as
 one reporting area, and Unknown key `0`. Region remains the parent and the
 backward-compatible reconciliation geography.
@@ -260,12 +271,15 @@ backward-compatible reconciliation geography.
 Production notebooks now add the Silver reporting-area reference, boundary,
 Table C population aggregation, and one-row-per-project mapping; the Gold
 reporting-area dimensions and population fact; `reporting_area_key` on the
-project snapshot fact; five current-snapshot Analytics views; and layer-specific
-validation. DPWH `location.province` is evidence only. Matching is governed,
+project snapshot fact; province content in the six Analytics views (D-56); and
+layer-specific validation. DPWH `location.province` is evidence only. Matching is governed,
 exact, and fail-closed, with one longitude-first `ST_COVERS` fallback.
 
-Databricks runtime evidence passed for the recorded D-55 snapshot: 43 checks
-passed, five non-blocking coverage flags were retained, and no check failed.
+Databricks runtime evidence passed for the recorded D-57 snapshot on October 15:
+43 checks passed, five non-blocking coverage flags were retained, and no check
+failed. That run validated Silver, Gold, and five earlier province Analytics views
+that are now retired. The added v2 population and hierarchy checks and the
+province content of the six views have not run on Databricks yet.
 Project mapping coverage is 75.3267 percent and reported-budget coverage is
 83.6904 percent. Two exact-rerun captures retained the same mapping run ID and
 checksum. Province flood exposure remains deferred until selected boundaries
