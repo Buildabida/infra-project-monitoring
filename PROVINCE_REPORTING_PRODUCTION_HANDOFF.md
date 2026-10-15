@@ -118,10 +118,32 @@ Every STOP check should persist as `PASS`. Real limitations may persist as
 - selected PSGC, boundary, alias, manual, and rule versions;
 - an exact rerun showing unchanged deterministic keys and run IDs.
 
+`04_validation/11_publish_acceptance_evidence.sql` now produces these evidence
+sets directly. Run it once, rerun the project map and Silver province validator
+without changing inputs, then run the publisher again. The final
+`exact_rerun_status` must be `PASS`; the first capture correctly reports
+`RERUN_REQUIRED`.
+
+## Reviewed runtime evidence
+
+The October 15, 2026 Databricks export for source snapshot
+`metadata-6321c7aa6f2a14e12f4c` contained 48 D-55 checks: 43 `PASS`, five
+non-blocking Silver coverage `FLAG` rows, and zero `FAIL` rows. The evidence
+preserved 265,656 project rows and reconciled reported budgets through Silver,
+Gold, and Analytics. Project mapping resolved 200,110 projects and retained
+65,546 under Unknown. This is 75.3267 percent project coverage.
+
+The original export did not contain the expanded budget, method, special-area,
+population, or two-capture identity output. Run the new evidence publisher to
+capture those fields before describing the implementation as fully
+runtime-approved.
+
 ## Runtime limitations
 
-- No D-55 notebook has run in Databricks yet.
-- Coverage and row counts are therefore unknown in this package.
+- The core D-55 notebooks and validators have run, but the expanded evidence
+  publisher still needs its two-capture execution.
+- Project mapping coverage is 75.3267 percent in the reviewed snapshot. Unknown
+  remains necessary and must not be treated as a failed reconciliation.
 - Project PSGC evidence is unavailable in the current canonical source contract.
 - Boundary availability and compatibility are recorded per reporting area and
   may legitimately leave some coordinate matches unresolved.
@@ -191,7 +213,7 @@ remains the parent and backward-compatible reconciliation geography.
 
 ## Local verification
 
-- 502 Pytest tests passed
+- 503 Pytest tests passed
 - Ruff check and format check passed
 - SQLFluff passed
 - Markdownlint passed with 0 errors

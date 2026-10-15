@@ -1136,3 +1136,21 @@ and NULL preservation.
 All three validators `MERGE` evidence before their STOP gate. Their local tests
 prove contract text and ordering only. Databricks must execute them before the
 implementation is runtime-approved.
+
+### Province-reporting acceptance publication
+
+`11_publish_acceptance_evidence.sql` consolidates the latest D-55 rows from
+`silver_dq_results`, `gold_dq_results`, and `analytics_dq_results`. It publishes
+current mapped and unmapped project and budget coverage, mapping-method totals,
+NCR, independent-city, and BARMM totals, population coverage and exclusions,
+selected PSGC, boundary, configuration, and rule versions, and boundary
+availability.
+
+Each execution appends one compact record to
+`province_reporting_acceptance_runs`. The record includes the deterministic
+project-map run ID and a commutative checksum over the complete mapping output.
+Run the publisher once, rerun the Silver project map and its validator with
+unchanged inputs, and run the publisher again. `exact_rerun_status = 'PASS'`
+requires the two latest captures for the source snapshot to retain both the map
+run ID and mapping checksum. The first capture reports `RERUN_REQUIRED` rather
+than inventing rerun evidence.

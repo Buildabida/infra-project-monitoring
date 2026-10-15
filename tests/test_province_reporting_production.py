@@ -23,6 +23,9 @@ ANALYTICS = ROOT / "notebooks/05_analytics/01_business_questions.ipynb"
 ANALYTICS_VALIDATION = (
     ROOT / "notebooks/04_validation/10a_validation_provincial_analytics.ipynb"
 )
+ACCEPTANCE_EVIDENCE = (
+    ROOT / "notebooks/04_validation/11_publish_acceptance_evidence.sql"
+)
 
 NOTEBOOKS = [
     AREA,
@@ -247,6 +250,34 @@ def test_validators_persist_evidence_before_stop_gates():
         GOLD_VALIDATION
     )
     assert "mapped plus Unknown budget equals current Gold" in sql(ANALYTICS_VALIDATION)
+
+
+def test_acceptance_evidence_publishes_coverage_and_exact_rerun_identity():
+    evidence = ACCEPTANCE_EVIDENCE.read_text(encoding="utf-8")
+    for required in [
+        "province_reporting_acceptance_evidence",
+        "province_reporting_acceptance_runs",
+        "province_reporting_acceptance_mapping_methods",
+        "mapped_project_percentage",
+        "mapped_budget_percentage",
+        "mapping_method",
+        "ncr_projects",
+        "independent_city_projects",
+        "barmm_projects",
+        "accepted_population",
+        "unresolved_accepted_population",
+        "excluded_population",
+        "mapping_identity_checksum",
+        "exact_rerun_status",
+        "RERUN_REQUIRED",
+    ]:
+        assert required in evidence
+    assert "COUNT(DISTINCT layer) = 3" in evidence
+    assert "COUNT_IF(action = 'stop' AND status = 'FAIL') = 0" in evidence
+    assert "BIT_XOR(XXHASH64(CONCAT_WS(" in evidence
+    assert "COUNT(*) < 2 THEN 'RERUN_REQUIRED'" in evidence
+    assert "COUNT(DISTINCT project_map_run_id) = 1" in evidence
+    assert "COUNT(DISTINCT mapping_identity_checksum) = 1" in evidence
 
 
 def test_province_flood_exposure_is_not_fabricated():

@@ -593,6 +593,16 @@ no reporting-area Analytics task may bypass Gold validation.
 44. `04_validation/10a_validation_provincial_analytics.ipynb`
 45. `04_validation/11_publish_acceptance_evidence.sql`
 
+Step 45 is the compact PR evidence publisher. It materializes the latest D-55
+Silver, Gold, and Analytics checks, project and reported-budget coverage,
+mapping-method totals, separate NCR, independent-city, and BARMM totals,
+population coverage and exclusions, selected versions, and a mapping-identity
+checksum. Its outputs do not reinterpret or remap any project.
+
+For exact-rerun evidence, run step 45 once, rerun steps 22 and 23 with unchanged
+inputs, and then run step 45 again. The final `exact_rerun_status` must be
+`PASS`. `RERUN_REQUIRED` is expected after the first evidence capture.
+
 Province flood exposure has no task in this order. It is deferred until a
 separate Databricks feasibility run proves that the reporting-area boundary and
 MGB intersection is safe and affordable. Regional flood tasks remain required
@@ -604,4 +614,6 @@ and budget coverage, mappings by method, conflicts, ambiguity, missing
 coordinates, NCR, independent-city, BARMM, population coverage, excluded
 population, selected versions, and exact-rerun identities. Do not claim runtime
 approval until all three D-55 validators have executed and their saved evidence
-passes.
+passes. The evidence publisher must also show no blocking failures. A claim of
+exact-rerun stability requires two captures with the same project-map run ID
+and mapping-identity checksum.

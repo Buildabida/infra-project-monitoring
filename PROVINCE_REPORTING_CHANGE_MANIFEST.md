@@ -26,6 +26,7 @@ identity and targets but no job DAG. The exact manual workflow order is in
 - `notebooks/04_validation/03b_validation_silver_province_reporting.ipynb`
 - `notebooks/04_validation/09a_validation_gold_province_reporting.ipynb`
 - `notebooks/04_validation/10a_validation_provincial_analytics.ipynb`
+- `notebooks/04_validation/11_publish_acceptance_evidence.sql`
 - `tests/test_province_reporting_production.py`
 - `tests/test_province_reporting_readiness.py`
 
@@ -55,7 +56,7 @@ identity and targets but no job DAG. The exact manual workflow order is in
 
 ## Local verification
 
-- Full Pytest suite: 502 passed.
+- Full Pytest suite: 503 passed.
 - Ruff check: passed.
 - Ruff format check: passed.
 - SQLFluff over `notebooks`: passed.
@@ -72,8 +73,8 @@ These are local checks. They are not Databricks runtime evidence.
 After ZIP creation, run:
 
 ```bash
-unzip -t Buildabida_D55_Province_Reporting_Production.zip
-shasum -a 256 Buildabida_D55_Province_Reporting_Production.zip
+unzip -t Buildabida_D55_Province_Reporting_Evidence_Ready.zip
+shasum -a 256 Buildabida_D55_Province_Reporting_Evidence_Ready.zip
 ```
 
 The delivery report records the resulting SHA-256 checksum.
