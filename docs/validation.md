@@ -1087,9 +1087,15 @@ the selected snapshot ID must be the immediately preceding Gold snapshot.
 Projects whose reported physical progress decreases remain a FLAG for review,
 because a later source can correct an earlier value.
 
-No Databricks runtime evidence for this proposed extension is committed yet.
-Do not state that historical progress is available until the view and validator
-have run against at least two Gold DPWH snapshots.
+The first Databricks run on October 15, 2026 used one DPWH snapshot. All 12 STOP
+checks passed. The expected no-prior-snapshot FLAG was present, and the progress
+decrease FLAG found no projects. The view returned all 18 official regions and
+reconciled 265,108 mapped projects and PHP 6,378,351,772,243.23 of mapped
+reported budget to Gold. See the
+[regional progress evidence](evidence/regional-project-progress/README.md).
+
+This evidence validates current regional status and one-snapshot safety. It
+does not validate historical change across two snapshots.
 
 ### Analytics validation runtime evidence
 

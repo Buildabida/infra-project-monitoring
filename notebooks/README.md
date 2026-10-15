@@ -425,6 +425,8 @@ The proposed regional progress extension (D-55) runs only after that base sequen
 
 In a fresh workspace with one Gold snapshot, current status is available but every change measure is `NULL`. Process a second distinct DPWH snapshot through Gold before interpreting change.
 
+The October 15 one-snapshot run is recorded in the [regional project progress evidence](../docs/evidence/regional-project-progress/README.md). It validates current status and no-prior-snapshot safety, not historical change.
+
 The dashboard and Genie read only these views. See [Analytics views](05_analytics/README.md).
 
 ## Validation connection

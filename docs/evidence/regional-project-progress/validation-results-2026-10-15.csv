@@ -1,0 +1,15 @@
+source_snapshot_id,snapshot_date_key,rule_version,status,action,failed_rows,total_rows,percentage,data_quality_check,details
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,FLAG,flag,1,1,100.0,A previous snapshot is available for comparison,NO_PRIOR_SNAPSHOT means current status works but change measures are unavailable
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,265108,0.0,Current mapped project total reconciles to Gold,Current Gold rows with region_key other than 0
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,17,0.0,Current mapped reported budget reconciles to Gold,Reported budget is not payment
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Current regional measures rebuild from Gold,"Counts, status groups, and reported budget"
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Current snapshot lineage is exact,Every row carries the current Gold source snapshot
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Current status counts and percentages reconcile,"FINISHED, ACTIVE, INACTIVE, and unmapped status"
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Every current official region stays visible,Rows must match analytics_regional_investment
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,No-prior workspace cannot publish historical zeros,Historical fields must be NULL with NO_PRIOR_SNAPSHOT
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,One row per official region,Grain: region_key
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,One row per stable PSGC region code,Comparison grain: psgc_region_code
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Previous snapshot lineage is exact when available,Uses the immediately preceding Gold snapshot
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,flag,0,265108,0.0,Projects with lower reported physical progress need review,A decrease can be a source correction and is not automatically an error
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Region key 0 is excluded,Unknown and unresolved geography is reviewed outside this regional view
+metadata-6321c7aa6f2a14e12f4c,20261004,regional-project-progress-validation-v1,PASS,stop,0,18,0.0,Transition counts stay within project bounds,Moved-to-finished is a subset of status changes

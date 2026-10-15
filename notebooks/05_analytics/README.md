@@ -84,4 +84,4 @@ Every view and column has a comment, so Genie can read what each one means.
 - Gold has no reason column for a `NULL` `infra_year` or a `NULL` `implementing_office`, so the views cannot say why either is empty.
 - The cohort views still read one current snapshot. `analytics_region_project_progress` can show change only when Gold actually contains at least two DPWH source snapshots.
 
-See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md).
+See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md). The proposed regional progress extension has separate [runtime evidence](../../docs/evidence/regional-project-progress/README.md) for its current-status and no-prior-snapshot contracts.

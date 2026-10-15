@@ -70,6 +70,9 @@ historical Analytics contract.
 - `notebooks/05_analytics/02_regional_project_progress.ipynb`
 - `notebooks/04_validation/11_validation_regional_project_progress.ipynb`
 - `tests/test_regional_project_progress.py`
+- `docs/evidence/regional-project-progress/README.md`
+- `docs/evidence/regional-project-progress/validation-results-2026-10-15.csv`
+- `REGIONAL_PROJECT_PROGRESS_PR_DESCRIPTION.md`
 - `REGIONAL_PROJECT_PROGRESS_HANDOFF.md`
 
 ## Files updated
@@ -91,5 +94,17 @@ historical Analytics contract.
 - Vale: zero errors
 - `git diff --check`: passed
 
-Databricks was not run. Do not claim runtime or snapshot-comparison results
-until the notebooks have executed there.
+## Databricks evidence
+
+The four notebooks ran in the documented order on October 15, 2026. The base
+Analytics validator saved 152 checks with 138 `PASS`, 14 `FLAG`, and no blocking
+failure. All 12 regional progress STOP checks passed. One expected FLAG records
+that no prior snapshot is available.
+
+The view returned all 18 official regions. Its 265,108 mapped projects and
+PHP 6,378,351,772,243.23 mapped reported budget reconciled exactly to current
+Gold. Current status measures are ready to use. Historical measures remain
+`NULL` until a second distinct DPWH snapshot reaches Gold.
+
+See the
+[dated evidence](docs/evidence/regional-project-progress/README.md).
