@@ -448,3 +448,21 @@ Its project row counts differ from the accepted Bronze evidence.
 Therefore, local values are not claimed to be the exact selected Bronze snapshots.
 
 Run the notebooks against current Databricks Bronze tables before approving downstream use.
+
+## D-57 project reporting-area configuration
+
+D-57 reuses `config_place_name_alias` and `config_manual_geographic_match`.
+Province/reporting-area aliases require `source_system = 'dpwh_projects'` and
+`match_rule = 'DPWH_PROVINCE_REPORTING_AREA'`; existing region aliases cannot
+join accidentally. Manual exceptions require `source_system = 'DPWH'` and
+`record_type = 'PROJECT'`.
+
+Only active `APPROVED` rows from one selected version participate. Runtime gates
+reject duplicate natural keys, a source value or project with multiple targets,
+blank or generic identifiers, target codes absent from the selected PSGC-based
+reference, and alias place types that disagree with `PROVINCE`,
+`INDEPENDENT_CITY`, or `NCR`. Pending and inactive rows are ignored.
+
+No province alias is seeded from the readiness profile. An empty approved alias
+set is valid: unique coordinate containment and approved manual exceptions still
+operate, while unresolved records remain under Unknown.

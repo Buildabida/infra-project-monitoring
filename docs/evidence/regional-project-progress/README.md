@@ -1,5 +1,10 @@
 # Regional project progress validation evidence
 
+> [!WARNING]
+> **Retired evidence.** D-55 was withdrawn by D-56 (proposed) before team approval.
+> `analytics_region_project_progress`, `02_regional_project_progress.ipynb`, and `11_validation_regional_project_progress.ipynb` are removed.
+> Keep this report as history only. The current contract is in the [Analytics views guide](../../../notebooks/05_analytics/README.md).
+
 ## Scope
 
 This report records the first Databricks execution of the proposed D-55

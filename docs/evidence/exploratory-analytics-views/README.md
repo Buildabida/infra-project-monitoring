@@ -1,5 +1,10 @@
 # Exploratory analytics views validation evidence
 
+> [!WARNING]
+> **Retired evidence.** This report validates the eleven-view design (D-50, D-51, D-54) under `analytics-validation-v2`.
+> Those views are retired by D-56 (proposed) and are no longer defined. Keep this report as history only.
+> The current contract is in the [Analytics views guide](../../../notebooks/05_analytics/README.md).
+
 ## Scope
 
 This report records Databricks evidence for the five exploratory monitoring views from issue #131 (D-54).
