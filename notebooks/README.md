@@ -51,6 +51,8 @@ Governed mappings remain separate from geography and population transformations.
 | 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
 | 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
 | 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
+| 29 | `02_silver/10_silver_project_flood_map` | Classify every canonical project against approved MGB flood levels, and keep no-match and ambiguous evidence. |
+| 30 | `04_validation/08_validation_silver_project_flood_map` | Independently recompute every project's MGB candidates and validate grain, coordinates, spatial logic, lineage, and coverage. |
 | Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
 
 ## Load Bronze
