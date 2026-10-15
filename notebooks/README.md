@@ -617,3 +617,8 @@ approval until all three D-55 validators have executed and their saved evidence
 passes. The evidence publisher must also show no blocking failures. A claim of
 exact-rerun stability requires two captures with the same project-map run ID
 and mapping-identity checksum.
+
+The October 15, 2026 run satisfied those conditions: 43 checks passed,
+five non-blocking Silver coverage flags remained visible, and two captures
+retained one project-map run ID and one mapping checksum. See the
+[province-reporting runtime evidence](../docs/evidence/province-reporting/README.md).

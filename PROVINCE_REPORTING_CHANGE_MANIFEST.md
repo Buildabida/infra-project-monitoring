@@ -4,8 +4,10 @@
 
 This package implements the approved Option B governed reporting-area model.
 It contains every added or modified production file, with repository-relative
-paths preserved. It contains no branch, commit, push, pull request, generated
-dashboard asset, or Databricks runtime result.
+paths preserved. It contains no branch, commit, push, pull request, or generated
+dashboard asset. Reviewed Databricks results are documented under
+`docs/evidence/province-reporting/`; raw notebook exports remain outside the
+production package.
 
 `databricks.yml` is unchanged because the repository file defines bundle
 identity and targets but no job DAG. The exact manual workflow order is in
@@ -16,6 +18,7 @@ identity and targets but no job DAG. The exact manual workflow order is in
 - `PROVINCE_REPORTING_CHANGE_MANIFEST.md`
 - `PROVINCE_REPORTING_PRODUCTION_HANDOFF.md`
 - `docs/province_reporting_readiness.md`
+- `docs/evidence/province-reporting/README.md`
 - `docs/silver_project_province_mapping.md`
 - `notebooks/02_silver/01a_silver_province_reporting_area.ipynb`
 - `notebooks/02_silver/03a_silver_province_reporting_area_population.ipynb`
@@ -66,15 +69,15 @@ identity and targets but no job DAG. The exact manual workflow order is in
 - `git diff --check`: passed.
 - Notebook JSON parsing: passed.
 
-These are local checks. They are not Databricks runtime evidence.
+These local checks are separate from the documented Databricks runtime evidence.
 
 ## Package integrity
 
 After ZIP creation, run:
 
 ```bash
-unzip -t Buildabida_D55_Province_Reporting_Evidence_Ready.zip
-shasum -a 256 Buildabida_D55_Province_Reporting_Evidence_Ready.zip
+unzip -t Buildabida_D55_Province_Reporting_Final_PR.zip
+shasum -a 256 Buildabida_D55_Province_Reporting_Final_PR.zip
 ```
 
 The delivery report records the resulting SHA-256 checksum.

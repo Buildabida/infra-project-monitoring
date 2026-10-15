@@ -20,10 +20,11 @@ name is deliberately `province_reporting_area`: not every member is a province.
 
 ## Runtime status
 
-Production notebooks and local contract tests are implemented. Databricks runtime evidence
-is still pending. No project coverage, reported-budget
-coverage, population coverage, row count, or runtime success is claimed by this
-document.
+Production notebooks, local contract tests, and Databricks runtime evidence
+are complete for source snapshot `metadata-6321c7aa6f2a14e12f4c`. All blocking
+checks passed, and an exact rerun retained the same mapping run ID and checksum.
+See the [province-reporting runtime evidence](evidence/province-reporting/README.md)
+for coverage, population, boundary, and limitation details.
 
 The retained readiness profiler is
 `notebooks/02_silver/08b_profile_project_province_readiness.ipynb`. It remains a

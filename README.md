@@ -264,10 +264,13 @@ project snapshot fact; five current-snapshot Analytics views; and layer-specific
 validation. DPWH `location.province` is evidence only. Matching is governed,
 exact, and fail-closed, with one longitude-first `ST_COVERS` fallback.
 
-Databricks runtime evidence for this extension is pending. No provincial
-coverage percentage or runtime success is claimed. Province flood exposure is
-deferred until selected boundaries and the MGB intersection are shown to be
-safe and affordable on Free Edition. See the
+Databricks runtime evidence passed for the recorded D-55 snapshot: 43 checks
+passed, five non-blocking coverage flags were retained, and no check failed.
+Project mapping coverage is 75.3267 percent and reported-budget coverage is
+83.6904 percent. Two exact-rerun captures retained the same mapping run ID and
+checksum. Province flood exposure remains deferred until selected boundaries
+and the MGB intersection are shown to be safe and affordable on Free Edition.
+See the [province-reporting runtime evidence](docs/evidence/province-reporting/README.md),
 [production contract](docs/province_reporting_readiness.md),
 [Silver mapping](docs/silver_project_province_mapping.md), and
 [Gold model](docs/gold_model.md).

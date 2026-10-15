@@ -133,17 +133,23 @@ preserved 265,656 project rows and reconciled reported budgets through Silver,
 Gold, and Analytics. Project mapping resolved 200,110 projects and retained
 65,546 under Unknown. This is 75.3267 percent project coverage.
 
-The original export did not contain the expanded budget, method, special-area,
-population, or two-capture identity output. Run the new evidence publisher to
-capture those fields before describing the implementation as fully
-runtime-approved.
+The expanded publisher subsequently captured 83.6904 percent reported-budget
+coverage, mapping-method totals, special-area totals, population coverage,
+selected versions, and a two-capture exact-rerun `PASS`. Both captures retained
+project-map run ID
+`ce080c63fc23a761faa7b676c118ea944015fe85dd25d2e0efbc593d4f30f2a5`
+and mapping checksum `6037151126140483111`. Full evidence is in
+`docs/evidence/province-reporting/README.md`.
 
 ## Runtime limitations
 
-- The core D-55 notebooks and validators have run, but the expanded evidence
-  publisher still needs its two-capture execution.
+- D-55 is runtime-validated only for the recorded source, PSGC, boundary,
+  configuration, and rule identities. Changed inputs require new evidence.
 - Project mapping coverage is 75.3267 percent in the reviewed snapshot. Unknown
   remains necessary and must not be treated as a failed reconciliation.
+- Independent-city project assignment is unavailable in this run because all
+  18 independent-city boundaries are missing and no approved alias or manual
+  exception exists.
 - Project PSGC evidence is unavailable in the current canonical source contract.
 - Boundary availability and compatibility are recorded per reporting area and
   may legitimately leave some coordinate matches unresolved.
@@ -164,7 +170,7 @@ feature/d55-province-reporting-areas
 Commit title:
 
 ```text
-feat: add governed province reporting areas
+feat: add governed province reporting and acceptance evidence
 ```
 
 Commit description:
@@ -172,6 +178,7 @@ Commit description:
 ```text
 Implement D-55 across Silver, Gold, Analytics, validation, tests, and docs.
 Preserve regional compatibility and national project and budget reconciliation.
+Publish reproducible runtime coverage and exact-rerun acceptance evidence.
 Defer province flood exposure until Databricks feasibility evidence exists.
 ```
 
@@ -199,6 +206,7 @@ remains the parent and backward-compatible reconciliation geography.
 - adds `reporting_area_key` and mapping states to `fact_project_snapshot`
 - adds five current-snapshot reporting-area Analytics views
 - adds Silver, Gold, and Analytics validation that persists evidence before STOP
+- adds a compact acceptance publisher for coverage and exact-rerun evidence
 - updates tests, model docs, execution order, and reviewer handoff
 
 ## Safety and reconciliation
@@ -221,11 +229,20 @@ remains the parent and backward-compatible reconciliation geography.
 - Vale exited 0 with style warnings and suggestions only
 - `git diff --check` passed
 
-## Databricks status
+## Databricks evidence
 
-Not run. This PR prepares the production notebooks but does not claim runtime
-approval. Run the documented order and attach persisted validation evidence,
-coverage, selected versions, and exact-rerun identities.
+- source snapshot: `metadata-6321c7aa6f2a14e12f4c`
+- 48 checks: 43 PASS, 5 non-blocking FLAG, 0 FAIL
+- 265,656 canonical projects; 200,110 mapped and 65,546 Unknown
+- project coverage: 75.3267 percent
+- reported-budget coverage: 83.6904 percent
+- project count and reported-budget reconciliation passed in Silver, Gold, and Analytics
+- accepted-primary population and Gold population reconciliation passed
+- exact rerun: PASS across two captures, one map run ID, and one mapping checksum
+
+The evidence applies only to the recorded source, PSGC, boundary,
+configuration, and rule identities. Independent-city project assignment is
+unavailable because compatible boundaries and approved mappings are absent.
 
 ## Deferred
 
@@ -247,5 +264,6 @@ No regional exposure is allocated to provinces.
 ## Reviewer handoff
 
 Review D-55 semantics first, then the Silver map and its validator, then Gold and
-Analytics reconciliation. Local CI proves static contracts only. The merge
-should not be described as runtime-approved until Databricks evidence passes.
+Analytics reconciliation. Local CI and the recorded Databricks acceptance both
+pass. Review the disclosed 75.3267 percent project coverage, missing boundaries,
+and zero independent-city project assignments before merge.

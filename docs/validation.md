@@ -1154,3 +1154,9 @@ unchanged inputs, and run the publisher again. `exact_rerun_status = 'PASS'`
 requires the two latest captures for the source snapshot to retain both the map
 run ID and mapping checksum. The first capture reports `RERUN_REQUIRED` rather
 than inventing rerun evidence.
+
+The October 15, 2026 execution recorded 43 passed checks and retained five
+non-blocking Silver coverage flags. Two captures retained one project-map run
+ID and one mapping checksum. The complete identities, coverage, budgets,
+special-area totals, population values, boundaries, and limitations are in the
+[province-reporting runtime evidence](evidence/province-reporting/README.md).
