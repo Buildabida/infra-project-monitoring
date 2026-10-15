@@ -12,11 +12,12 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. The category taxonomy (D-39), status mapping (D-40), DPWH region aliases (D-41), and Census Table C aliases (D-48) are approved. No manual geographic override is approved yet. |
 | Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
+| Analytics | Implemented with one proposed extension | Eleven governed views answer the approved questions and exploratory monitoring needs. Proposed D-55 adds `analytics_region_project_progress` at one current official region per row, using current and immediately preceding Gold project snapshots when both exist. |
 
 ```text
-R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions
-                      ↓                    ↓                         ↓
-                 04-validation shared results for Bronze, Silver, and Gold
+R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
+                      ↓                    ↓                         ↓                       ↓
+                 04-validation shared results for Bronze, Silver, Gold, and Analytics
 ```
 
 ## Bronze source contracts (implemented)

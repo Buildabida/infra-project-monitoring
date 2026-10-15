@@ -1066,6 +1066,31 @@ v1 evidence of the six official views stays as it was. The `MERGE` key is the va
 the view, and the check name. So a rerun on the same Gold data updates the same
 rows instead of adding copies. New Gold runs give a new ID and a new set of rows.
 
+### Regional project progress validation
+
+`notebooks/04_validation/11_validation_regional_project_progress.ipynb`
+validates the proposed D-55 extension separately from the eleven existing
+Analytics views. Run it after `02_regional_project_progress.ipynb` and after the
+base Analytics v2 validator has passed.
+
+The validator checks one row per current official region, the stable PSGC
+region-code comparison grain, exact current project and reported-budget
+reconciliation to Gold, the four current status groups, current and previous
+snapshot lineage, and transition-count bounds. It saves its rows to the shared
+`04-validation.analytics_dq_results` table with rule version
+`regional-project-progress-validation-v1` before enforcing its STOP gate.
+
+A workspace with one DPWH snapshot is valid. In that case, the validator emits
+a FLAG that no prior snapshot is available and stops if the view publishes a
+historical zero or any non-NULL change measure. When a prior snapshot exists,
+the selected snapshot ID must be the immediately preceding Gold snapshot.
+Projects whose reported physical progress decreases remain a FLAG for review,
+because a later source can correct an earlier value.
+
+No Databricks runtime evidence for this proposed extension is committed yet.
+Do not state that historical progress is available until the view and validator
+have run against at least two Gold DPWH snapshots.
+
 ### Analytics validation runtime evidence
 
 On October 12, 2026, both notebooks ran twice on Databricks serverless compute.
