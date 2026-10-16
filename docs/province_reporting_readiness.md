@@ -24,7 +24,10 @@ Production notebooks, local contract tests, and Databricks runtime evidence
 are complete for source snapshot `metadata-6321c7aa6f2a14e12f4c`. All blocking
 checks passed, and an exact rerun retained the same mapping run ID and checksum.
 See the [province-reporting runtime evidence](evidence/province-reporting/README.md)
-for coverage, population, boundary, and limitation details.
+for coverage, population, boundary, and limitation details. The v2 Silver and
+Gold validators and the six Analytics views ran on October 16, 2026, with no
+failed STOP check. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).
 
 The retained readiness profiler is
 `notebooks/02_silver/08b_profile_project_province_readiness.ipynb`. It remains a

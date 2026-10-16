@@ -1042,8 +1042,15 @@ rerun check proves the results did not change.
 
 ### Analytics validation runtime evidence
 
-No Databricks run of the six-view contract is recorded yet. Record the first run
-under `docs/evidence/` with its date, validation run ID, and check results.
+The six-view contract first ran on Databricks on October 16, 2026, in job run
+`1077732256280159`. Validation run
+`2b0558751cb722b38b61b16d97a4f974318b36a939232af669defc59d555e933` saved 112
+checks: 84 STOP checks passed, 26 FLAG checks reported findings, and 2 FLAG
+checks passed. `05-analytics` held exactly the six views, and every rebuild from
+Gold matched its view with no break. The rerun check compared no saved rows,
+because it was the first run of that validation run ID. Run the validator once
+more on the same Gold data to prove rerun stability. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).
 
 The earlier runs validated the retired designs and stay as history only:
 
@@ -1111,7 +1118,9 @@ STOP checks for a unique PSGC code per version, a parent region that exists in
 `fact_region_population`, and key `0` holding exactly the unresolved and
 non-geographic projects. Two FLAG checks count projects whose region differs
 from the parent region of their reporting area, and projects with a region but
-no reporting area.
+no reporting area. A FLAG check with findings is saved as `FLAG`, the same as in
+`03b`. The October 16, 2026 run saved these two rows as `FAIL` with action `flag`
+before that fix. They were findings, not failures, and did not block the run.
 
 `10_validation_analytics` validates the province content of the six Analytics
 views (D-56). See [analytics validation](#analytics-validation). The first
@@ -1119,8 +1128,9 @@ province validator, `10a_validation_provincial_analytics`, checked the five
 retired `analytics_reporting_area_*` views and is removed.
 
 All three validators `MERGE` evidence before their STOP gate. Their local tests
-prove contract text and ordering only. Databricks must execute them before the
-implementation is runtime-approved.
+prove contract text and ordering only. All three ran on Databricks on October 16,
+2026, with no failed STOP check. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).
 
 ### Province-reporting acceptance publication
 
@@ -1145,3 +1155,9 @@ non-blocking Silver coverage flags. Two captures retained one project-map run
 ID and one mapping checksum. The complete identities, coverage, budgets,
 special-area totals, population values, boundaries, and limitations are in the
 [province-reporting runtime evidence](evidence/province-reporting/README.md).
+
+The October 16, 2026 execution published 159 checks under the v2 province rules
+and `analytics-validation-v4`: Silver 23, Gold 24, and Analytics 112, with no
+failed STOP check. The exact-rerun comparison passed against the October 15
+capture with the same project-map run ID and mapping checksum. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).

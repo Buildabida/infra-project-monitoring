@@ -473,6 +473,12 @@ Before you finish any Gold task, check that:
 
 ## Runtime evidence
 
+### Province reporting area on October 16, 2026
+
+The full pipeline ran on Databricks in job run `1077732256280159`. `09a_validation_gold_province_reporting` saved 24 checks under rule `gold-province-reporting-validation-v2` and validation run `5a863b35c04a16aba4c76bbe652a69c927f61c26652d672c1ce419c3ea275f4e`. All 22 STOP checks passed, including the three population reconciliations against `fact_region_population` and key `0` holding exactly the unresolved and non-geographic projects. The two FLAG checks found 2,709 projects whose region differs from the parent region of their reporting area and 64,974 projects with an official region but no reporting area. They were saved as `FAIL` with action `flag` before the status fix, and did not block the run.
+
+The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [six Analytics views evidence](evidence/six-analytics-views/README.md).
+
 ### Population refresh on October 13, 2026 (final Issue #113 run)
 
 After the final Issue #113 Silver rerun, `05_gold_fact_region_population` updated all 18 existing regional rows. It inserted and deleted no rows. Gold and Silver both total 112,348,732, all 18 official regions have a population row, and no population fact uses region key `0`.

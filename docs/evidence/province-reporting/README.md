@@ -5,7 +5,8 @@
 > Its Silver and Gold results stay valid for the identities below. Its Analytics rows validated the five
 > `analytics_reporting_area_*` views, which D-56 (proposed) retires. Province Analytics now lives in the six
 > views and is validated by `10_validation_analytics`. Silver and Gold province validators moved to rule
-> version v2 with added population and hierarchy checks, which have not run on Databricks yet.
+> version v2 with added population and hierarchy checks. Those ran on October 16, 2026, in the
+> [six Analytics views evidence](../six-analytics-views/README.md).
 
 ## Scope
 

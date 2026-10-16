@@ -110,8 +110,11 @@ population reconciliation. FLAG checks retain missing coordinates, zero or
 multiple spatial candidates, conflicts, unresolved areas, NCR,
 independent-city, and BARMM findings.
 
-Databricks runtime evidence is pending. Coverage does not need to be 100%; it
-must reconcile to the national project and reported-budget totals.
+Databricks runtime evidence passed on October 15 and October 16, 2026. See the
+[province-reporting evidence](evidence/province-reporting/README.md) and the
+[six Analytics views evidence](evidence/six-analytics-views/README.md). Coverage
+does not need to be 100%; it must reconcile to the national project and
+reported-budget totals.
 
 ## Gold handoff
 

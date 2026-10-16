@@ -1,0 +1,145 @@
+region_key,flood_point_class,is_mgb_level,is_unknown_region,extra_in_output,missing_from_output,class_break,count_budget_break,flood_measure_break,other_measure_break,partition_break,area_break,area_on_class_break,unknown_region_break,flood_control_project_count,flood_control_budget_pesos,share_of_region_flood_control_projects_pct,share_of_region_flood_control_budget_pct,exposure_area_status
+-7161744175815287287,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,High,true,false,false,false,false,false,false,false,false,false,false,false,512,28112986048.03,41.6938,39.6314,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,Low,true,false,false,false,false,false,false,false,false,false,false,false,54,2680590912.61,4.3974,3.7789,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,89,6158007637.27,7.2476,8.6811,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,57,2743029037.14,4.6417,3.8669,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,260,12915457780.86,21.1726,18.2072,ADDITIVE_WITHIN_TOLERANCE
+-7161744175815287287,Very High,true,false,false,false,false,false,false,false,false,false,false,false,256,18326106082.18,20.8469,25.8346,ADDITIVE_WITHIN_TOLERANCE
+-6004859254230236140,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,1,9310460.96,0.0285,0.0080,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,High,true,false,false,false,false,false,false,false,false,false,false,false,1200,42559232826.45,34.1978,36.6376,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,Low,true,false,false,false,false,false,false,false,false,false,false,false,382,9408664854.52,10.8863,8.0995,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,579,17750383985.65,16.5004,15.2806,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,348,8169196778.11,9.9174,7.0325,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,196,6900541088.90,5.5856,5.9404,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-6004859254230236140,Very High,true,false,false,false,false,false,false,false,false,false,false,false,803,31365537572.62,22.8840,27.0013,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-5827999832469092192,AMBIGUOUS,false,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,High,true,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,INVALID_SOURCE,false,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,Low,true,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,Moderate,true,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,NO_USABLE_POINT,false,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,OUTSIDE_MAPPED_ZONES,false,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5827999832469092192,Very High,true,true,false,false,false,false,false,false,false,false,false,false,null,null,null,null,NOT_EVALUATED
+-5356927478758016534,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+-5356927478758016534,High,true,false,false,false,false,false,false,false,false,false,false,false,367,22892370381.24,23.1692,27.9187,NOT_EVALUATED
+-5356927478758016534,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+-5356927478758016534,Low,true,false,false,false,false,false,false,false,false,false,false,false,145,4361101976.95,9.1540,5.3187,NOT_EVALUATED
+-5356927478758016534,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,108,3754350872.42,6.8182,4.5787,NOT_EVALUATED
+-5356927478758016534,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,156,3586521029.82,9.8485,4.3740,NOT_EVALUATED
+-5356927478758016534,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,626,34422012939.74,39.5202,41.9799,NOT_EVALUATED
+-5356927478758016534,Very High,true,false,false,false,false,false,false,false,false,false,false,false,182,12980054754.27,11.4899,15.8300,NOT_EVALUATED
+-2539021348159927845,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,5,264551852.43,0.1226,0.1578,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,High,true,false,false,false,false,false,false,false,false,false,false,false,812,37590358022.79,19.9166,22.4150,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,Low,true,false,false,false,false,false,false,false,false,false,false,false,706,20753351182.30,17.3167,12.3751,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,604,20177192436.05,14.8148,12.0316,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,309,6972632307.64,7.5791,4.1578,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,153,5272092397.28,3.7528,3.1437,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-2539021348159927845,Very High,true,false,false,false,false,false,false,false,false,false,false,false,1488,76671889339.68,36.4974,45.7191,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,4,218149870.29,0.2278,0.2249,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,High,true,false,false,false,false,false,false,false,false,false,false,false,465,26461274395.89,26.4806,27.2751,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,Low,true,false,false,false,false,false,false,false,false,false,false,false,56,2125890607.02,3.1891,2.1913,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,148,7048746636.20,8.4282,7.2655,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,76,3816829994.63,4.3280,3.9342,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,313,11572839339.80,17.8246,11.9288,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-998084053887071606,Very High,true,false,false,false,false,false,false,false,false,false,false,false,694,45772619815.38,39.5216,47.1803,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,High,true,false,false,false,false,false,false,false,false,false,false,false,479,24420355310.36,53.4598,56.6012,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,Low,true,false,false,false,false,false,false,false,false,false,false,false,73,2485180815.34,8.1473,5.7601,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,98,4937913429.58,10.9375,11.4450,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,41,1730030398.06,4.5759,4.0098,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,99,3954336966.83,11.0491,9.1653,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+-556676887619042308,Very High,true,false,false,false,false,false,false,false,false,false,false,false,106,5616747941.25,11.8304,13.0184,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+1805102936864349330,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,High,true,false,false,false,false,false,false,false,false,false,false,false,396,22090643665.87,28.0057,28.8230,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,Low,true,false,false,false,false,false,false,false,false,false,false,false,164,5775781866.40,11.5983,7.5360,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,146,7524256163.76,10.3253,9.8174,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,51,1339020745.63,3.6068,1.7471,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,288,17634865092.43,20.3678,23.0093,ADDITIVE_WITHIN_TOLERANCE
+1805102936864349330,Very High,true,false,false,false,false,false,false,false,false,false,false,false,369,22277856144.51,26.0962,29.0673,ADDITIVE_WITHIN_TOLERANCE
+2554973959298652462,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,32,1966288611.90,0.5866,0.7070,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,High,true,false,false,false,false,false,false,false,false,false,false,false,3309,187214253060.74,60.6599,67.3138,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,Low,true,false,false,false,false,false,false,false,false,false,false,false,679,28147811213.52,12.4473,10.1207,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,728,36229338049.60,13.3456,13.0264,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,407,11065037674.12,7.4610,3.9785,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,266,11660708905.62,4.8763,4.1927,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+2554973959298652462,Very High,true,false,false,false,false,false,false,false,false,false,false,false,34,1838123528.68,0.6233,0.6609,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,5,64558251.27,0.2455,0.0682,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,High,true,false,false,false,false,false,false,false,false,false,false,false,695,32004257114.98,34.1188,33.8196,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,Low,true,false,false,false,false,false,false,false,false,false,false,false,101,4151748745.97,4.9583,4.3873,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,298,15819326272.90,14.6294,16.7167,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,200,7296640503.63,9.8184,7.7105,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,429,16861176349.14,21.0604,17.8176,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+3365337708372549030,Very High,true,false,false,false,false,false,false,false,false,false,false,false,309,18434444882.22,15.1694,19.4801,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+4523716928342609320,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,High,true,false,false,false,false,false,false,false,false,false,false,false,240,15401525682.90,25.8065,24.9245,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,Low,true,false,false,false,false,false,false,false,false,false,false,false,77,4813123984.45,8.2796,7.7891,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,90,6332678455.36,9.6774,10.2482,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,15,306713248.40,1.6129,0.4964,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,206,12327840668.20,22.1505,19.9503,ADDITIVE_WITHIN_TOLERANCE
+4523716928342609320,Very High,true,false,false,false,false,false,false,false,false,false,false,false,302,22610916227.69,32.4731,36.5915,ADDITIVE_WITHIN_TOLERANCE
+4691435518104755638,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,3,138959665.33,0.2595,0.2460,NOT_EVALUATED
+4691435518104755638,High,true,false,false,false,false,false,false,false,false,false,false,false,296,14629492147.26,25.6055,25.9004,NOT_EVALUATED
+4691435518104755638,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+4691435518104755638,Low,true,false,false,false,false,false,false,false,false,false,false,false,72,3526378708.69,6.2284,6.2432,NOT_EVALUATED
+4691435518104755638,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,181,9104470525.48,15.6574,16.1187,NOT_EVALUATED
+4691435518104755638,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,139,4406081816.05,12.0242,7.8006,NOT_EVALUATED
+4691435518104755638,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,142,7005436806.74,12.2837,12.4026,NOT_EVALUATED
+4691435518104755638,Very High,true,false,false,false,false,false,false,false,false,false,false,false,323,17672925721.32,27.9412,31.2885,NOT_EVALUATED
+5776793757149036474,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,High,true,false,false,false,false,false,false,false,false,false,false,false,265,14103198460.51,20.3689,25.9168,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,Low,true,false,false,false,false,false,false,false,false,false,false,false,37,917079906.65,2.8440,1.6853,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,126,5350316340.18,9.6849,9.8320,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,95,2930817332.73,7.3021,5.3858,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,597,18164513465.80,45.8878,33.3801,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+5776793757149036474,Very High,true,false,false,false,false,false,false,false,false,false,false,false,181,12951299070.15,13.9124,23.8000,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6614037914382263305,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+6614037914382263305,High,true,false,false,false,false,false,false,false,false,false,false,false,300,16347707499.86,36.1446,40.0775,NOT_EVALUATED
+6614037914382263305,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+6614037914382263305,Low,true,false,false,false,false,false,false,false,false,false,false,false,29,1317142387.64,3.4940,3.2291,NOT_EVALUATED
+6614037914382263305,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,113,5549570774.88,13.6145,13.6052,NOT_EVALUATED
+6614037914382263305,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,34,945957370.33,4.0964,2.3191,NOT_EVALUATED
+6614037914382263305,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,213,8563788876.20,25.6627,20.9947,NOT_EVALUATED
+6614037914382263305,Very High,true,false,false,false,false,false,false,false,false,false,false,false,141,8066025460.42,16.9880,19.7744,NOT_EVALUATED
+6959189541119754317,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,2,102193245.08,0.0571,0.0727,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,High,true,false,false,false,false,false,false,false,false,false,false,false,770,37566221441.73,21.9686,26.7301,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,Low,true,false,false,false,false,false,false,false,false,false,false,false,110,3996767619.15,3.1384,2.8439,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,239,8545452736.43,6.8188,6.0805,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,301,8399618909.17,8.5877,5.9767,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,1615,57496251887.92,46.0770,40.9112,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+6959189541119754317,Very High,true,false,false,false,false,false,false,false,false,false,false,false,468,24432664968.65,13.3524,17.3850,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,23,1000265243.71,0.7915,0.5934,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,High,true,false,false,false,false,false,false,false,false,false,false,false,687,42904283023.53,23.6407,25.4521,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,Low,true,false,false,false,false,false,false,false,false,false,false,false,256,12852202172.69,8.8094,7.6243,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,315,17883872624.94,10.8396,10.6093,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,156,5275416034.60,5.3682,3.1295,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,798,46923114262.60,27.4604,27.8362,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+7856774612379027426,Very High,true,false,false,false,false,false,false,false,false,false,false,false,671,41729267893.91,23.0902,24.7551,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,3,97998507.87,0.2161,0.0955,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,High,true,false,false,false,false,false,false,false,false,false,false,false,749,65776826002.43,53.9625,64.0862,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,Low,true,false,false,false,false,false,false,false,false,false,false,false,71,3839633407.84,5.1153,3.7409,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,191,13855037795.95,13.7608,13.4989,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,125,3192492621.78,9.0058,3.1104,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,249,15875992309.17,17.9395,15.4680,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+8568884713726629314,Very High,true,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NON_ADDITIVE_CROSS_LEVEL_OVERLAP
+9020879156973892843,AMBIGUOUS,false,false,false,false,false,false,false,false,false,false,false,false,10,703609785.89,1.0050,1.6557,NOT_EVALUATED
+9020879156973892843,High,true,false,false,false,false,false,false,false,false,false,false,false,281,12328778380.67,28.2412,29.0106,NOT_EVALUATED
+9020879156973892843,INVALID_SOURCE,false,false,false,false,false,false,false,false,false,false,false,false,0,null,0.0000,null,NOT_EVALUATED
+9020879156973892843,Low,true,false,false,false,false,false,false,false,false,false,false,false,163,5564834195.17,16.3819,13.0945,NOT_EVALUATED
+9020879156973892843,Moderate,true,false,false,false,false,false,false,false,false,false,false,false,139,5880177938.69,13.9698,13.8365,NOT_EVALUATED
+9020879156973892843,NO_USABLE_POINT,false,false,false,false,false,false,false,false,false,false,false,false,31,762248019.70,3.1156,1.7936,NOT_EVALUATED
+9020879156973892843,OUTSIDE_MAPPED_ZONES,false,false,false,false,false,false,false,false,false,false,false,false,186,7781008363.29,18.6935,18.3094,NOT_EVALUATED
+9020879156973892843,Very High,true,false,false,false,false,false,false,false,false,false,false,false,185,9476797856.03,18.5930,22.2997,NOT_EVALUATED

@@ -623,3 +623,9 @@ The October 15, 2026 run satisfied those conditions: 43 checks passed,
 five non-blocking Silver coverage flags remained visible, and two captures
 retained one project-map run ID and one mapping checksum. See the
 [province-reporting runtime evidence](../docs/evidence/province-reporting/README.md).
+
+The October 16, 2026 run of the full order, with the v2 province validators and
+the six Analytics views, also satisfied them: 159 checks were published with no
+failed STOP check, and the exact rerun passed against the October 15 capture.
+That run found four Databricks SQL errors, fixed in steps 8, 22, 32, and 39. See
+the [six Analytics views evidence](../docs/evidence/six-analytics-views/README.md).

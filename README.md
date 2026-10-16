@@ -18,7 +18,7 @@ Team Buildabida built this project for the 2026 FTW Foundation Data Engineering 
 > and project-flood mapping outputs are implemented.
 > The six Gold dimensions are implemented. The three Gold facts are implemented. `09_validation_gold` validates them.
 > The Analytics layer is being rebuilt as six views, one per capstone insight (proposed D-56).
-> The six-view design has not run on Databricks yet.
+> The six-view design ran on Databricks on October 16, 2026, with no failed STOP check. See the [six Analytics views evidence](docs/evidence/six-analytics-views/README.md).
 
 ## Why we built it
 
@@ -278,13 +278,15 @@ exact, and fail-closed, with one longitude-first `ST_COVERS` fallback.
 Databricks runtime evidence passed for the recorded D-57 snapshot on October 15:
 43 checks passed, five non-blocking coverage flags were retained, and no check
 failed. That run validated Silver, Gold, and five earlier province Analytics views
-that are now retired. The added v2 population and hierarchy checks and the
-province content of the six views have not run on Databricks yet.
+that are now retired. On October 16 the full pipeline ran again with the v2
+population and hierarchy checks and the six views: 159 checks were published,
+no STOP check failed, and the exact rerun passed against the October 15 capture.
 Project mapping coverage is 75.3267 percent and reported-budget coverage is
 83.6904 percent. Two exact-rerun captures retained the same mapping run ID and
 checksum. Province flood exposure remains deferred until selected boundaries
 and the MGB intersection are shown to be safe and affordable on Free Edition.
 See the [province-reporting runtime evidence](docs/evidence/province-reporting/README.md),
+[six Analytics views evidence](docs/evidence/six-analytics-views/README.md),
 [production contract](docs/province_reporting_readiness.md),
 [Silver mapping](docs/silver_project_province_mapping.md), and
 [Gold model](docs/gold_model.md).

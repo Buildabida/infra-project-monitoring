@@ -297,3 +297,24 @@ def test_province_flood_exposure_is_not_fabricated():
     assert "silver_province_flood_exposure" not in production_sql
     assert "fact_province_flood_exposure" not in production_sql
     assert "analytics_province_flood_control_exposure" not in production_sql
+
+
+def test_runtime_fixes_from_the_october_16_databricks_run_stay_in_place():
+    # spark sql does not read '' as an escaped quote inside a string literal
+    for path in NOTEBOOKS:
+        assert "''D-57" not in sql(path)
+        assert "''REPORTING_AREA_COLUMNS_PRESENT''" not in sql(path)
+    assert "COMMENT \\'D-57 province reporting area key.\\'" in sql(GOLD_PROJECT)
+    # ambiguous columns are qualified after the joins that repeat them
+    assert "COALESCE(all_areas.psgc_version, source_snapshot_id)" in sql(AREA)
+    assert "all_areas.psgc_run_id," in sql(AREA)
+    assert "COUNT(*) = COUNT(DISTINCT map.project_key)" in sql(PROJECT_MAP)
+    # the merged boundary keeps the srid of the gold table
+    assert "ST_SETSRID(boundary_geometry, 4326) AS boundary_geometry" in sql(GOLD_AREA)
+
+
+def test_gold_province_flag_checks_save_flag_not_fail():
+    gold = sql(GOLD_VALIDATION)
+    assert "WHEN checks.action = 'stop' AND checks.failed_rows > 0 THEN 'FAIL'" in gold
+    assert "WHEN checks.action = 'flag' AND checks.failed_rows > 0 THEN 'FLAG'" in gold
+    assert "CASE WHEN checks.failed_rows > 0 THEN 'FAIL' ELSE 'PASS' END" not in gold
