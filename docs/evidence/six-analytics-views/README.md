@@ -26,6 +26,24 @@ ran all 49 tasks from Setup to the acceptance publisher.
 | Gold checks saved | `2026-10-16T00:47:49Z` |
 | Analytics checks saved | `2026-10-16T00:57:26Z` |
 
+## Job task graph
+
+All 49 tasks of the job succeeded. The task graph shows that every layer waits for its validation
+gate: Silver waits for Bronze validation, Gold waits for the Silver validators, the six views wait
+for both Gold validators, and the evidence publisher and the dashboard refresh wait for
+`10_validation_analytics`.
+
+![Job task graph](images/06-job-task-graph.webp)
+
+| Task list | Image |
+| --- | --- |
+| Setup to the province population fact | [Task list, part 1](images/07-job-task-list-part-1.webp) |
+| Silver flood-control components to the evidence publisher | [Task list, part 2](images/08-job-task-list-part-2.webp) |
+
+The longest tasks were `silver_region_flood_exposure` (28m 32s), `silver_validation_project_flood_map`
+(16m 13s), `silver_validation_projects` (12m 19s), and `10_validation_analytics` (11m 10s). The
+dashboard refresh took 3m 56s.
+
 ## Runtime fixes found by this run
 
 The first attempts stopped on four Databricks SQL errors. They were fixed in the workspace and then
