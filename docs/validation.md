@@ -944,109 +944,81 @@ nothing. Every FLAG count equals the run above. The rows are in
 
 ## Analytics validation
 
-`notebooks/04_validation/10_validation_analytics.ipynb` checks the analytics
-views in `05-analytics` that the dashboard and Genie read. The Analytics layer
-contains six official business-question views (D-50, D-51, issue #126) plus five
-exploratory monitoring views (D-54): `analytics_infrastructure_year_trend`,
-`analytics_infrastructure_year_sector`, `analytics_delivery_cohort`,
-`analytics_project_size_concentration`, and
-`analytics_implementing_office_portfolio`. It only reads Gold, the views, and `gold_dq_results`, and it never
-changes them.
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the six Analytics
+views in `05-analytics` that the dashboard and Genie read (D-56, proposed),
+including the D-57 province reporting area in views 1, 2, 4, 5, and 6. It
+only reads Gold, the views, `information_schema.views`, and the validation
+results. It writes only `04-validation.analytics_dq_results`.
 
 Run it after the views:
 
 1. `notebooks/04_validation/09_validation_gold.ipynb`, which must pass
-2. `notebooks/05_analytics/01_business_questions.ipynb`
-3. `notebooks/04_validation/10_validation_analytics.ipynb`
+2. `notebooks/04_validation/09a_validation_gold_province_reporting.ipynb`, which must pass
+3. `notebooks/05_analytics/01_business_questions.ipynb`
+4. `notebooks/04_validation/10_validation_analytics.ipynb`
 
-The validator rebuilds every view straight from Gold with its own SQL and
-compares it row by row. The expected values live in the validator, not in the
-analytics notebook, so the views never check themselves.
+The validator reads current Gold once, then rebuilds every view with its own
+SQL and compares it row by row. The expected values live in the validator, not
+in the analytics notebook, so a view never checks itself. The shared rules, such
+as the flood point class and the status reason, are written in a different form
+from the views on purpose.
+
+The six views and their grains are in the
+[Analytics views guide](../notebooks/05_analytics/README.md).
 
 ### Analytics gates
 
-Two gates run before any check. Each stops the run with an error and saves no
+Three gates run before any check. Each stops the run with an error and saves no
 evidence:
 
 - **One current snapshot:** current `fact_project_snapshot` rows must hold
   exactly one DPWH snapshot, with no empty snapshot ID. The analytics notebook
-  runs the same gate before it builds the views. Mixed snapshots would otherwise
-  add up under one snapshot ID.
-- **Gold passed:** the latest Gold validation of the current project fact has no
-  failed STOP check, and it covers the current population and exposure runs.
+  runs the same gate before it builds the views.
+- **Gold passed:** the latest Gold validation that checked the current project,
+  population, and exposure facts together has no failed STOP check. A later
+  partial run, such as the province validator, cannot hide it.
+- **Province Gold passed:** the latest `09a_validation_gold_province_reporting`
+  run of the current project fact exists, covers the reporting-area dimension
+  and population fact, and has no failed STOP check (D-57).
 
 ### Analytics stop checks
 
-There are 132 STOP checks. The 74 checks of the six official views are
-unchanged, and the five exploratory views add 58. Together they cover:
+There are 84 STOP checks. A failed one is `FAIL`, and the gate stops the run.
 
-- **Grain:** one row per documented key in each view, and every expected row is
-  there. Every official region keeps a row, even with no mapped project.
-- **Measures:** every count, budget, average, share, rank and rate equals the
-  value rebuilt from Gold. A `NULL` budget stays `NULL`.
-- **Totals:** the regional views, key `0`, and unknown keys add up to every
-  current Gold project and budget. Q2 adds up to all of them. Shares add up to
-  100 within 0.01.
-- **Key `0`:** no regional view has a key `0` row, and per-person ratios leave
-  it out.
-- **Coverage:** only `REPORTED` regions get a rank, a share, or a ratio. BARMM is
-  never ranked.
-- **Flood:** Q2's strict and broad flood shares match Gold (D-39). Q5 shows a
-  total area only when the levels may be added, and its five project-point
-  groups add up to the flood control count.
-- **Lineage:** every view carries the current DPWH snapshot ID, and Q5 also the
-  current MGB snapshot ID (D-29).
-
-The exploratory checks add:
-
-- **Cohorts:** the `infra_year` rows, including the `NULL` year, add up to every
-  current Gold project and budget. Every current project must find its
-  `dim_project` and `dim_project_status` row, so none can drop out of a join.
-- **Status:** the four status counts of the trend view add up to the project
-  count. The cohort view's status reason follows the status group, so status key
-  `0` and unmapped statuses keep their own rows.
-- **Denominators:** the long-running and zero-progress denominators are rebuilt
-  as `COUNT_IF(flag IS NOT NULL)`, on their own, for every row. The cohort view's
-  `pct_of_year_projects` divides by every project of the year, counted from Gold.
-  The year-sector share divides by the budget of the same year. Each year's shares
-  add up to 100.
-- **Cross-view:** the year-sector and cohort rows of each year add up to the trend
-  view of the same year. The size view matches Q1 for regions, coverage, counts,
-  budget, and average.
-- **Distribution:** the median, p90, and largest budget are rebuilt from Gold rows
-  with a known budget only, with the same exact `PERCENTILE_CONT` as the view. The
-  zero-budget count uses `reported_budget_pesos = 0`, so a missing budget is never
-  counted as 0. Region key `0` is never in the size view.
-- **Offices:** the `NULL` office keeps one row and gets no rank. Ranks cover real
-  offices only, and ties share a rank.
-- **Lineage:** each exploratory view carries the current DPWH snapshot ID.
-
-The Q1 check "At most one current row per project" covers every view, so no
-project can count twice.
+| Group | What the checks prove |
+| --- | --- |
+| Layer contract | `05-analytics` holds all six D-56 views, and no retired or unexpected view. `analytics_region_project_progress` does not exist. |
+| Grain and keys | One row per documented grain in each view, no `NULL` key, and every expected row present with no extra row. View 1 has exactly the `REGION` and `REPORTING_AREA` levels. |
+| Measures | Every count, budget, average, share, rank, running share, gap, ratio, per-capita value, area, flag, date, and review indicator equals a separate rebuild from Gold. |
+| `NULL` handling | Budgets compare with `<=>`, so a `NULL` that turned into `0` breaks. Unavailable progress, dates, population, and area stay `NULL`. A region with no mapped project keeps `NULL` flood figures. |
+| Project reconciliation | Each level of view 1 plus its key `0` and unknown keys adds up to every current project and budget. Region totals are rebuilt from `region_key`, never from reporting areas. Views 4 and 5 hold every current project once. Every link of view 6 adds up to every current project and budget. At most one current Gold row exists per project. |
+| Population | View 2 population equals the newest Gold primary reporting-area population, and its total adds up to it. Per-person ratios leave key `0` out (#61). Views 5 and 6 read the same population. |
+| Accounting | Flood classes cover every project outside key `0`. Flood-control, other, and uncategorized add up to each row. Region-linked and reporting-area-linked projects equal Gold. Matched and unmatched rows of every link add up to Gold. |
+| Hierarchy | The region and province hierarchy status of view 5 and view 6 follows the two Gold keys. A conflict is reported, never forced. |
+| Shares | Every share and percentage is between 0 and 100. Cohort, region, equity, flood-control, and link shares add up to 100 within 0.01. |
+| Coverage and key `0` | Only `REPORTED` regions are ranked or compared. BARMM is never ranked. No regional view has a key `0` row. |
+| Interpretation | A `For Procurement` project never raises a progress indicator (D-46). Area appears only on MGB level rows. |
+| Lineage | Every view carries the current DPWH snapshot ID, view 3 also the MGB snapshot ID, and views 1 and 4 the snapshot date (D-29). |
+| Rerun | A rerun on the same Gold data gives the same failed and total rows for every saved check. |
 
 ### Analytics review flags
 
-There are 20 FLAG checks: the 13 of the official views and 7 for the exploratory
-views. They keep known data limits visible with their counts:
+There are 28 FLAG checks. They keep known source limits visible with their
+counts:
 
-- projects left out on region key `0`, by match status
-- projects without a budget, and projects with a budget of 0
-- regions with no or limited DPWH coverage, and regions left out of the equity
-  comparison
-- projects with no usable category, and Multi-sector projects counted whole in
-  the broad flood share
-- projects with no mapped status group, and projects without a long-running flag
-- regions without a primary population
-- flood control projects not placed in an MGB level, regions whose flood levels
-  overlap, and regions with no evaluated exposure
-- projects with no `infra_year`. Its details list every observed year with its
-  project count, so shifted or outlier years stay visible
-- projects without a long-running flag, and zero-progress projects that are
-  `For Procurement` (D-46)
-- projects with no mapped status group in the cohort view, by reason
-- projects with a reported budget of 0 in the size view, and regions with no or
-  limited coverage there
-- projects with no resolved implementing office
+- projects left out on region key `0` and on reporting area key `0`, by match status
+- projects with no `infra_year`, and projects with no reported budget
+- regions with no or limited DPWH coverage, regions outside the equity
+  comparison, and regions without a primary population
+- flood-control projects not placed in one MGB level, ambiguous points, and
+  regions whose levels overlap or have no evaluated exposure
+- projects with at least one review indicator, unresolved statuses, projects
+  without a long-running flag, and zero-progress flags that disagree with the
+  published progress
+- projects without a mappable point, mappable projects on key `0`, and projects
+  whose region differs from the parent region of their reporting area
+- the unlinked projects of each integration link, and region and province
+  conflicts
 
 A FLAG check that finds nothing is `PASS`. Every check names the columns it
 tested in `details`.
@@ -1059,73 +1031,49 @@ The validator saves its results to `04-validation.analytics_dq_results` with
 a failed check stays visible after the run stops.
 
 The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot`,
-`dim_region`, `fact_region_population` and `fact_region_flood_exposure`, and the
-rule version `analytics-validation-v2`. The rule version moved from v1 to v2 when
-the exploratory checks were added. The recipe itself is unchanged (D-52), so the
-v1 evidence of the six official views stays as it was. The `MERGE` key is the validation run ID,
-the view, and the check name. So a rerun on the same Gold data updates the same
-rows instead of adding copies. New Gold runs give a new ID and a new set of rows.
-
-### Regional project progress validation
-
-`notebooks/04_validation/11_validation_regional_project_progress.ipynb`
-validates the proposed D-55 extension separately from the eleven existing
-Analytics views. Run it after `02_regional_project_progress.ipynb` and after the
-base Analytics v2 validator has passed.
-
-The validator checks one row per current official region, the stable PSGC
-region-code comparison grain, exact current project and reported-budget
-reconciliation to Gold, the four current status groups, current and previous
-snapshot lineage, and transition-count bounds. It saves its rows to the shared
-`04-validation.analytics_dq_results` table with rule version
-`regional-project-progress-validation-v1` before enforcing its STOP gate.
-
-A workspace with one DPWH snapshot is valid. In that case, the validator emits
-a FLAG that no prior snapshot is available and stops if the view publishes a
-historical zero or any non-NULL change measure. When a prior snapshot exists,
-the selected snapshot ID must be the immediately preceding Gold snapshot.
-Projects whose reported physical progress decreases remain a FLAG for review,
-because a later source can correct an earlier value.
-
-The first Databricks run on October 15, 2026 used one DPWH snapshot. All 12 STOP
-checks passed. The expected no-prior-snapshot FLAG was present, and the progress
-decrease FLAG found no projects. The view returned all 18 official regions and
-reconciled 265,108 mapped projects and PHP 6,378,351,772,243.23 of mapped
-reported budget to Gold. See the
-[regional progress evidence](evidence/regional-project-progress/README.md).
-
-This evidence validates current regional status and one-snapshot safety. It
-does not validate historical change across two snapshots.
+`dim_region`, `fact_region_population`, `fact_region_flood_exposure`,
+`dim_province_reporting_area`, and `fact_province_reporting_area_population`, and
+the rule version `analytics-validation-v4`. The rule version moved to v3 with the
+six-view contract and to v4 with the province reporting area. D-57 adds the two
+province runs to the D-52 recipe, so new province data gives a new ID. Earlier
+evidence stays as it was. The `MERGE` key is the validation run ID, the table,
+and the check name. A rerun on the same Gold data updates the same rows, and the
+rerun check proves the results did not change.
 
 ### Analytics validation runtime evidence
 
-On October 12, 2026, both notebooks ran twice on Databricks serverless compute.
-The final rerun used Gold after PR #125 merged. All 74 STOP checks passed, 11
-FLAG checks found data limits, and the second final rerun updated the same 87
-rows for validation run `e14864fd…297f`. Evidence from before #125 remains as
-historical comparison only. See the
-[analytics evidence](evidence/analytics-views/README.md).
+The six-view contract first ran on Databricks on October 16, 2026, in job run
+`1077732256280159`. Validation run
+`2b0558751cb722b38b61b16d97a4f974318b36a939232af669defc59d555e933` saved 112
+checks: 84 STOP checks passed, 26 FLAG checks reported findings, and 2 FLAG
+checks passed. `05-analytics` held exactly the six views, and every rebuild from
+Gold matched its view with no break. The rerun check compared no saved rows,
+because it was the first run of that validation run ID. A second run on the same
+Gold data, under the same validation run ID, compared 111 saved checks and found
+none changed, so the six views are stable on unchanged Gold. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).
 
-That evidence is from rule version v1 and covers the six official views only.
+The earlier runs validated the retired designs and stay as history only:
 
-The latest run under `analytics-validation-v2` covers all eleven views. It saved
-152 checks under validation run `b74f14bb…95a37c`. All 132 STOP checks passed. 18
-FLAG checks found data limits, and 2 found nothing. All 87 Q1 to Q6 checks keep
-the same status, failed rows, and total rows as the October 12 evidence. One Q4
-details value changed after the final Issue #113 population refresh, while the
-check remained within tolerance and `PASS`. See the
-[exploratory analytics evidence](evidence/exploratory-analytics-views/README.md).
+- the October 12, 2026 run of the six D-50 views under v1, in the
+  [analytics evidence](evidence/analytics-views/README.md)
+- the run of all eleven views under v2, in the
+  [exploratory analytics evidence](evidence/exploratory-analytics-views/README.md)
+- the October 15, 2026 run of the five retired `analytics_reporting_area_*`
+  views, in the [province-reporting evidence](evidence/province-reporting/README.md).
+  Its Silver and Gold province results stay valid for the snapshot they name.
+- the October 15, 2026 run of the withdrawn D-55 view, in the
+  [regional progress evidence](evidence/regional-project-progress/README.md)
 
 ### Known gap: dimension runs in the Gold gate
 
 The Gold gate checks that the latest Gold validation of the current project fact
 passed and covers the current population and exposure facts. It does not check
-that the same validation covered the current `dim_project` and
-`dim_project_status` runs, and the validation run ID does not include them
-(D-52). If `dim_project` or `dim_project_status` were rebuilt after
-`09_validation_gold` and before this validator, the gate would not notice. Q2,
-Q3, Q5 and Q6 already read these dimensions, and the cohort and office views read
-them too. The documented run order, `09_validation_gold` then the views then this
+that the same validation covered the current `dim_project`,
+`dim_project_status`, `dim_flood_susceptibility`, and `dim_date` runs, and the
+validation run ID does not include them (D-52). If one of them were rebuilt
+after `09_validation_gold` and before this validator, the gate would not notice.
+The documented run order, `09_validation_gold` then the views then this
 validator, avoids the gap. A fix that adds the dimension runs to the gate is a
 separate follow-up. It needs its own review against D-52.
 
@@ -1143,3 +1091,74 @@ docs/validation/
 
 Split this document only when the remaining Silver or Gold validators are implemented.
 Update existing links in the same pull request.
+
+## Province reporting-area validation
+
+`03b_validation_silver_province_reporting` persists checks for the reporting-area
+reference, selected boundary status, accepted-primary population, and final
+project map. STOP checks cover one row per project, unique deterministic keys,
+valid targets, complete lineage, config ambiguity, accepted population,
+canonical project count, and reported-budget reconciliation. FLAG checks retain
+missing coordinates, zero and multiple candidates, conflicts, unresolved areas,
+NCR, independent-city, and BARMM findings.
+
+Rule version `silver-province-reporting-validation-v2` adds five STOP checks for
+the population contract (D-57): each contributing Table C row is counted once,
+every reporting area has one official parent region, the reporting-area total
+equals the region total, no region has more reporting-area population than its
+own total, and region minus reporting-area population equals the population left
+on key `0`. Two FLAG checks report that unresolved and excluded population in
+people, and one counts the regions that hold unresolved population.
+
+`09a_validation_gold_province_reporting` then checks dimension and fact keys,
+one Unknown, parent regions, reporting-area orphans, unchanged current project
+grain, unchanged reported budget, population reconciliation, one current
+snapshot, and lineage. Rule version `gold-province-reporting-validation-v2` adds
+STOP checks for a unique PSGC code per version, a parent region that exists in
+`dim_region`, the same three population reconciliations against
+`fact_region_population`, and key `0` holding exactly the unresolved and
+non-geographic projects. Two FLAG checks count projects whose region differs
+from the parent region of their reporting area, and projects with a region but
+no reporting area. A FLAG check with findings is saved as `FLAG`, the same as in
+`03b`. The October 16, 2026 run saved these two rows as `FAIL` with action `flag`
+before that fix. They were findings, not failures, and did not block the run.
+
+`10_validation_analytics` validates the province content of the six Analytics
+views (D-56). See [analytics validation](#analytics-validation). The first
+province validator, `10a_validation_provincial_analytics`, checked the five
+retired `analytics_reporting_area_*` views and is removed.
+
+All three validators `MERGE` evidence before their STOP gate. Their local tests
+prove contract text and ordering only. All three ran on Databricks on October 16,
+2026, with no failed STOP check. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).
+
+### Province-reporting acceptance publication
+
+`11_publish_acceptance_evidence.sql` consolidates the latest D-57 rows from
+`silver_dq_results`, `gold_dq_results`, and `analytics_dq_results`. It publishes
+current mapped and unmapped project and budget coverage, mapping-method totals,
+NCR, independent-city, and BARMM totals, population coverage and exclusions,
+selected PSGC, boundary, configuration, and rule versions, and boundary
+availability.
+
+Each execution appends one compact record to
+`province_reporting_acceptance_runs`. The record includes the deterministic
+project-map run ID and a commutative checksum over the complete mapping output.
+Run the publisher once, rerun the Silver project map and its validator with
+unchanged inputs, and run the publisher again. `exact_rerun_status = 'PASS'`
+requires the two latest captures for the source snapshot to retain both the map
+run ID and mapping checksum. The first capture reports `RERUN_REQUIRED` rather
+than inventing rerun evidence.
+
+The October 15, 2026 execution recorded 43 passed checks and retained five
+non-blocking Silver coverage flags. Two captures retained one project-map run
+ID and one mapping checksum. The complete identities, coverage, budgets,
+special-area totals, population values, boundaries, and limitations are in the
+[province-reporting runtime evidence](evidence/province-reporting/README.md).
+
+The October 16, 2026 execution published 159 checks under the v2 province rules
+and `analytics-validation-v4`: Silver 23, Gold 24, and Analytics 112, with no
+failed STOP check. The exact-rerun comparison passed against the October 15
+capture with the same project-map run ID and mapping checksum. See the
+[six Analytics views evidence](evidence/six-analytics-views/README.md).

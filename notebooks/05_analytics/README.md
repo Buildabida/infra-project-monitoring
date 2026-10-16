@@ -1,87 +1,128 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer contains six official business-question views plus five exploratory monitoring views. Each official view answers one business question. The exploratory views support broader monitoring and exploration (D-54). Those eleven views read current-snapshot Gold. A separate proposed extension, `analytics_region_project_progress` (D-55, proposed), compares the current and immediately preceding Gold project snapshots without changing their grain. All Analytics outputs are views in `05-analytics` and hold no data of their own.
+This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer has **exactly six views**, one per capstone insight ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
+
+The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired: six business-question views (D-50, D-51), five exploratory monitoring views (D-54), a proposed regional progress view (D-55) in a second notebook, and five `analytics_reporting_area_*` views first built for D-57. The notebook now drops those views, and `10_validation_analytics` stops the run if any of them remains.
 
 ## Run order
 
-1. `09_validation_gold` must pass first.
-2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, and the eleven views with `CREATE OR REPLACE VIEW`. These are the six official views (D-50, D-51) and the five exploratory views (D-54).
-3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and the Gold validation again, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` (D-52). It stops the run if any STOP check fails. See [analytics validation](../../docs/validation.md#analytics-validation).
-4. After D-55 receives team approval, run `02_regional_project_progress.ipynb` and then `04_validation/11_validation_regional_project_progress.ipynb`. The current regional status map works with one Gold snapshot. Snapshot-change measures remain `NULL` until Gold contains an earlier DPWH snapshot.
+1. `04_validation/09_validation_gold.ipynb` and `04_validation/09a_validation_gold_province_reporting.ipynb` must pass first.
+2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the six views with `CREATE OR REPLACE VIEW`.
+3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation.md#analytics-validation).
 
-A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice.
+A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The [pipeline job](../../resources/buildabida_full_pipeline.job.yml) runs them after both Gold validators, then refreshes the dashboard. `run_all.py` coordinates Bronze only.
 
-## Views
+## The six views
 
-### Official business-question views
+| # | Insight | View | One row per | Gold tables read |
+| --- | --- | --- | --- | --- |
+| 1 | Where does the money go? | `analytics_investment_distribution` | Geography level (`REGION` or `REPORTING_AREA`), geography key, and `infra_year` cohort | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area`, `dim_province_reporting_area_boundary`, `dim_date` |
+| 2 | Are investments proportional to population? | `analytics_population_equity` | Province reporting area | `fact_province_reporting_area_population`, plus view 1 |
+| 3 | Do flood-control investments overlap with flood-prone areas? | `analytics_flood_alignment` | Official PSGC region and flood point class | `fact_project_snapshot`, `dim_project`, `dim_flood_susceptibility`, `fact_region_flood_exposure`, plus view 1 |
+| 4 | Which projects need a closer look? | `analytics_implementation_monitoring` | Current DPWH project | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area`, `dim_project_status`, `dim_date` |
+| 5 | Are we seeing projects or a connected infrastructure network? | `analytics_infrastructure_network` | Current DPWH project | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area`, `dim_project_status`, `dim_flood_susceptibility`, `fact_region_population`, `fact_province_reporting_area_population` |
+| 6 | What can we see only after connecting the datasets? | `analytics_integration_coverage` | Integration link, link outcome, and region key | `fact_project_snapshot`, `dim_project`, `dim_project_status`, `dim_region`, `dim_province_reporting_area`, `fact_region_population`, `fact_province_reporting_area_population` |
 
-| View | Question | One row per |
-| --- | --- | --- |
-| `analytics_regional_investment` | Q1. Which regions receive the most and least reported investment and projects? | Official PSGC region |
-| `analytics_category_portfolio` | Q2. Which categories receive the largest budget share, and how does flood control compare? | Sector, flood flag, and mapping status |
-| `analytics_project_delivery_status` | Q3. Which regions and categories have the most ongoing, inactive, or long-running projects? | Region, sector, status group, and mapping status |
-| `analytics_population_equity` | Q4. Which regions receive more or less investment than their share of population? | Official region |
-| `analytics_flood_control_exposure` | Q5. How does flood control compare with regional flood exposure? | Official region |
-| `analytics_region_category` | Q6. How is each region's budget split across infrastructure types (D-27)? | Region, sector, and mapping status |
-
-### Exploratory monitoring views
-
-| View | What it helps explore | One row per |
-| --- | --- | --- |
-| `analytics_infrastructure_year_trend` | How do the projects of each infrastructure-year cohort look in the current snapshot? More or fewer projects, larger or smaller ones, and their current status and delivery flags. | `infra_year`, including `NULL` |
-| `analytics_infrastructure_year_sector` | Does the sector mix differ across cohorts? | `infra_year`, sector, and mapping status |
-| `analytics_delivery_cohort` | Do older cohorts still hold active, long-running, or zero-progress projects? | `infra_year`, status group, and status mapping status |
-| `analytics_project_size_concentration` | Is a region's budget spread over many smaller projects or held by a few larger ones? | Official region |
-| `analytics_implementing_office_portfolio` | Which implementing offices carry the largest observed workload? | `implementing_office`, including `NULL` |
-| `analytics_region_project_progress` | Proposed. What is the current regional status mix, and what changed since the immediately preceding DPWH snapshot? | Current official PSGC region |
-
-The exploratory views add views. They never change the six official views.
-
-Every view and column has a comment, so Genie can read what each one means.
+Every view and column has a comment, so Genie can read what each one means. The dashboard build is in the [dashboard specification](../../dashboard/dashboard_spec.md).
 
 ## Rules every view follows
 
-- Reads only `` `03-gold` `` tables, only rows where `is_current_snapshot = TRUE`.
-- Budget means the reported project or contract budget, never payment (D-28). A missing budget stays `NULL`.
-- Region key `0` (Central Office and unmatched projects) is left out of every regional view, including `analytics_project_size_concentration`. Q2 and the cohort and office views are national, so they include them.
-- Every official region keeps a row. `source_coverage_status` says how far to trust it: `REPORTED`, `LIMITED_SOURCE_COVERAGE` for BARMM with projects, or `NO_MAPPED_PROJECT_DATA`. Only `REPORTED` regions are ranked or compared.
-- An unmapped sector or status stays `NULL`, and a reason column says why (D-37). No view writes `Unknown` or `Unmapped`.
-- Every view carries `source_snapshot_id` (D-29). Q5 also carries `mgb_source_snapshot_id`.
+- Reads only `` `03-gold` `` tables, and only current project rows (`is_current_snapshot = TRUE`). Views 2 and 3 also read view 1, so the regional views share one region list and one coverage status.
+- Never repeats Silver or Gold work. Region and flood matching, category and status mapping, and the long-running rule come from Gold as published. No view parses geometry or runs a spatial join.
+- Budget means the reported project or contract budget, never payment (D-28). A missing budget stays `NULL`. A reported `0` stays `0`.
+- An unmapped or unresolved value stays `NULL` or keeps its own status row (D-37). No view writes `Unknown` or `Unmapped`.
+- Every view carries `source_snapshot_id` (D-29). View 3 also carries `mgb_source_snapshot_id`.
+- Key `0` holds Central Office, unmatched, ambiguous, and unresolved projects at each level. Views 1, 2, and 3 leave it out. Views 4, 5, and 6 keep it, and view 6 accounts for every key `0` project at both levels.
+- Every official region and reporting area keeps a row in views 1, 2, and 3. `source_coverage_status` says how far to trust it: `REPORTED`, `LIMITED_SOURCE_COVERAGE` for BARMM and its reporting areas with mapped projects, or `NO_MAPPED_PROJECT_DATA`. Only `REPORTED` members are ranked or compared.
 
-## Rules for the exploratory views
+## Geography and time
 
-- `infra_year` is a **project cohort attribute** in the current snapshot. The cohort views compare the projects of different infrastructure years as they look now. They never show what the DPWH portfolio looked like in a past year. Write "projects in the 2018 cohort", never "DPWH in 2018".
-- A project without an `infra_year` keeps its own `NULL` row. The views keep every year Gold publishes and have no 2016 to 2026 filter.
-- Status counts use the approved groups `FINISHED`, `ACTIVE`, and `INACTIVE` (D-40). `ACTIVE` includes `For Procurement`. Projects with no group stay visible as `unmapped_status_count` or as their own `NULL` rows.
-- Long-running and zero-progress use the Q3 rules: each rate divides by the projects where its flag is known. Long-running does not mean delayed.
-- `pct_zero_progress` includes `For Procurement` projects, the same as Q3. D-46 allows a zero-progress count that says so. The cohort views add `for_procurement_count` to show how many there are. A zero-progress project is not stalled.
-- `analytics_project_size_concentration` takes its regions and coverage from Q1 and leaves key `0` out. Its median and p90 are exact `PERCENTILE_CONT` values over projects with a reported budget that is not `NULL`. A reported 0 stays in. There are no budget bands, because bands need their own decision.
-- `analytics_implementing_office_portfolio` keeps a `NULL` office as its own row with no rank. Gold does not say whether that office was missing or conflicting.
-- No exploratory view reads contractors. A contractor view waits for Gold to carry contractor resolution status and for a name standardization rule (D-54).
-- `analytics_region_project_progress` is the only proposed Analytics view that reads an earlier project snapshot. It reports `NO_PRIOR_SNAPSHOT` and leaves historical measures `NULL` in a fresh workspace with only one Gold snapshot. A zero must never replace unavailable history.
-- `ACTIVE` is the approved project-status group. It includes `For Procurement`, so it is not synonymous with construction actively under way.
+- **Two levels.** Region comes from `fact_project_snapshot.region_key` (D-31). The province reporting area comes from `fact_project_snapshot.reporting_area_key` (D-57): an official PSGC province, a city with no province parent (`INDEPENDENT_CITY`), or NCR as one area. Silver assigns it once, mostly by the project point inside one province boundary. The DPWH `location.province` field can hold a District Engineering Office name, so it never decides a province.
+- **Never add the two levels together, and never derive region totals from provinces.** The levels come from different evidence. About a quarter of projects have a region but no reporting area, and the parent region of a reporting area can differ from the project region. View 5 and view 6 show those conflicts.
+- **Boundary gaps.** Independent cities and a few provinces, such as those of the Negros Island Region, have no compatible boundary in the selected boundary file. They cannot receive projects by coordinates, so their zero is a coverage gap. `boundary_status` shows it.
+- **Cohorts, not history.** Gold holds one DPWH snapshot. `infra_year` is a project cohort attribute in that snapshot. Write "the 2018 infrastructure-year cohort in the current snapshot", never "DPWH investment in 2018". A newer cohort can hold more active projects simply because its projects started later.
 
-## For the dashboard
+## View contracts
 
-- Label `NULL` sectors and statuses in the chart, such as "Not categorized". Keep the label out of the data.
-- Show BARMM as "no or limited DPWH project coverage", never as low or zero investment.
-- Q2 has two flood control shares. The strict share counts single-sector Flood Control and Drainage. The broad share counts every project with a flood component (D-39). Show both, because the real amount sits between them.
-- In Q5, show `exposure_area_status` when area figures are blank, and show `flood_control_points_classified_pct` next to the High or Very High share. A point outside mapped zones is not low risk.
-- These numbers describe the data. They do not show need, fairness, delay, or adequacy.
-- For the cohort charts, label the axis "infrastructure-year cohort" and say the figures come from the current snapshot. A higher active share in a newer cohort is expected, because those projects started later. Do not present a cohort chart as DPWH performance over time.
-- Show the `NULL` year and the `NULL` office with a display label, such as "No year in source" or "No resolved office". Keep the label out of the data, and never rank the `NULL` office.
-- Next to any zero-progress rate, say that it includes projects still in procurement and show `for_procurement_count` where the view has it. Never call these projects stalled.
-- In the size view, show the average and the median together. An average well above the median means a few large projects carry the region budget. Neither pattern is good or bad. Read BARMM as limited source coverage.
-- Office figures describe workload. A high project count, budget, or long-running rate does not show office quality or performance.
-- The flood-point chart needs no new view. Use the five `flood_control_points_*` columns of Q5.
+### 1. `analytics_investment_distribution`
 
-## Known limits
+- **Business question:** which regions and provinces account for the largest share of recorded investment, and is it concentrated in a few areas or broadly distributed?
+- **Grain:** one row per `geography_level`, `geography_key`, and `infra_year` cohort. `geography_level` is `REGION` or `REPORTING_AREA`. A `NULL` cohort keeps its own row (`cohort_row_type = 'NO_INFRA_YEAR'`). A member with no mapped project keeps one row (`NO_MAPPED_PROJECT`). Every project appears once at each level.
+- **Measures:** additive `project_count`, `projects_with_budget`, and `total_reported_budget_pesos`, plus the average. Within a level and cohort: `cohort_budget_share_pct`, `cohort_budget_rank`, `cohort_project_count_rank`, and `cohort_cumulative_budget_share_pct`. Over all cohorts, repeated on every cohort row: `geography_project_count`, `geography_budget_pesos`, `geography_budget_share_pct`, `geography_budget_rank`, `geography_project_count_rank`, and `geography_cumulative_budget_share_pct`. Context: `geography_type`, `parent_region_key`, `parent_region_name`, `boundary_status`, and the centroid.
+- **Filters:** geography level (single select), `infra_year`, parent region, reporting-area type.
+- **Dashboard visual:** a region or province bubble map, a ranking bar chart, a regional rollup table, and a concentration KPI.
+- **Interpretation:** the running share at rank 3 reads "the top three hold this percent". It describes where reported budget sits, not need or fairness.
+- **Limitations:** key `0` is not in the shares. A `cohort_*` figure is valid only when one level and one cohort are selected. Read `geography_*` columns with `MAX`, never `SUM`. The regional rollup is the `REGION` level, not a sum of reporting areas.
+- **Validation:** one row per level, member, and cohort, no key `0`, every count, budget, share, rank, and running share equal to a rebuild from each Gold key, shares adding up to 100 within each level, member columns the same on every cohort row, and each level plus its key `0` adding up to every current project and budget.
 
-- Q5 has no total flood area for regions whose flood levels overlap. A Gold column for the Silver all-level union would fix it.
-- Q5 has no area figures for Western Visayas, Central Visayas, Zamboanga Peninsula, NIR, and BARMM, because the boundary file predates NIR and the Sulu move.
-- Q4 uses Gold's population, which is about 3.4% below the census total (#61).
-- Stalled projects are not reported (D-46).
-- Gold has no reason column for a `NULL` `infra_year` or a `NULL` `implementing_office`, so the views cannot say why either is empty.
-- The cohort views still read one current snapshot. `analytics_region_project_progress` can show change only when Gold actually contains at least two DPWH source snapshots.
+### 2. `analytics_population_equity`
 
-See issue #126 for the scope and acceptance evidence of the six official views. The first Databricks run of all eleven views is in the [exploratory analytics evidence](../../docs/evidence/exploratory-analytics-views/README.md). The proposed regional progress extension has separate [runtime evidence](../../docs/evidence/regional-project-progress/README.md) for its current-status and no-prior-snapshot contracts.
+- **Business question:** which provinces receive a larger or smaller share of recorded investment than their share of the national population?
+- **Grain:** one row per province reporting area.
+- **Measures:** `population_count`, `population_share_pct`, `comparable_population_share_pct`, `investment_share_pct`, `share_gap_pp`, `investment_to_population_share_ratio`, `investment_per_capita_pesos`, `investment_per_capita_rank`, and `comparable_set_per_capita_pesos`, with the parent region, `boundary_status`, and `equity_comparison_status`. "National included" means the comparable areas: `REPORTED`, with a budget, and with a population.
+- **Filters:** parent region, reporting-area type.
+- **Dashboard visual:** scatterplot of population against reported budget, sized by investment per capita, a diverging bar of the share gap, and a per-capita ranking.
+- **Interpretation:** a **screening indicator, not a verdict on fairness**. A gap can reflect geography, existing infrastructure gaps, construction costs, who benefits from a project, project type mix, or source coverage.
+- **Limitations:** the comparison covers projects with a reporting area only. The view has no "substantially different" flag, because no threshold is approved. Population is the Census Table C barangay population rolled up to reporting areas. Accepted rows that resolve to no area stay on key `0`, outside the view. BARMM provinces stay visible but outside the comparison.
+- **Validation:** one row per area, no key `0`, population equal to the newest Gold primary reporting-area population and adding up to it, every share, gap, ratio, and per-capita value equal to Gold, the three share sets adding up to 100, and no ratio on an excluded area.
+
+### 3. `analytics_flood_alignment`
+
+- **Business question:** where are flood-control investments located relative to mapped MGB flood susceptibility?
+- **Grain:** one row per official region and flood point class. The classes are the four MGB levels plus `AMBIGUOUS`, `OUTSIDE_MAPPED_ZONES`, `NO_USABLE_POINT`, and `INVALID_SOURCE`. Every region has every class.
+- **Measures:** all projects and budget, broad flood-control (`is_dpwh_flood_related`, D-39), strict single-sector flood-control, official flood-list projects, other and uncategorized counts, flood-control shares within the region, and the area and area share of each MGB level with `exposure_area_status`.
+- **Filters:** region, flood point class.
+- **Dashboard visual:** a layered map that combines the region bubbles with the project points of view 5, stacked bars of flood-control projects and budget by class, and a regional exposure table.
+- **Interpretation:** overlap does not prove that a project protects an area or a whole region. A point outside mapped MGB polygons is not low risk.
+- **Limitations:** project classes come from one point per project. Level areas may be added within a region only when `exposure_area_status` is `ADDITIVE_WITHIN_TOLERANCE`. Some regions have no safe boundary, so they have no area figures.
+- **Validation:** one row per region and class, every project outside key `0` in a published class, flood-control, other, and uncategorized adding up to the row, each region adding up to view 1, areas equal to the newest Gold run and only on level rows, and `NULL` project figures for a region with no mapped project.
+
+### 4. `analytics_implementation_monitoring`
+
+- **Business question:** which recorded projects warrant further verification or follow-up?
+- **Grain:** one row per current DPWH project, including key `0`.
+- **Measures and fields:** region and province reporting area with its match status, status, standardized status, status group, status reason, `is_for_procurement`, start and completion dates, snapshot date, `physical_progress_pct`, `progress_reporting_status`, `zero_progress_flag`, `long_running_flag`, budget, and five review indicators with `review_reason_count` and `needs_review`.
+- **Filters:** `infra_year`, region, province reporting area, sector, implementing office, status group.
+- **Dashboard visual:** status distribution, region monitoring bars, drilldown by sector, office, and status, and a project exception table filtered on `needs_review`.
+- **Interpretation:** a raised indicator means "verify this record". It never means stalled, delayed, or overdue. Zero reported progress, progress that is not published, `For Procurement`, inactive, and long-running stay separate.
+- **Limitations:** **overdue is not built**, because the repo has no trustworthy target completion date and no approved rule (D-40). "Low reported accomplishment" is not a flag, because no threshold is approved. Show `physical_progress_pct` instead. Gold does not say why progress is not published.
+- **Validation:** one row per current project, every field and indicator equal to a separate rebuild from Gold, rows and budget equal to Gold, and no `For Procurement` project raising a progress indicator.
+
+### 5. `analytics_infrastructure_network`
+
+- **Business question:** what patterns emerge when projects are seen together rather than one at a time?
+- **Grain:** one row per current DPWH project, including key `0`.
+- **Measures and fields:** `latitude`, `longitude`, `coordinate_status`, `is_mappable`, a 0.1-degree display cell (`map_grid_latitude`, `map_grid_longitude`), sector, flood flags, `infra_year`, status, budget, `flood_point_class`, region and reporting-area population context, and `region_province_hierarchy_status`.
+- **Filters:** sector, `infra_year`, status group, region, province reporting area, flood point class, and map location.
+- **Dashboard visual:** an interactive project point map, with a density map on the display cell when there are too many points to draw.
+- **Interpretation:** use spatial cluster, corridor pattern, concentration, or gap. Gold has no road or transport topology, so the map **cannot show network connectivity**.
+- **Limitations:** about one in five DPWH projects has no map point. A gap on the map can be a project without a point. Region population repeats on every project of a region, so never add it up.
+- **Validation:** one row per current project, points equal to Gold, only valid pairs mappable, each mappable point inside its own cell, flood class and population equal to Gold, and rows and budget equal to Gold.
+
+### 6. `analytics_integration_coverage`
+
+- **Business question:** how many project records connect to each governed source, and which cannot?
+- **Grain:** one row per integration link, link outcome, and region key. Every current project appears once in each link, so never add rows across links.
+- **Links:** `PSGC_REGION`, `PSGC_REPORTING_AREA`, `REGION_PROVINCE_HIERARCHY`, `COORDINATES`, `POPULATION_VIA_REGION`, `POPULATION_VIA_REPORTING_AREA`, `FLOOD_SUSCEPTIBILITY`, `PROJECT_CATEGORY`, `PROJECT_STATUS`, `REPORTED_BUDGET`, and `OFFICIAL_FLOOD_LIST`.
+- **Measures:** `project_count`, `projects_with_budget`, `reported_budget_pesos`, `pct_of_link_projects`, `pct_of_link_budget`, and `pct_of_region_projects`, with `is_linked` and `connected_source`.
+- **Filters:** integration link, region, `is_linked`.
+- **Dashboard visual:** integration KPI cards, an unmatched-record breakdown by outcome, matched against unmatched reported budget, and coverage by region.
+- **Interpretation:** this view shows what the pipeline adds: matching, standardization, lineage, and visible data quality. "Not linked" means the governed rules could not connect the record. It does not mean the project is wrong.
+- **Limitations:** `OFFICIAL_FLOOD_LIST` is membership, not a quality gap. Most DPWH projects are not flood control.
+- **Validation:** one row per link, outcome, and region, exactly eleven links, every link adding up to every current project and budget, region-linked and reporting-area-linked projects equal to Gold, shares equal to Gold and adding up to 100.
+
+## Requests the governed data cannot support
+
+| Request | Status | Why |
+| --- | --- | --- |
+| Province flood exposure (area per MGB level) | Not built | Deferred by D-57 until a one-time Silver intersection is proven safe and affordable. View 3 stays regional, and view 5 gives the flood class at each project point. |
+| Year-over-year portfolio trend | Not built | Gold holds one DPWH snapshot. `infra_year` is a cohort attribute. |
+| Overdue projects | Not built | No trustworthy target or contractual completion date and no approved rule (D-40). |
+| "Low" accomplishment flag | Not built | No approved threshold. `physical_progress_pct` is shown instead. |
+| "Substantially different" equity flag | Not built | No approved threshold. The share gap and ratio are shown and sorted instead. |
+| Stalled projects | Not built | Out of scope (D-46). |
+| Network connectivity | Not built | Gold has no road or transport topology. The map shows spatial patterns only. |
+
+## Evidence
+
+The six-view design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. A second run of the validator on the same Gold data compared 111 saved checks and found none changed. See the [six Analytics views evidence](../../docs/evidence/six-analytics-views/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.

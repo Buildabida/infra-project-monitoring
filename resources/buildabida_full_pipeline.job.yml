@@ -1,0 +1,400 @@
+# Databricks job that runs the full pipeline, from setup to the dashboard refresh.
+# Exported from the team workspace. See resources/README.md before you deploy it.
+resources:
+  jobs:
+    buildabida_full_pipeline:
+      name: buildabida-full-pipeline
+      tasks:
+        - task_key: set_up
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/00_setup/00_setup_workspace
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: check_sources
+          depends_on:
+            - task_key: set_up
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/00_setup/01_check_sources
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_boundaries
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/05_bronze_boundaries
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_census_table_c
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/04_bronze_census_table_c
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_dpwh_projects
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/01_bronze_dpwh_projects
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_flood_control
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/02_bronze_flood_control
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_flood_susceptibility
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/06_bronze_flood_susceptibility
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_psgc
+          depends_on:
+            - task_key: check_sources
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/01_bronze/03_bronze_psgc
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: bronze_validation
+          depends_on:
+            - task_key: bronze_dpwh_projects
+            - task_key: bronze_flood_control
+            - task_key: bronze_census_table_c
+            - task_key: bronze_flood_susceptibility
+            - task_key: bronze_boundaries
+            - task_key: bronze_psgc
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/01_validation_bronze
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_date
+          depends_on:
+            - task_key: set_up
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/00_gold_dim_date
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_config_mappings
+          depends_on:
+            - task_key: bronze_validation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/00_config_mappings
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_flood_control_component
+          depends_on:
+            - task_key: bronze_validation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/06_silver_flood_control_component
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_mgb_flood_area
+          depends_on:
+            - task_key: bronze_validation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/08a_silver_mgb_flood_area
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_psgc_place
+          depends_on:
+            - task_key: bronze_validation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/01_silver_psgc_place
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_config_mappings
+          depends_on:
+            - task_key: silver_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/02_validation_silver_config
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_dpwh_project_component
+          depends_on:
+            - task_key: bronze_validation
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/04_silver_dpwh_project_component
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_project
+          depends_on:
+            - task_key: silver_dpwh_project_component
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/05_silver_project
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_population_place_reconciliation
+          depends_on:
+            - task_key: silver_psgc_place
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/02_silver_population_place_reconciliation
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_region_population
+          depends_on:
+            - task_key: silver_population_place_reconciliation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/03_silver_region_population
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_geography_population
+          depends_on:
+            - task_key: silver_region_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/03_validation_silver_geography_population
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_province_reporting_area
+          depends_on:
+            - task_key: silver_validation_geography_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/01a_silver_province_reporting_area
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_province_reporting_area_population
+          depends_on:
+            - task_key: silver_province_reporting_area
+            - task_key: silver_validation_geography_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/03a_silver_province_reporting_area_population
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_mgb_flood_area
+          depends_on:
+            - task_key: silver_mgb_flood_area
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/06a_validation_silver_mgb_flood_area
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_region_flood_exposure
+          depends_on:
+            - task_key: silver_validation_mgb_flood_area
+            - task_key: silver_validation_geography_population
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/09_silver_region_flood_exposure
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_projects
+          depends_on:
+            - task_key: silver_dpwh_project_component
+            - task_key: silver_project
+            - task_key: silver_flood_control_component
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/04_validation_silver_projects
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_project_status
+          depends_on:
+            - task_key: silver_validation_projects
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/03_gold_dim_project_status
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_project_flood_map
+          depends_on:
+            - task_key: silver_validation_projects
+            - task_key: silver_validation_mgb_flood_area
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/10_silver_project_flood_map
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_project_flood_map
+          depends_on:
+            - task_key: silver_project_flood_map
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/08_validation_silver_project_flood_map
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_flood_susceptibility
+          depends_on:
+            - task_key: silver_validation_config_mappings
+            - task_key: silver_validation_project_flood_map
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/02_gold_dim_flood_susceptibility
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_project_region_map
+          depends_on:
+            - task_key: silver_validation_projects
+            - task_key: silver_validation_geography_population
+            - task_key: silver_validation_config_mappings
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/08_silver_project_region_map
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_project_region_map
+          depends_on:
+            - task_key: silver_project_region_map
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/06_validation_silver_project_region_map
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_project_province_map
+          depends_on:
+            - task_key: silver_province_reporting_area
+            - task_key: silver_validation_projects
+            - task_key: silver_validation_config_mappings
+            - task_key: silver_validation_project_region_map
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/08c_silver_project_province_map
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_province_reporting
+          depends_on:
+            - task_key: silver_project_province_map
+            - task_key: silver_province_reporting_area_population
+            - task_key: silver_validation_geography_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/03b_validation_silver_province_reporting
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_project_source_match
+          depends_on:
+            - task_key: silver_validation_projects
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/02_silver/07_silver_project_source_match
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_region_flood_exposure
+          depends_on:
+            - task_key: silver_region_flood_exposure
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/07_validation_silver_region_flood_exposure
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_region
+          depends_on:
+            - task_key: silver_validation_region_flood_exposure
+            - task_key: silver_validation_geography_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/01_gold_dim_region
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_province_reporting_area
+          depends_on:
+            - task_key: gold_dim_region
+            - task_key: silver_validation_province_reporting
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/01a_gold_dim_province_reporting_area
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_fact_region_population
+          depends_on:
+            - task_key: gold_dim_region
+            - task_key: silver_validation_geography_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/05_gold_fact_region_population
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_fact_province_reporting_area_population
+          depends_on:
+            - task_key: gold_dim_province_reporting_area
+            - task_key: silver_validation_province_reporting
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/05a_gold_fact_province_reporting_area_population
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_fact_region_flood_exposure
+          depends_on:
+            - task_key: gold_dim_region
+            - task_key: gold_dim_flood_susceptibility
+            - task_key: silver_validation_region_flood_exposure
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/06_gold_fact_region_flood_exposure
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: silver_validation_source_reconciliation
+          depends_on:
+            - task_key: silver_project_source_match
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/05_validation_silver_source_reconciliation
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_dim_project
+          depends_on:
+            - task_key: silver_validation_projects
+            - task_key: silver_validation_source_reconciliation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/04_gold_dim_project
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_fact_project_snapshot
+          depends_on:
+            - task_key: silver_validation_projects
+            - task_key: gold_dim_project_status
+            - task_key: gold_dim_province_reporting_area
+            - task_key: gold_dim_region
+            - task_key: gold_dim_date
+            - task_key: gold_dim_project
+            - task_key: silver_validation_project_region_map
+            - task_key: silver_validation_project_flood_map
+            - task_key: gold_dim_flood_susceptibility
+            - task_key: silver_validation_province_reporting
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/03_gold/07_gold_fact_project_snapshot
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_validation
+          depends_on:
+            - task_key: gold_fact_project_snapshot
+            - task_key: gold_fact_region_flood_exposure
+            - task_key: gold_fact_region_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/09_validation_gold
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: gold_validation_province_reporting
+          depends_on:
+            - task_key: gold_validation
+            - task_key: gold_fact_province_reporting_area_population
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/09a_validation_gold_province_reporting
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: analytics
+          depends_on:
+            - task_key: gold_validation
+            - task_key: gold_validation_province_reporting
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/05_analytics/01_business_questions
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: analytics_validation
+          depends_on:
+            - task_key: analytics
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/10_validation_analytics
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: publish_acceptance_evidence
+          depends_on:
+            - task_key: analytics_validation
+          notebook_task:
+            notebook_path: /Workspace/Shared/infra-project-monitoring/notebooks/04_validation/11_publish_acceptance_evidence
+            source: WORKSPACE
+          environment_key: Default
+        - task_key: business_dashboard
+          depends_on:
+            - task_key: analytics_validation
+          dashboard_task:
+            subscription:
+              attachment:
+                page_attachment: {}
+            warehouse_id: 0ed5be803b3a683e
+            dashboard_id: 01f1c6c961841d67a6c6264da1e0fe8b
+      queue:
+        enabled: true
+      environments:
+        - environment_key: Default
+          spec:
+            environment_version: "6"
+      performance_target: PERFORMANCE_OPTIMIZED

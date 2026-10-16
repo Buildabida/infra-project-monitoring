@@ -1,5 +1,9 @@
 # Regional project progress handoff
 
+> [!WARNING]
+> **Retired.** D-55 was withdrawn by D-56 (proposed) before team approval. The notebooks, tests, and view this handoff describes are removed.
+> Do not run the steps below. The current Analytics contract is in the [Analytics views guide](notebooks/05_analytics/README.md).
+
 ## Recommendation
 
 Keep the existing `analytics_project_delivery_status` view. It already supports

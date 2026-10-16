@@ -1,5 +1,10 @@
 # Analytics views validation evidence
 
+> [!WARNING]
+> **Retired evidence.** This report validates the six D-50 and D-51 views under `analytics-validation-v1`.
+> Those views are retired by D-56 (proposed) and are no longer defined. Keep this report as history only.
+> The current contract is in the [Analytics views guide](../../../notebooks/05_analytics/README.md).
+
 ## Scope
 
 This report records Databricks evidence for the six analytics views from issue #126.
