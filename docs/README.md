@@ -21,7 +21,8 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver_project_flood_mapping.md) |
 | Review Databricks evidence for Silver fixes | [Silver validation evidence](evidence/silver/README.md) |
 | Know what each Analytics view answers, its grain, and its limits | [Analytics views](../notebooks/05_analytics/README.md) |
-| Build the dashboard from the Analytics views | [Dashboard build specification](../dashboard/dashboard_spec.md) |
+| Review the seven-tab dashboard, its datasets, and its check values | [Dashboard specification](../dashboard/dashboard_spec.md) |
+| Run the full pipeline as one Databricks job | [Pipeline job](../resources/README.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |

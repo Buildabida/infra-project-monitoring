@@ -543,8 +543,10 @@ copying ingestion logic or introducing an enterprise framework.
 
 ## D-57 production rerun order
 
-The bundle file does not define a Databricks job DAG, so `databricks.yml` is
-unchanged. Run the files in this dependency order. Stop immediately after any
+The [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs these
+files as 49 dependent tasks, and its last task refreshes the dashboard. `databricks.yml` does not
+include the job, so a bundle deploy does not create a second copy. To run the
+files by hand, use this dependency order. Stop immediately after any
 failed STOP gate; no Gold reporting-area task may bypass Silver validation, and
 no reporting-area Analytics task may bypass Gold validation.
 

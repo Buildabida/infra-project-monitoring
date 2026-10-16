@@ -1048,8 +1048,9 @@ The six-view contract first ran on Databricks on October 16, 2026, in job run
 checks: 84 STOP checks passed, 26 FLAG checks reported findings, and 2 FLAG
 checks passed. `05-analytics` held exactly the six views, and every rebuild from
 Gold matched its view with no break. The rerun check compared no saved rows,
-because it was the first run of that validation run ID. Run the validator once
-more on the same Gold data to prove rerun stability. See the
+because it was the first run of that validation run ID. A second run on the same
+Gold data, under the same validation run ID, compared 111 saved checks and found
+none changed, so the six views are stable on unchanged Gold. See the
 [six Analytics views evidence](evidence/six-analytics-views/README.md).
 
 The earlier runs validated the retired designs and stay as history only:

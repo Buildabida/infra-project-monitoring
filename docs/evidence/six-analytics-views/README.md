@@ -8,8 +8,8 @@ v2, the six views, `10_validation_analytics` under `analytics-validation-v4`, an
 publisher.
 
 The run used Databricks Serverless (environment version 6) in the `buildabida-capstone` catalog on
-October 16, 2026. The full job `buildabida-full-pipeline` ran all 49 tasks from Setup to the
-acceptance publisher.
+October 16, 2026. The full job [`buildabida-full-pipeline`](../../../resources/buildabida_full_pipeline.job.yml)
+ran all 49 tasks from Setup to the acceptance publisher.
 
 | Item | Value |
 | --- | --- |
@@ -155,10 +155,13 @@ it up. It is about the size of the accepted total, so review it in
 | Check | Result |
 | --- | --- |
 | Province map exact rerun | `PASS`. Two captures, `2026-10-15T03:31:29Z` and `2026-10-16T01:00:28Z`, kept one project-map run ID and one mapping checksum. |
-| Analytics rerun stability | `PASS` with 0 compared checks. This was the first run of this validation run ID, so nothing was saved to compare yet. |
+| Analytics rerun stability, first run | `PASS` with 0 compared checks. This was the first run of this validation run ID, so nothing was saved to compare yet. |
+| Analytics rerun stability, second run | `PASS`. `10_validation_analytics` ran again on the same Gold data from `2026-10-16T02:49Z` to `03:03Z`, under the same validation run ID. It compared 111 saved checks and none changed. |
 
-Rerun stability of the six views is not yet proven on Databricks. Run `10_validation_analytics` once
-more on the same Gold data. The rerun check must then compare 112 checks and find none changed.
+The second run saved the same 112 results: 84 STOP checks passed, 26 FLAG checks reported findings,
+and 2 FLAG checks passed. Every check has the same failed and total rows as the first run, except the
+rerun check itself, which compared 0 checks the first time and 111 the second. The six views are
+stable on unchanged Gold data.
 
 ## Files
 
@@ -169,6 +172,7 @@ more on the same Gold data. The rerun check must then compare 112 checks and fin
 | [`population-equity-compare-2026-10-16.csv`](population-equity-compare-2026-10-16.csv) | View 2 row-by-row comparison |
 | [`flood-alignment-compare-2026-10-16.csv`](flood-alignment-compare-2026-10-16.csv) | View 3 row-by-row comparison |
 | [`integration-link-totals-2026-10-16.csv`](integration-link-totals-2026-10-16.csv) | View 6 linked and unlinked totals per link |
+| [`validation-results-rerun-2026-10-16.csv`](validation-results-rerun-2026-10-16.csv) | All 112 Analytics check rows from the second run of `10_validation_analytics` |
 
 ## Limits
 

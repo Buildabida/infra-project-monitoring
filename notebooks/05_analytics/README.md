@@ -10,7 +10,7 @@ The views report two governed geographic levels: the official PSGC region and th
 2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the six views with `CREATE OR REPLACE VIEW`.
 3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation.md#analytics-validation).
 
-A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The team's `buildabida-full-pipeline` job in the Databricks workspace runs them after the Gold validators. The repository's `databricks.yml` still defines no job, and `run_all.py` coordinates Bronze only.
+A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The [pipeline job](../../resources/buildabida_full_pipeline.job.yml) runs them after both Gold validators, then refreshes the dashboard. `run_all.py` coordinates Bronze only.
 
 ## The six views
 
@@ -125,4 +125,4 @@ Every view and column has a comment, so Genie can read what each one means. The 
 
 ## Evidence
 
-The six-view design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. Rerun stability still needs a second run of the validator on the same Gold data. See the [six Analytics views evidence](../../docs/evidence/six-analytics-views/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.
+The six-view design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. A second run of the validator on the same Gold data compared 111 saved checks and found none changed. See the [six Analytics views evidence](../../docs/evidence/six-analytics-views/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.

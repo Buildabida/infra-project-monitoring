@@ -111,8 +111,11 @@ For project-flood mapping, it independently recomputes every project's MGB candi
 Gold dimensions and facts are implemented, and `09_validation_gold` checks them.
 See the [Gold model](docs/gold_model.md).
 Six thin Analytics views read Gold only, one per capstone insight.
+A seven-tab dashboard for citizens reads only those views.
 See [Analytics views](notebooks/05_analytics/README.md) and the
-[dashboard build specification](dashboard/dashboard_spec.md).
+[dashboard specification](dashboard/dashboard_spec.md).
+The [pipeline job](resources/buildabida_full_pipeline.job.yml) runs every layer and gate in order,
+then refreshes the dashboard.
 
 ## Quickstart
 
@@ -281,6 +284,7 @@ failed. That run validated Silver, Gold, and five earlier province Analytics vie
 that are now retired. On October 16 the full pipeline ran again with the v2
 population and hierarchy checks and the six views: 159 checks were published,
 no STOP check failed, and the exact rerun passed against the October 15 capture.
+A second run of the Analytics validator on the same Gold data changed none of its checks.
 Project mapping coverage is 75.3267 percent and reported-budget coverage is
 83.6904 percent. Two exact-rerun captures retained the same mapping run ID and
 checksum. Province flood exposure remains deferred until selected boundaries
