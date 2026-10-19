@@ -8,7 +8,7 @@ PROJECT_FACT = ROOT / "notebooks/03_gold/07_gold_fact_project_snapshot.ipynb"
 SILVER_VALIDATION = (
     ROOT / "notebooks/04_validation/08_validation_silver_project_flood_map.ipynb"
 )
-VALIDATION_DOC = ROOT / "docs/validation.md"
+VALIDATION_DOC = ROOT / "docs/validation/validation.md"
 DECISIONS = ROOT / "docs/decisions.md"
 NOTEBOOKS_README = ROOT / "notebooks/README.md"
 RESULTS = "`04-validation`.gold_dq_results"

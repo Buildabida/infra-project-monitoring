@@ -20,7 +20,7 @@ The evidence covers:
 The evidence comes from the executed notebooks `05_analytics/01_business_questions` and `04_validation/10_validation_analytics`, exported from Databricks.
 The SQL in both exported notebooks was the same, cell for cell, as the SQL on the feature branch at the time of the run.
 After the first run, the team approved D-54 on October 13, 2026. The five exploratory view comments then changed from `(D-54, proposed)` to `(D-54)`. No logic changed. `01_business_questions` was rerun, so the comments that Genie reads are current.
-The exported notebooks carry no run timestamp. The latest run read Gold after `fact_region_population` was rebuilt from the final Issue #113 Silver output. See the run IDs below and the [Gold model](../../gold_model.md#runtime-evidence).
+The exported notebooks carry no run timestamp. The latest run read Gold after `fact_region_population` was rebuilt from the final Issue #113 Silver output. See the run IDs below and the [Gold model](../../model/gold_model.md#runtime-evidence).
 
 ## Run identity
 

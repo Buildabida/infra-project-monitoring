@@ -353,7 +353,7 @@ place on an exact rerun.
 `notebooks/04_validation/08_validation_silver_project_flood_map.ipynb`
 persists results to `04-validation.silver_dq_results` before its STOP gate.
 The gate then reads the persisted rows. See
-[Data-quality checks](validation.md#silver-project-flood-mapping-validation)
+[Data-quality checks](../validation/validation.md#silver-project-flood-mapping-validation)
 for the full list.
 
 The validator does not trust the transformation's intermediate results:
@@ -401,7 +401,7 @@ such as a force reload, changes `_ingest_run_id`. That change makes the next
 `08a` run parse again, because its run ID hashes the ingest run.
 
 The October 12, 2026 run is in the
-[Silver validation evidence](evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
+[Silver validation evidence](../evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
 
 ## STOP and FLAG
 

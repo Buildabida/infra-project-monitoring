@@ -10,11 +10,11 @@ Issue #23 asks that someone who did not build the pipeline follows our steps in 
 - A Databricks Free Edition workspace of your own. Don't use the team workspace, or the test proves nothing.
 - VS Code with the Databricks and Python extensions. See [set up VS Code](vscode-setup.md).
 - The [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), version 0.278.0 or later.
-- The six source CSVs listed in the [notebooks guide](../notebooks/README.md#before-running).
+- The six source CSVs listed in the [notebooks guide](../../notebooks/README.md#before-running).
 
 ### Getting the source files
 
-The team workspace reads the CSVs from Cloudflare R2 through the `cloudflare-r2` volume. A new workspace has no access to that bucket, and `00_setup_workspace` only checks the volume. It never creates it. So the tester needs a copy of the six files **from the team**. Ask Nadine. The repository does not store data files (see [keep it safe](../CONTRIBUTING.md#keep-it-safe)).
+The team workspace reads the CSVs from Cloudflare R2 through the `cloudflare-r2` volume. A new workspace has no access to that bucket, and `00_setup_workspace` only checks the volume. It never creates it. So the tester needs a copy of the six files **from the team**. Ask Nadine. The repository does not store data files (see [keep it safe](../../CONTRIBUTING.md#keep-it-safe)).
 
 Then make a managed volume with the same name, so every path in `src/config.py` stays the same:
 
@@ -42,7 +42,7 @@ Write the result of each step, and the exact error if one fails.
 | 8 | `databricks bundle deploy -t dev` with the same `--var` values | A job named `[dev <you>] buildabida-full-pipeline` appears | |
 | 9 | `databricks bundle run -t dev buildabida_full_pipeline` with the same values | All 50 tasks succeed. Write down the run ID and the time it took | |
 | 10 | Query `` `04-validation`.quality_gate_summary `` | The `ALL` row is `PASS` or `FLAG`, with no failed STOP checks | |
-| 11 | Compare counts with the [six-view evidence](evidence/six-analytics-views/README.md) | Same checks and counts, unless the source files differ | |
+| 11 | Compare counts with the [six-view evidence](../evidence/six-analytics-views/README.md) | Same checks and counts, unless the source files differ | |
 | 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | |
 | 13 | Open the dashboard | All seven tabs show data | |
 | 14 | Click every link in the README and the docs index | Every link opens | |

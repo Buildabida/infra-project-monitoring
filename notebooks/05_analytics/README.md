@@ -8,7 +8,7 @@ The views report two governed geographic levels: the official PSGC region and th
 
 1. `04_validation/09_validation_gold.ipynb` and `04_validation/09a_validation_gold_province_reporting.ipynb` must pass first.
 2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the six views with `CREATE OR REPLACE VIEW`.
-3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation.md#analytics-validation).
+3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation/validation.md#analytics-validation).
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The [pipeline job](../../resources/buildabida_full_pipeline.job.yml) runs them after both Gold validators, then refreshes the dashboard. `run_all.py` coordinates Bronze only.
 

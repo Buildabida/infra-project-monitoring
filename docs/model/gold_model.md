@@ -3,15 +3,15 @@
 This doc defines the regional Gold model and the three D-57 province
 reporting-area additions in the `03-gold` schema.
 
-Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard and Genie read the views. See [Analytics views](../notebooks/05_analytics/README.md).
+Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard and Genie read the views. See [Analytics views](../../notebooks/05_analytics/README.md).
 
-Status: Gold notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the province reporting-area model. Runtime evidence for both is in [Runtime evidence](#runtime-evidence) and the [province-reporting evidence](evidence/province-reporting/README.md).
+Status: Gold notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the province reporting-area model. Runtime evidence for both is in [Runtime evidence](#runtime-evidence) and the [province-reporting evidence](../evidence/province-reporting/README.md).
 
 ## Build rules
 
-Follow the [style guide](style-guide.md) for all Gold work. These points matter most for Gold:
+Follow the [style guide](../style-guide.md) for all Gold work. These points matter most for Gold:
 
-1. Write Gold in SQL. See decision [D-08](decisions.md).
+1. Write Gold in SQL. See decision [D-08](../decisions.md).
 2. Start each notebook with ``USE CATALOG `buildabida-capstone` ``. Name tables as `` `03-gold`.dim_region ``.
 3. Make every run safe to repeat. Create each table once with `CREATE TABLE IF NOT EXISTS`, then load it with `MERGE INTO`. Never use `CREATE OR REPLACE TABLE`, `DELETE`, or `TRUNCATE` on a Gold table.
 4. Add a comment to every table and every column. Genie reads them.
@@ -270,7 +270,7 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
 
-As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The gap of 4,789 people (0.004 percent) is two Table C barangays that Silver leaves `UNMATCHED`: `Sawata` in Sawata, Davao del Norte (4,152 people, Region XI), and `San Rafael` in the City of Calaca, Batangas (637 people, Region IV-A). No PSGC barangay in either place has a close name, so they need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](silver_geography_population.md#known-limitations).
+As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The gap of 4,789 people (0.004 percent) is two Table C barangays that Silver leaves `UNMATCHED`: `Sawata` in Sawata, Davao del Norte (4,152 people, Region XI), and `San Rafael` in the City of Calaca, Batangas (637 people, Region IV-A). No PSGC barangay in either place has a close name, so they need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](../silver/silver_geography_population.md#known-limitations).
 
 Before the issue #88 fix, the gap was 3,783,955 people (3.4 percent), and NCR had no Manila population.
 
@@ -327,7 +327,7 @@ Two rules apply:
 
 ## Surrogate keys
 
-Gold keys are deterministic. The same Silver inputs always give the same key, so a rerun never changes a key. See decision [D-33](decisions.md).
+Gold keys are deterministic. The same Silver inputs always give the same key, so a rerun never changes a key. See decision [D-33](../decisions.md).
 
 | Key | Type | Label | How it is made | Code |
 | --- | --- | --- | --- | --- |
@@ -362,7 +362,7 @@ Central Office uses `region_key = 0`. Its `region_match_status` stays `NON_GEOGR
 
 Flood key `0` never means low or zero risk. It means the point fell outside every approved polygon, inside polygons of more than one level, or had no usable coordinate.
 
-Silver keeps the real mapping result. Gold only resolves it to a key. See [Silver project-to-region mapping](silver_project_region_mapping.md#gold-handoff).
+Silver keeps the real mapping result. Gold only resolves it to a key. See [Silver project-to-region mapping](../silver/silver_project_region_mapping.md#gold-handoff).
 
 ## Unmapped values stay visible
 
@@ -372,7 +372,7 @@ The category taxonomy is approved and lives in Silver (D-39). The DPWH status ma
 - `dim_project.infra_type_mapping_status` copies Silver's `category_classification_status`, so it says why a sector is `NULL`. See D-37.
 - `dim_project_status` has one row per observed DPWH status. The five approved statuses carry `standardized_status` and `status_group`. Shifted or malformed statuses keep `NULL` values. Gold reads configuration with the config key `source_system = 'dpwh_projects'`, while its own rows keep the Silver label `DPWH`.
 
-Gold never adds its own `CASE` rule for a category or a status. See [Silver configuration mappings](silver_config_mappings.md).
+Gold never adds its own `CASE` rule for a category or a status. See [Silver configuration mappings](../silver/silver_config_mappings.md).
 
 About 30 projects have a status that is really another field, such as `0.00` or a place name. Those rows were shifted in the source CSV. They stay as their own status members, and the Gold validator flags them.
 
@@ -382,7 +382,7 @@ About 30 projects have a status that is really another field, such as `0.00` or 
 
 `fact_project_snapshot` applies two rules. Both are versioned in `delivery_rule_version`.
 
-- **Long-running ([D-32](decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. It is also `NULL` when the completion date is before the start date, because that span cannot be measured ([D-49](decisions.md)). A start date after the snapshot date gives `FALSE`. This is the only published long-running flag. `silver_project` has none (D-44).
+- **Long-running ([D-32](../decisions.md)):** true when more than 24 months pass from the start date to the completion date. A project without a completion date is measured to its snapshot date instead. A completion date later than the snapshot date is capped at the snapshot date, so the flag never counts time the snapshot has not reached. The snapshot date is the file date of the DPWH snapshot, never the current date. The flag is `NULL` without a start date. It is also `NULL` when the completion date is before the start date, because that span cannot be measured ([D-49](../decisions.md)). A start date after the snapshot date gives `FALSE`. This is the only published long-running flag. `silver_project` has none (D-44).
 - **Progress range:** `physical_progress_pct` is published only when Silver's `progress_quality_status` is `VALID`. Silver checks the 0 to 100 range once and marks values outside it `OUT_OF_RANGE`. Those are shifted source values, such as `2026`. They become `NULL` in Gold, stay visible in Silver, and the Gold validator counts them. This follows the analytical check in [Data model](data-model.md#required-analytical-validation).
 
 `zero_progress_flag` comes unchanged from Silver. Gold has no stalled flag, because stalled is out of scope for the capstone (D-46). A zero-progress count must filter out `For Procurement` projects or say that it includes them.
@@ -423,12 +423,12 @@ Gold SQL never uses `\\`. The VS Code `%sql` runner turns `\\` into `\` before S
 
 For the details of each handoff, read the "Gold handoff" section in these docs:
 
-- [Silver geography and population](silver_geography_population.md#gold-handoff)
-- [Silver project foundation](silver_project_cleaning.md#gold-handoff)
-- [Silver source reconciliation](silver_source_reconciliation.md)
-- [Silver project-to-region mapping](silver_project_region_mapping.md#gold-handoff)
-- [Silver regional flood exposure](silver_region_flood_exposure.md#gold-handoff)
-- [Silver project flood mapping](silver_project_flood_mapping.md#gold-handoff)
+- [Silver geography and population](../silver/silver_geography_population.md#gold-handoff)
+- [Silver project foundation](../silver/silver_project_cleaning.md#gold-handoff)
+- [Silver source reconciliation](../silver/silver_source_reconciliation.md)
+- [Silver project-to-region mapping](../silver/silver_project_region_mapping.md#gold-handoff)
+- [Silver regional flood exposure](../silver/silver_region_flood_exposure.md#gold-handoff)
+- [Silver project flood mapping](../silver/silver_project_flood_mapping.md#gold-handoff)
 
 ## Build order
 
@@ -454,8 +454,8 @@ The analytical checks live in [Data model](data-model.md#required-analytical-val
 `notebooks/04_validation/09_validation_gold.ipynb` retains the regional checks.
 `09a_validation_gold_province_reporting.ipynb` then persists D-57 evidence to
 the same `gold_dq_results` table before its STOP gate. See
-[Gold validation](validation.md#gold-validation) and the
-[Notebooks guide](../notebooks/README.md).
+[Gold validation](../validation/validation.md#gold-validation) and the
+[Notebooks guide](../../notebooks/README.md).
 
 `fact_region_population` and `fact_region_flood_exposure` have no current flag, and their `MERGE` never deletes. A new PSGC version, MGB snapshot, or boundary version leaves the old rows in place. The validator stops the run when Gold has more rows than Silver. Adding a current flag needs its own decision.
 
@@ -477,7 +477,7 @@ Before you finish any Gold task, check that:
 
 The full pipeline ran on Databricks in job run `1077732256280159`. `09a_validation_gold_province_reporting` saved 24 checks under rule `gold-province-reporting-validation-v2` and validation run `5a863b35c04a16aba4c76bbe652a69c927f61c26652d672c1ce419c3ea275f4e`. All 22 STOP checks passed, including the three population reconciliations against `fact_region_population` and key `0` holding exactly the unresolved and non-geographic projects. The two FLAG checks found 2,709 projects whose region differs from the parent region of their reporting area and 64,974 projects with an official region but no reporting area. They were saved as `FAIL` with action `flag` before the status fix, and did not block the run.
 
-The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [six Analytics views evidence](evidence/six-analytics-views/README.md).
+The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [six Analytics views evidence](../evidence/six-analytics-views/README.md).
 
 ### Population refresh on October 13, 2026 (final Issue #113 run)
 
@@ -492,7 +492,7 @@ After the final Issue #113 Silver rerun, `05_gold_fact_region_population` update
 | Population rows on region key `0` | 0 |
 | Gold `fact_region_population` `run_id` | `acb2edc2fa191058456240d51cdcb2d7067c18e70c8c939f8f27e11a49c7e7d3` |
 
-`09_validation_gold` then saved 75 checks under validation run `4ec99da18177c198b1d9441a8ae74e5c8a3fc648d114ad9d26d14462e84245dc`. All 65 STOP checks passed, 9 FLAG checks had findings, 1 FLAG check found nothing, and no check failed. The current results are in [`docs/evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv`](evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv).
+`09_validation_gold` then saved 75 checks under validation run `4ec99da18177c198b1d9441a8ae74e5c8a3fc648d114ad9d26d14462e84245dc`. All 65 STOP checks passed, 9 FLAG checks had findings, 1 FLAG check found nothing, and no check failed. The current results are in [`docs/evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv`](../evidence/silver/issue-113-final-gold-validation-results-2026-10-13.csv).
 
 ### Run on October 13, 2026 (Silver audit fixes #109 to #115)
 
@@ -509,7 +509,7 @@ Gold `00` to `07` ran on Databricks serverless compute in the team workspace, on
 | `dim_region_boundary` rows | 17 |
 | Current `fact_project_snapshot` `run_id` | `def31215c60484374b1bbe3c284d60cff77d2f0728753bde48c74cb1064d6286` |
 
-`09_validation_gold` then ran once. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing. Every FLAG count equals the October 12 run. The rows are in [`docs/evidence/silver/issue-109-115-gold-validation-2026-10-13.csv`](evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
+`09_validation_gold` then ran once. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found nothing. Every FLAG count equals the October 12 run. The rows are in [`docs/evidence/silver/issue-109-115-gold-validation-2026-10-13.csv`](../evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
 
 ### Run on October 12, 2026 (issues #116 and #119)
 

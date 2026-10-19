@@ -20,7 +20,7 @@ REQUIRED_FILES = [
     ".github/workflows/deploy-databricks.yml",
     "resources/buildabida_full_pipeline.job.yml",
     "notebooks/06_data_quality/README.md",
-    "docs/operations.md",
+    "docs/guides/operations.md",
 ]
 # only these Markdown files belong in the root. History goes in docs/change-history
 ROOT_MARKDOWN = {"README.md", "CONTRIBUTING.md"}

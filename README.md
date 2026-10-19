@@ -55,7 +55,7 @@ Three source rules matter:
 - One flood-control contract can have several real rows, like components or funding years. Bronze keeps them all, and Silver decides how to read them.
 - A project can be in both project lists. Silver matches them by exact Contract ID, so nothing is counted twice.
 
-Provenance and file details: [Bronze R2 architecture](docs/bronze_r2_architecture.md#six-sources-and-provenance).
+Provenance and file details: [Bronze R2 architecture](docs/bronze/bronze_r2_architecture.md#six-sources-and-provenance).
 
 ## How it works
 
@@ -106,7 +106,7 @@ The dimensions are `dim_project`, `dim_project_status`, `dim_date` (used for thr
 - Key `0` holds Central Office, unmatched, and unresolved records, so nothing is dropped.
 - Every fact keeps `source_snapshot_id` and `run_id` (D-29).
 
-The full columns, keys, and relationships are in the [Gold model](docs/gold_model.md). The diagram is in the [data model](docs/data-model.md).
+The full columns, keys, and relationships are in the [Gold model](docs/model/gold_model.md). The diagram is in the [data model](docs/model/data-model.md).
 
 ## Quickstart
 
@@ -118,7 +118,7 @@ We write code in VS Code and run it in the shared [Databricks Free Edition](http
 4. Open `notebooks/00_setup/00_setup_workspace.sql`, then select **Run on Databricks**, then **Run File as Workflow**. The last cells list the schemas and the source volume.
 5. Run `notebooks/00_setup/01_check_sources.py` the same way. All six sources should be `OK`.
 
-Full steps: [set up VS Code](docs/vscode-setup.md). Testing from a brand-new workspace: [clean-workspace test](docs/clean_workspace_test.md).
+Full steps: [set up VS Code](docs/guides/vscode-setup.md). Testing from a brand-new workspace: [clean-workspace test](docs/guides/clean_workspace_test.md).
 
 ## Run the pipeline
 
@@ -130,7 +130,7 @@ databricks bundle deploy -t dev
 databricks bundle run -t dev buildabida_full_pipeline
 ```
 
-Your copy is named `[dev <your name>]`, so it never touches the team job. A full run uses a large part of the workspace's daily quota, so run it only when you need to. Merges to `main` deploy the team job automatically, but never run it. Details are in [resources](resources/README.md) and the [operations guide](docs/operations.md).
+Your copy is named `[dev <your name>]`, so it never touches the team job. A full run uses a large part of the workspace's daily quota, so run it only when you need to. Merges to `main` deploy the team job automatically, but never run it. Details are in [resources](resources/README.md) and the [operations guide](docs/guides/operations.md).
 
 To run notebooks one at a time, follow the [full run order](notebooks/README.md#d-57-production-rerun-order).
 
@@ -145,7 +145,7 @@ ORDER BY evaluated_at DESC, layer
 LIMIT 6;
 ```
 
-The `ALL` row must be `PASS` or `FLAG`. `FLAG` means known data limits, listed below. If it says `STOP`, read `failure_reason` and follow [recover from a failure](docs/operations.md#recover-from-a-failure). Each layer's checks are explained in [data-quality checks](docs/validation.md).
+The `ALL` row must be `PASS` or `FLAG`. `FLAG` means known data limits, listed below. If it says `STOP`, read `failure_reason` and follow [recover from a failure](docs/guides/operations.md#recover-from-a-failure). Each layer's checks are explained in [data-quality checks](docs/validation/validation.md).
 
 ## Results so far
 
@@ -165,7 +165,7 @@ The 50-task job with the end-to-end gate has not run on Databricks yet.
 
 - **Budget is not payment.** We report the reported project or contract budget. The source has no usable payment data, so we never show disbursement (D-28).
 - **Missing is not zero.** About one in five DPWH projects has no map point, so it has no place or flood level. A place with no mapped projects may be a data gap, not zero investment. BARMM coverage is limited by the source, so it is never ranked.
-- **Few project points fall in MGB flood areas.** In the first project-flood run, 20,398 of 215,138 projects with usable points got a flood level. Most of the rest fall outside every approved polygon. That is **not** evidence of low flood risk. See [project flood mapping](docs/silver_project_flood_mapping.md#runtime-evidence).
+- **Few project points fall in MGB flood areas.** In the first project-flood run, 20,398 of 215,138 projects with usable points got a flood level. Most of the rest fall outside every approved polygon. That is **not** evidence of low flood risk. See [project flood mapping](docs/silver/silver_project_flood_mapping.md#runtime-evidence).
 - **MGB ratings have gaps.** The snapshot has 1,838 missing or unrated records, including 1,815 with no rating and no geometry. They stay as non-blocking findings. Bronze keeps the raw values.
 - **Province flood exposure is deferred.** Flood area is regional only, until the province intersection is shown to be safe and affordable on Free Edition (D-57).
 - **One snapshot, no history.** Gold holds one DPWH snapshot. `infra_year` is a project cohort, not a year of spending.
@@ -198,15 +198,15 @@ The 50-task job with the end-to-end gate has not run on Databricks yet.
 
 | I want to | Read |
 | --- | --- |
-| Run or monitor the pipeline | [Operations guide](docs/operations.md), [notebooks guide](notebooks/README.md) |
-| Understand a table | [Gold model](docs/gold_model.md), [data model](docs/data-model.md), [Analytics views](notebooks/05_analytics/README.md) |
-| Understand a check | [Data-quality checks](docs/validation.md), [quality gate](notebooks/06_data_quality/README.md) |
+| Run or monitor the pipeline | [Operations guide](docs/guides/operations.md), [notebooks guide](notebooks/README.md) |
+| Understand a table | [Gold model](docs/model/gold_model.md), [data model](docs/model/data-model.md), [Analytics views](notebooks/05_analytics/README.md) |
+| Understand a check | [Data-quality checks](docs/validation/validation.md), [quality gate](notebooks/06_data_quality/README.md) |
 | Know why we chose something | [Decisions](docs/decisions.md) |
 | Find every other doc | [Docs index](docs/README.md) |
 
 ## Province reporting areas
 
-D-57 adds a second geography under region: official PSGC provinces, independent cities with no province parent, NCR as one area, and Unknown key `0`. Silver assigns each project once, mostly by its map point inside one province boundary. The DPWH `location.province` field is only evidence. Region stays the parent and the level we reconcile against. Never add region and province numbers together. See the [province reporting readiness](docs/province_reporting_readiness.md) and [Silver mapping](docs/silver_project_province_mapping.md).
+D-57 adds a second geography under region: official PSGC provinces, independent cities with no province parent, NCR as one area, and Unknown key `0`. Silver assigns each project once, mostly by its map point inside one province boundary. The DPWH `location.province` field is only evidence. Region stays the parent and the level we reconcile against. Never add region and province numbers together. See the [province reporting readiness](docs/silver/province_reporting_readiness.md) and [Silver mapping](docs/silver/silver_project_province_mapping.md).
 
 ## Help out
 

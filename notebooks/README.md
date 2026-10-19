@@ -176,7 +176,7 @@ The validator saves evidence in `04-validation.silver_config_dq_results`.
 Run both notebooks in Databricks.
 Local tests verify notebook structure but cannot create Unity Catalog tables.
 
-See [Silver configuration mappings](../docs/silver_config_mappings.md) for table
+See [Silver configuration mappings](../docs/silver/silver_config_mappings.md) for table
 grains, approval rules, and cost controls.
 
 ### Geography and population
@@ -198,7 +198,7 @@ gate. Review every `FLAG`, especially ambiguous and unmatched rows, without dele
 These notebooks use only current Bronze PSGC, current Bronze Table C, approved place
 aliases, and compact audit evidence. They do not scan project, boundary, or MGB data.
 
-See [Silver geography and population](../docs/silver_geography_population.md) for grains,
+See [Silver geography and population](../docs/silver/silver_geography_population.md) for grains,
 matching rules, population authority, lineage, and known limitations.
 
 ### Project foundation
@@ -250,7 +250,7 @@ Run all notebooks in Databricks.
 
 Local tests verify notebook structure and contracts but do not create Unity Catalog tables.
 
-See [Silver project foundation](../docs/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
+See [Silver project foundation](../docs/silver/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
 
 ### Flood-control source reconciliation
 
@@ -271,7 +271,7 @@ and ambiguous targets without changing either source table.
 Run all three notebooks in Databricks. Local tests verify structure and contracts but
 do not create Unity Catalog tables.
 
-See [Silver source reconciliation](../docs/silver_source_reconciliation.md) for table
+See [Silver source reconciliation](../docs/silver/silver_source_reconciliation.md) for table
 grains, source roles, matching rules, cost protection, lineage, and limitations.
 
 ### Project-region mapping
@@ -309,7 +309,7 @@ The validator writes all seven quality attributes to
 coverage, unmatched and ambiguous projects, coordinate conflicts, boundary
 version differences, and optional publisher-version gaps.
 
-See [Silver project-to-region mapping](../docs/silver_project_region_mapping.md)
+See [Silver project-to-region mapping](../docs/silver/silver_project_region_mapping.md)
 for the Table 13 grain, D-03 resolution, methods, statuses, lineage, spatial cost
 controls, and Gold handoff.
 
@@ -332,7 +332,7 @@ province reporting areas. The notebook asserts that project count and reported
 budget do not change, but it does not publish a mapping table or claim that a
 candidate is approved.
 
-See [province reporting readiness](../docs/province_reporting_readiness.md) for
+See [province reporting readiness](../docs/silver/province_reporting_readiness.md) for
 the options, proposed D-57 text, required evidence, blockers, and execution
 checklist.
 
@@ -373,7 +373,7 @@ The validator writes all seven quality attributes to
 and unrated MGB rows, unusable geometry, no-data regions, boundary version and
 territory differences, and overlap findings.
 
-See [Silver regional flood exposure](../docs/silver_region_flood_exposure.md)
+See [Silver regional flood exposure](../docs/silver/silver_region_flood_exposure.md)
 for the Table 14 grain, CRS, boundary strategy, overlap rules, lineage, and Gold
 handoff.
 
@@ -417,13 +417,13 @@ coverage against both denominators, projects without usable coordinates, usable
 points without an approved polygon, ambiguous projects, and unmapped or unusable
 MGB rows.
 
-See [Silver project flood mapping](../docs/silver_project_flood_mapping.md) for
+See [Silver project flood mapping](../docs/silver/silver_project_flood_mapping.md) for
 the Table 15 grain, classification rule, lineage, cost controls, and Gold
 handoff.
 
 ## Load Gold
 
-Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/gold_model.md).
+Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/model/gold_model.md).
 Each notebook first checks that its Silver inputs passed Silver validation. Then it loads rows with `MERGE` on deterministic keys, so a rerun changes nothing.
 
 After every Silver validator passes, run the dimensions in this order:
@@ -440,7 +440,7 @@ Then run the facts, which need every dimension key:
 2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
 3. `03_gold/07_gold_fact_project_snapshot.ipynb`
 
-Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation.md#gold-validation).
+Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation/validation.md#gold-validation).
 
 Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 

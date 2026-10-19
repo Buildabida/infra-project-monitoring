@@ -64,7 +64,7 @@ After the bind, the old `/Workspace/Shared/infra-project-monitoring/` notebook f
 
 When a task fails, Databricks skips every task that depends on it, so a failed STOP gate never lets a later layer run on bad data. The validators save their evidence before their STOP gate, so the failed checks stay readable in `04-validation`. The end-to-end gate still runs and writes `04-validation.quality_gate_summary`, so one query shows which validator stopped the run.
 
-To recover, fix the cause, deploy the fix, and use **Repair run** on the failed job run. It reruns the failed task and every task after it, and keeps the tasks that already succeeded. The notebooks are safe to rerun: they replace or merge their outputs by deterministic keys. The full steps are in the [operations guide](../docs/operations.md).
+To recover, fix the cause, deploy the fix, and use **Repair run** on the failed job run. It reruns the failed task and every task after it, and keeps the tasks that already succeeded. The notebooks are safe to rerun: they replace or merge their outputs by deterministic keys. The full steps are in the [operations guide](../docs/guides/operations.md).
 
 This happened on October 16, 2026. The first attempts stopped on four Databricks SQL errors in the province notebooks. After the fixes, Repair 2 of the same job run finished with all 49 tasks succeeded. That run was before the end-to-end gate existed.
 

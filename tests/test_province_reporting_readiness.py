@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK = ROOT / "notebooks/02_silver/08b_profile_project_province_readiness.ipynb"
-READINESS_DOC = ROOT / "docs/province_reporting_readiness.md"
+READINESS_DOC = ROOT / "docs/silver/province_reporting_readiness.md"
 DECISIONS = ROOT / "docs/decisions.md"
 
 

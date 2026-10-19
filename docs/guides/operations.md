@@ -4,10 +4,10 @@ How we run, watch, fix, and govern the pipeline in production. It follows the FT
 
 | Step | What we use | Where |
 | --- | --- | --- |
-| Version | Git, one branch and one pull request per change | [How we work](../CONTRIBUTING.md) |
-| Validate | CI on every pull request, and the layer validators plus the end-to-end gate in every run | [Checks](../.github/workflows/checks.yml), [validation](validation.md) |
-| Deploy | Databricks Asset Bundle, `dev` and `prod` targets | [Resources](../resources/README.md) |
-| Orchestrate | One Databricks job, 50 tasks | [Job](../resources/buildabida_full_pipeline.job.yml) |
+| Version | Git, one branch and one pull request per change | [How we work](../../CONTRIBUTING.md) |
+| Validate | CI on every pull request, and the layer validators plus the end-to-end gate in every run | [Checks](../../.github/workflows/checks.yml), [validation](../validation/validation.md) |
+| Deploy | Databricks Asset Bundle, `dev` and `prod` targets | [Resources](../../resources/README.md) |
+| Orchestrate | One Databricks job, 50 tasks | [Job](../../resources/buildabida_full_pipeline.job.yml) |
 | Monitor | Job run history, validation tables, the gate summary | [Monitor a run](#monitor-a-run) |
 | Recover | Fix the cause, then **Repair run** | [Recover from a failure](#recover-from-a-failure) |
 | Govern | CODEOWNERS, branch rules, GitHub environments | [GitHub governance](#github-governance) |
@@ -18,8 +18,8 @@ Deploying and running are separate on purpose. A deploy only updates the job def
 
 | Situation | What happens |
 | --- | --- |
-| A pull request changes notebooks, `src`, or the bundle | [Databricks preview](../.github/workflows/deploy-databricks-preview.yml) validates the `dev` bundle against the workspace. It deploys a preview copy only when `DATABRICKS_PREVIEW_DEPLOY` is `true`. It never runs the pipeline. |
-| The change merges to `main` | [Databricks deploy](../.github/workflows/deploy-databricks.yml) validates and deploys `prod`. It does not run the pipeline. |
+| A pull request changes notebooks, `src`, or the bundle | [Databricks preview](../../.github/workflows/deploy-databricks-preview.yml) validates the `dev` bundle against the workspace. It deploys a preview copy only when `DATABRICKS_PREVIEW_DEPLOY` is `true`. It never runs the pipeline. |
+| The change merges to `main` | [Databricks deploy](../../.github/workflows/deploy-databricks.yml) validates and deploys `prod`. It does not run the pipeline. |
 | We want a production run | Start **Databricks deploy** by hand with **run_pipeline** checked, or select **Run now** on the job in Databricks. |
 | You want to test your own change | `databricks bundle deploy -t dev`, then run your `[dev <name>]` copy of the job. |
 
@@ -27,11 +27,18 @@ The pipeline is not scheduled. A new run makes sense only when a source snapshot
 
 ### GitHub configuration
 
-Create two GitHub environments under **Settings**, then **Environments**: `development` and `production`. Each needs:
+First, add one **repository** variable under **Settings**, then **Secrets and variables**, then **Actions**, then **Variables**:
+
+| Name | Value |
+| --- | --- |
+| `DATABRICKS_HOST` | `https://dbc-1106b696-980b.cloud.databricks.com` |
+
+It must be a repository variable, not an environment one. The preview job checks it before it enters an environment, and GitHub can't see environment values at that point. Until it exists, **Databricks preview** is skipped, not failed. The host is not a secret.
+
+Then create two GitHub environments under **Settings**, then **Environments**: `development` and `production`. Each needs:
 
 | Name | Kind | Value |
 | --- | --- | --- |
-| `DATABRICKS_HOST` | Variable | `https://dbc-1106b696-980b.cloud.databricks.com` |
 | `DATABRICKS_ALERT_EMAIL` | Variable | The team address that gets failure emails |
 | `DATABRICKS_TOKEN` | Secret | A token for the CI identity. Or use the next two instead |
 | `DATABRICKS_CLIENT_ID` and `DATABRICKS_CLIENT_SECRET` | Secrets | OAuth for a service principal, if the workspace allows one |
@@ -39,14 +46,14 @@ Create two GitHub environments under **Settings**, then **Environments**: `devel
 
 For `production`, limit **Deployment branches** to `main`, and add **Required reviewers** (Nadine and Kinah) if your GitHub plan offers it for this repository. Then no deploy reaches the team job without a person's approval.
 
-If a value is missing, the workflow fails on its first step and names what is missing. A pull request from a fork gets no secrets, so the preview skips it.
+Once `DATABRICKS_HOST` is set, a missing value makes the workflow fail on its first step and name what is missing. A pull request from a fork gets no secrets, so the preview skips it.
 
 > [!NOTE]
 > We have not yet confirmed that our Free Edition workspace allows a service principal or a personal access token for CI. Check **Settings**, then **Developer**, in the workspace before you add the secrets. Until then, the deploy workflows fail on their configuration check, and you can deploy from VS Code or the CLI.
 
 ### First production deploy
 
-The team job was created by hand before the bundle managed it. Bind it once so the first deploy updates it instead of creating a second job. The commands are in [resources](../resources/README.md#first-production-deploy-adopt-the-existing-job).
+The team job was created by hand before the bundle managed it. Bind it once so the first deploy updates it instead of creating a second job. The commands are in [resources](../../resources/README.md#first-production-deploy-adopt-the-existing-job).
 
 ## Failure alerts
 
@@ -107,7 +114,7 @@ Use this order every time: **detect, diagnose, impact, recover, verify**.
 4. **Recover.** Fix the root cause in the layer where it started, in a pull request. After it merges, deploy, then use **Repair run** on the failed run. Repair reruns the failed task and every task after it, and keeps the ones that succeeded.
 5. **Verify.** The repaired run is green, the gate's `ALL` row is `PASS` or `FLAG`, and the dashboard task succeeded.
 
-Never edit a Gold or Analytics table by hand to make a check pass, and never mark a failed check as passed. If the source data is the problem, keep it visible as a FLAG with a decision in [decisions](decisions.md). Don't hide it downstream.
+Never edit a Gold or Analytics table by hand to make a check pass, and never mark a failed check as passed. If the source data is the problem, keep it visible as a FLAG with a decision in [decisions](../decisions.md). Don't hide it downstream.
 
 The notebooks are safe to rerun. Bronze skips a snapshot it already holds, and the later layers `MERGE` or replace by deterministic keys. Validators update their rows under the same validation run ID.
 
@@ -119,17 +126,17 @@ Write every production failure up in the run's evidence folder with these four p
 | --- | --- |
 | Incident | Job run `1077732256280159` stopped on its first attempts in four province notebooks. Every later task was skipped, so no partial data was published. |
 | Problem | Four Databricks SQL errors: two ambiguous column names after a join, a `MERGE` that dropped the geometry SRID, and a `''` escape that Spark SQL does not read as a quote. The notebooks had never run in a job before. |
-| Resolution | Fixed in the workspace, ported to the repository with tests, then Repair 2 of the same run finished all 49 tasks. See the [evidence](evidence/six-analytics-views/README.md#runtime-fixes-found-by-this-run). |
+| Resolution | Fixed in the workspace, ported to the repository with tests, then Repair 2 of the same run finished all 49 tasks. See the [evidence](../evidence/six-analytics-views/README.md#runtime-fixes-found-by-this-run). |
 | Prevention | The bundle now deploys exactly what is in `main`, so the workspace can't drift from the repository. CI checks the job and bundle on every pull request. |
 
 ## Rerun and idempotency evidence
 
 | Claim | Evidence | Status |
 | --- | --- | --- |
-| Bronze skips an identical snapshot | `SKIPPED_IDEMPOTENT` in `load_log`, [Bronze evidence](evidence/bronze-r2/README.md) | Proven |
-| Gold reruns change nothing | Two runs on October 12 kept 75 checks under one ID, [validation](validation.md#gold-validation-runtime-evidence) | Proven |
-| Analytics reruns change nothing | 111 saved checks unchanged on rerun, [six-view evidence](evidence/six-analytics-views/README.md) | Proven |
-| Province map reruns are exact | Same map run ID and checksum, [province evidence](evidence/province-reporting/README.md) | Proven |
+| Bronze skips an identical snapshot | `SKIPPED_IDEMPOTENT` in `load_log`, [Bronze evidence](../evidence/bronze-r2/README.md) | Proven |
+| Gold reruns change nothing | Two runs on October 12 kept 75 checks under one ID, [validation](../validation/validation.md#gold-validation-runtime-evidence) | Proven |
+| Analytics reruns change nothing | 111 saved checks unchanged on rerun, [six-view evidence](../evidence/six-analytics-views/README.md) | Proven |
+| Province map reruns are exact | Same map run ID and checksum, [province evidence](../evidence/province-reporting/README.md) | Proven |
 | Full job run twice with the gate gives the same result | Needs two runs of the 50-task job on the same snapshots | **Pending** (#129) |
 
 ## GitHub governance
@@ -137,8 +144,8 @@ Write every production failure up in the run's evidence folder with these four p
 These are repository settings. A file can't turn them on, so an admin (Nadine) sets them in **Settings**, then **Rules**, then the `main` ruleset:
 
 1. Keep **Require a pull request before merging** with one approval.
-2. Turn on **Require review from Code Owners**. [CODEOWNERS](../.github/CODEOWNERS) lists two owners for every path, so one absence doesn't block a merge. Every owner must have write access, or GitHub ignores the line.
-3. Turn on **Require conversation resolution before merging**. Our [contributing rules](../CONTRIBUTING.md) already ask for it.
+2. Turn on **Require review from Code Owners**. [CODEOWNERS](../../.github/CODEOWNERS) lists two owners for every path, so one absence doesn't block a merge. Every owner must have write access, or GitHub ignores the line.
+3. Turn on **Require conversation resolution before merging**. Our [contributing rules](../../CONTRIBUTING.md) already ask for it.
 4. Under **Require status checks to pass**, keep `Python (Ruff)`, `SQL (SQLFluff)`, `Markdown layout`, and `Links`. Add `Quality gate (Spark)` and `Databricks bundle (static)` after they pass once on `main`. A check can be required only after GitHub has seen it.
 5. Turn on **Require branches to be up to date before merging**.
 6. Keep **Block force pushes** and **Restrict deletions**. Don't add anyone to the bypass list.
@@ -150,9 +157,9 @@ For each important dataset, we can answer five questions:
 
 | Question | How |
 | --- | --- |
-| Can we **find** it? | Numbered schemas (`01-bronze` to `05-analytics`), numbered notebooks, and the [docs index](README.md) |
-| Can we **understand** it? | [Data model](data-model.md), [Gold model](gold_model.md), the layer docs, and a comment on every Analytics view and column |
-| Can we **trust** it? | Layer validators, the [end-to-end gate](../notebooks/06_data_quality/README.md), reconciliation checks, rerun evidence, and visible FLAG limits |
+| Can we **find** it? | Numbered schemas (`01-bronze` to `05-analytics`), numbered notebooks, and the [docs index](../README.md) |
+| Can we **understand** it? | [Data model](../model/data-model.md), [Gold model](../model/gold_model.md), the layer docs, and a comment on every Analytics view and column |
+| Can we **trust** it? | Layer validators, the [end-to-end gate](../../notebooks/06_data_quality/README.md), reconciliation checks, rerun evidence, and visible FLAG limits |
 | Can we **control** it? | CODEOWNERS, branch rules, GitHub environments with reviewers, and bundle targets that keep `dev` away from `prod` |
 | Can we **trace** it? | Snapshot IDs and run IDs on every Silver and Gold row (D-29), validation run IDs, `load_log`, and the gate's `job_run_id` |
 

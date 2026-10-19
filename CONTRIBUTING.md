@@ -8,7 +8,7 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
 
 1. Accept your invite to the [Buildabida org](https://github.com/Buildabida) on GitHub. No invite yet? Ask Nadine, our org owner.
 2. Accept the invite to our Databricks team workspace. It comes by email from Nadine.
-3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/vscode-setup.md).
+3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/guides/vscode-setup.md).
 4. Run `00_setup_workspace` once as a workflow, so you know your setup works.
 
 Who to ask: Nadine for invites, the org and the team workspace. Kinah for the repo, the board and merges. Anyone on the team for a review.
@@ -29,7 +29,7 @@ Who to ask: Nadine for invites, the org and the team workspace. Kinah for the re
 
 The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
 
-A merge that changes notebooks, `src`, or the bundle deploys the job to Databricks automatically. It does not run the pipeline. See the [operations guide](docs/operations.md).
+A merge that changes notebooks, `src`, or the bundle deploys the job to Databricks automatically. It does not run the pipeline. See the [operations guide](docs/guides/operations.md).
 
 ### Keep each change small
 
@@ -111,7 +111,7 @@ Every table lives in our `buildabida-capstone` catalog. The names have hyphens, 
 
 ## Data quality
 
-Every table gets checks, and each layer waits for the one before it to pass. If a critical check fails, the run stops. Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. The full rules are in [data quality checks](docs/validation.md).
+Every table gets checks, and each layer waits for the one before it to pass. If a critical check fails, the run stops. Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. The full rules are in [data quality checks](docs/validation/validation.md).
 
 ## Using AI tools
 

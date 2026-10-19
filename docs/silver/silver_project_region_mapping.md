@@ -56,7 +56,7 @@ Tables 11 and 12 are not dependencies of Table 13.
 
 ## D-03 resolution
 
-[D-31](decisions.md) resolves D-03 with a region-first, evidence-preserving
+[D-31](../decisions.md) resolves D-03 with a region-first, evidence-preserving
 waterfall. The implementation uses project identity and reviewed configuration
 before spatial fallback. It does not choose between a map point and office name
 by hiding one source of evidence. It retains both and records conflicts.
@@ -149,7 +149,7 @@ candidate generation. Projects with a blank, null, or otherwise unresolved
 reported region remain eligible for `COORDINATE_BOUNDARY` fallback when they
 have a valid coordinate and intersect exactly one selected region boundary, as
 required by D-31. The October 12, 2026 run is in the
-[Silver validation evidence](evidence/silver/README.md#october-12-2026-coordinate-fallback-for-blank-regions-issue-111).
+[Silver validation evidence](../evidence/silver/README.md#october-12-2026-coordinate-fallback-for-blank-regions-issue-111).
 
 ## Exact region-name standardization
 
@@ -334,7 +334,7 @@ The validation version is `silver-project-region-map-validation-v2`. Before
 issue #114, the coordinate-exception FLAG looked for `OUTSIDE_SCREENING_RANGE`,
 a value Table 13 never emits. So it counted partial pairs but never out-of-range
 ones. The October 13, 2026 run of the new checks is in the
-[Silver validation evidence](evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
+[Silver validation evidence](../evidence/silver/README.md#october-13-2026-silver-audit-fixes-issues-112-to-115).
 
 Nonblocking checks retain:
 

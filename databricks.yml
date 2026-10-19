@@ -1,6 +1,6 @@
 # Databricks Asset Bundle for the pipeline job.
-# The VS Code extension reads this file too, so you only sign in. See docs/vscode-setup.md.
-# How to deploy: resources/README.md. CI/CD: docs/operations.md.
+# The VS Code extension reads this file too, so you only sign in. See docs/guides/vscode-setup.md.
+# How to deploy: resources/README.md. CI/CD: docs/guides/operations.md.
 bundle:
   name: infra-project-monitoring
   databricks_cli_version: ">= 0.278.0"

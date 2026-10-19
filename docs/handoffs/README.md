@@ -6,4 +6,4 @@ Handoff notes that one teammate wrote for another. They moved here from the repo
 | --- | --- |
 | [Regional project progress](REGIONAL_PROJECT_PROGRESS_HANDOFF.md) | Retired. D-55 was withdrawn by D-56, so do not run its steps. |
 
-For how to run, monitor, and recover the pipeline today, read the [operations guide](../operations.md).
+For how to run, monitor, and recover the pipeline today, read the [operations guide](../guides/operations.md).

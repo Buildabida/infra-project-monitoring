@@ -26,7 +26,7 @@ but the notebooks do not depend on a developer file path.
 | `silver_region_population` | Implemented. Databricks execution is required. |
 | Silver geography and population validation | Implemented. Databricks execution is required. |
 | Project and flood Silver outputs | Implemented in later milestones. Databricks execution is required. |
-| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
+| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](../model/gold_model.md). |
 
 ## Dependency order
 
@@ -237,7 +237,7 @@ which makes the #113 row-role decision before matching.
 run ID.
 
 The October 13, 2026 Databricks run is recorded in the
-[Silver validation evidence](evidence/silver/README.md#october-13-2026-pre-match-table-c-row-role-guard-issue-113-pr-130).
+[Silver validation evidence](../evidence/silver/README.md#october-13-2026-pre-match-table-c-row-role-guard-issue-113-pr-130).
 All 25 geography and population STOP checks passed. The run found five
 `UNRESOLVED_HEADING_LIKE` rows and forced 41 following rows to remain unmatched
 until a new resolved heading. No row-role exceptions were approved or seeded.

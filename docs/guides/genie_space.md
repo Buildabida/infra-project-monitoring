@@ -7,7 +7,7 @@ This guide sets up the Genie space for issue #21, so people can ask their own qu
 
 ## Approved sources
 
-Genie reads only the six Analytics views, the same as the dashboard ([D-56](decisions.md), proposed). They read current Gold only, pass `10_validation_analytics`, and have a comment on every view and column, which Genie uses.
+Genie reads only the six Analytics views, the same as the dashboard ([D-56](../decisions.md), proposed). They read current Gold only, pass `10_validation_analytics`, and have a comment on every view and column, which Genie uses.
 
 | View | Use it for |
 | --- | --- |
@@ -22,7 +22,7 @@ Issue #21 was written before D-56 and says "up to five Gold tables". Pointing Ge
 
 ## Set up the space
 
-1. Deploy and run the pipeline so the six views exist, and confirm the latest [quality gate](../notebooks/06_data_quality/README.md) is `PASS` or `FLAG`.
+1. Deploy and run the pipeline so the six views exist, and confirm the latest [quality gate](../../notebooks/06_data_quality/README.md) is `PASS` or `FLAG`.
 2. In the team workspace, open **Genie** and create a new space named `Buildabida infrastructure monitoring`.
 3. Pick the same SQL warehouse the dashboard uses.
 4. Add the six views from `buildabida-capstone`.`05-analytics`. Add no other tables.
@@ -72,7 +72,7 @@ General
 
 ## Test questions
 
-These are the six stories in the [README](../README.md#why-we-built-it), plus two checks that Genie respects our limits.
+These are the six stories in the [README](../../README.md#why-we-built-it), plus two checks that Genie respects our limits.
 
 | # | Question | View it should use | What a right answer does |
 | --- | --- | --- | --- |

@@ -67,7 +67,7 @@ LIMIT 6;
 1. Read `failure_reason` in the summary, then the matching rows in `quality_gate_results`.
 2. If one validator failed, open its results table and find the failed check. The table is `results_table` on the gate row, and the run is `evidence_validation_run_id`.
 3. Fix the cause in the layer where it started. Never edit a Gold table by hand to make the gate pass.
-4. Use **Repair run** on the failed job run. It reruns the failed tasks and everything after them. See the [operations guide](../../docs/operations.md).
+4. Use **Repair run** on the failed job run. It reruns the failed tasks and everything after them. See the [operations guide](../../docs/guides/operations.md).
 
 ## Rerun safely
 

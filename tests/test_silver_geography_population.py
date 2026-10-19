@@ -8,7 +8,7 @@ VALIDATION_NOTEBOOK = (
     REPO_ROOT
     / "notebooks/04_validation/03_validation_silver_geography_population.ipynb"
 )
-GEOGRAPHY_DOC = REPO_ROOT / "docs/silver_geography_population.md"
+GEOGRAPHY_DOC = REPO_ROOT / "docs/silver/silver_geography_population.md"
 NOTEBOOKS = (
     SILVER_DIR / "01_silver_psgc_place.ipynb",
     SILVER_DIR / "02_silver_population_place_reconciliation.ipynb",

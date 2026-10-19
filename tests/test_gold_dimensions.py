@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLD = ROOT / "notebooks/03_gold"
-GOLD_MODEL = ROOT / "docs/gold_model.md"
+GOLD_MODEL = ROOT / "docs/model/gold_model.md"
 REGION_MAP_NOTEBOOK = ROOT / "notebooks/02_silver/08_silver_project_region_map.ipynb"
 
 # notebook -> gold tables it creates
@@ -59,7 +59,7 @@ def ddl_columns(text, table):
 
 
 def model_columns(table):
-    """Return (column, type) pairs for one table in docs/gold_model.md, in order."""
+    """Return (column, type) pairs for one table in docs/model/gold_model.md, in order."""
     text = GOLD_MODEL.read_text(encoding="utf-8")
     section = text.split(f"#### `{table}`\n", 1)[1].split("\n#", 1)[0]
     rows = re.findall(

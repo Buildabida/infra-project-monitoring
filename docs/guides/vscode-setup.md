@@ -1,6 +1,6 @@
 # Set up VS Code
 
-We write code in VS Code and run it on our Databricks team workspace. That is decision [D-11](decisions.md). Git work in VS Code does not use the workspace. Running a notebook does.
+We write code in VS Code and run it on our Databricks team workspace. That is decision [D-11](../decisions.md). Git work in VS Code does not use the workspace. Running a notebook does.
 
 Free Edition is serverless only, so we run each file as a workflow. The **Upload and Run File** choice needs a cluster, so it does not work for us.
 
@@ -36,7 +36,7 @@ Every notebook keeps its first line, like `-- Databricks notebook source`. That 
 
 ## 5. Make a change
 
-1. Pull `main`, then make a branch named after your issue. The rules are in [how we work](../CONTRIBUTING.md#make-a-change).
+1. Pull `main`, then make a branch named after your issue. The rules are in [how we work](../../CONTRIBUTING.md#make-a-change).
 2. Edit the notebook. Run it as a workflow until it passes its checks.
 3. Commit and push in the Source Control view. Check the list of changed files first.
 4. Open the pull request on GitHub.

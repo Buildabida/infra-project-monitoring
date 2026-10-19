@@ -27,7 +27,7 @@ They must not treat `PENDING_REVIEW` rows as accepted rules.
 | PSGC and population Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project, source-reconciliation, project-region, and regional flood-exposure Silver outputs | Implemented in separate notebooks. Databricks execution is required. |
 | Project-flood Silver mapping | Implemented in a separate notebook and runtime-validated in Databricks for the selected snapshots. |
-| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
+| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](../model/gold_model.md). |
 
 ## Run order
 
