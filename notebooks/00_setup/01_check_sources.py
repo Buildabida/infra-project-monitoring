@@ -24,6 +24,10 @@
 # MAGIC collisions, and missing required source-field groups are reported clearly. Any failed source
 # MAGIC blocks Bronze replacement.
 # MAGIC
+# MAGIC Header drift against the current Bronze table (new or missing columns, #48) is reported
+# MAGIC in `header_drift` but does not block. A missing required field still blocks above. The
+# MAGIC comparison reads only the table schema, never its rows.
+# MAGIC
 # MAGIC ## Step 1 — Load shared source definitions
 
 # COMMAND ----------
@@ -58,6 +62,15 @@ for source_name in config.SOURCE_ORDER:
         metadata = bronze.inspect_source(source["path"])
         clean_header, _ = bronze._column_mapping(metadata["header"])
         bronze.validate_source_header(source, clean_header)
+        try:
+            previous = spark.table(bronze.table_name(source["table"])).columns
+        except Exception:  # noqa: BLE001 - a first load has no table to compare with
+            previous = None
+        drift = None
+        if previous is not None:
+            added, removed = bronze.header_drift(clean_header, previous)
+            if added or removed:
+                drift = f"added: {added or 'none'}; removed: {removed or 'none'}"
         rows.append(
             (
                 source_name,
@@ -66,12 +79,22 @@ for source_name in config.SOURCE_ORDER:
                 metadata["size_bytes"],
                 metadata["modified_at"],
                 len(metadata["header"]),
+                drift,
                 None,
             )
         )
     except Exception as error:  # noqa: BLE001 - show every unavailable source in one run
         rows.append(
-            (source_name, source["path"], "FAILED", None, None, None, str(error)[:500])
+            (
+                source_name,
+                source["path"],
+                "FAILED",
+                None,
+                None,
+                None,
+                None,
+                str(error)[:500],
+            )
         )
 
 # COMMAND ----------
@@ -88,7 +111,7 @@ for source_name in config.SOURCE_ORDER:
 checks = spark.createDataFrame(
     rows,
     "source_name string, source_path string, status string, size_bytes long, "
-    "modified_at timestamp, header_columns int, error_message string",
+    "modified_at timestamp, header_columns int, header_drift string, error_message string",
 )
 display(checks)
 failed = [row for row in rows if row[2] == "FAILED"]

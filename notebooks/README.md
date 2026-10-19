@@ -21,6 +21,11 @@ Governed mappings remain separate from geography and population transformations.
 
 ## Documented sequence
 
+This table explains the Bronze batch and the first Silver milestones, steps 1 to 28.
+For the complete current run order from setup to the dashboard, use the
+[full production run order](#d-57-production-rerun-order) below, or simply run the
+[pipeline job](../resources/README.md).
+
 | Step | Notebook | Responsibility |
 | --- | --- | --- |
 | 1 | `00_setup/00_setup_workspace` | Define missing schemas and verify the existing R2-backed volume without destructive setup. |
@@ -51,7 +56,7 @@ Governed mappings remain separate from geography and population transformations.
 | 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
 | 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
 | 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
-| Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
+| Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. Bronze only. The pipeline job is the orchestrator for every layer. |
 
 ## Load Bronze
 
@@ -466,17 +471,16 @@ in separate result tables: `dq_results` for Bronze, `silver_config_dq_results` a
 for the analytics views.
 Promotion requires the current layer to pass its blocking checks.
 
+The [end-to-end quality gate](06_data_quality/README.md) reads all of these result
+tables at the end of the run. It confirms that every validator ran for this pipeline
+run and passed, and that the layers agree on snapshot, project count, and budget.
+Then it saves `04-validation.quality_gate_results` and lets the dashboard refresh.
+
 ## Future layer organization
 
-Do not add Silver or Gold orchestration to `run_all.py`. When those layers are
-implemented, use explicit layer runners and one top-level pipeline coordinator:
-
-```text
-notebooks/run_bronze.py
-notebooks/run_silver.sql
-notebooks/run_gold.sql
-notebooks/run_pipeline.py
-```
+Do not add Silver or Gold orchestration to `run_all.py`. It stays a manual
+Bronze-only helper. The [pipeline job](../resources/README.md) already orchestrates
+every layer with Databricks task dependencies, so no second coordinator is needed.
 
 Keep validation notebooks separate too:
 
@@ -494,6 +498,9 @@ Keep validation notebooks separate too:
 ├── 09_validation_gold.ipynb
 ├── 10_validation_analytics.ipynb
 └── 11_publish_acceptance_evidence.sql
+
+06_data_quality/
+└── 01_end_to_end_quality_gate.py
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based
@@ -544,8 +551,9 @@ copying ingestion logic or introducing an enterprise framework.
 ## D-57 production rerun order
 
 The [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs these
-files as 49 dependent tasks, and its last task refreshes the dashboard. `databricks.yml` does not
-include the job, so a bundle deploy does not create a second copy. To run the
+files as 50 dependent tasks, and its last task refreshes the dashboard after the
+end-to-end quality gate passes. `databricks.yml` includes the job, so
+`databricks bundle deploy` keeps it in step with this repository. To run the
 files by hand, use this dependency order. Stop immediately after any
 failed STOP gate; no Gold reporting-area task may bypass Silver validation, and
 no reporting-area Analytics task may bypass Gold validation.
@@ -595,6 +603,8 @@ no reporting-area Analytics task may bypass Gold validation.
 42. `05_analytics/01_business_questions.ipynb`
 43. `04_validation/10_validation_analytics.ipynb`
 44. `04_validation/11_publish_acceptance_evidence.sql`
+45. `06_data_quality/01_end_to_end_quality_gate.py`, which must pass before the
+    dashboard refreshes. See the [quality gate guide](06_data_quality/README.md).
 
 Step 44 is the compact PR evidence publisher. It materializes the latest D-57
 Silver, Gold, and Analytics checks, project and reported-budget coverage,

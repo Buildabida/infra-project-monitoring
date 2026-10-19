@@ -368,3 +368,38 @@ def test_acceptance_evidence_names_match_the_bronze_validator():
     for pattern in patterns:
         regex = "^" + ".*".join(map(re.escape, pattern.split("%"))) + "$"
         assert any(re.match(regex, name) for name in written), pattern
+
+
+def test_header_drift_reports_new_and_missing_columns():
+    previous = ["contractId", "budget", "status", "_source_snapshot_id"]
+    added, removed = bronze.header_drift(["contractId", "budget", "region"], previous)
+    assert added == ["region"]
+    assert removed == ["status"]
+
+
+def test_header_drift_sees_a_rename_as_one_removed_and_one_added_column():
+    added, removed = bronze.header_drift(
+        ["contractId", "contract_amount"], ["contractId", "budget"]
+    )
+    assert (added, removed) == (["contract_amount"], ["budget"])
+
+
+def test_header_drift_ignores_case_and_ingestion_metadata():
+    previous = ["ContractId", *config.INGEST_METADATA_COLUMNS]
+    assert bronze.header_drift(["contractid"], previous) == ([], [])
+
+
+def test_renamed_required_column_still_blocks_the_load():
+    # #48: a renamed critical field is a STOP before any write, not only drift
+    source = config.source_config("dpwh_projects")
+    header = list(
+        dict.fromkeys(
+            name
+            for aliases in source["required_column_groups"].values()
+            for name in aliases[:1]
+        )
+    )
+    bronze.validate_source_header(source, header)
+    renamed = ["contract_amount" if name == "budget" else name for name in header]
+    with pytest.raises(ValueError, match="reported budget"):
+        bronze.validate_source_header(source, renamed)
