@@ -67,7 +67,7 @@ A blocking check that fails goes like this:
 4. The dashboard refresh does not run.
 5. The run fails, and Databricks sends one email.
 
-To test the alert without breaking data, deploy to `dev`, then run only the gate task with **Run now with different settings**. Do it right after a Bronze-only reload, so the stale evidence makes it fail. Record the email in the evidence folder. This has not been tested yet.
+To test the alert without breaking data, deploy to `dev`, then run only the gate task with **Run now with different settings**. Do it right after a Bronze-only reload, so the stale evidence makes it fail. Record the email in the evidence folder. The alert was first proven on October 19, 2026, when a real gate failure sent the email and skipped the dashboard. See the [end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md).
 
 ## Monitor a run
 
@@ -137,7 +137,7 @@ Write every production failure up in the run's evidence folder with these four p
 | Gold reruns change nothing | Two runs on October 12 kept 75 checks under one ID, [validation](../validation/validation.md#gold-validation-runtime-evidence) | Proven |
 | Analytics reruns change nothing | 111 saved checks unchanged on rerun, [six-view evidence](../evidence/six-analytics-views/README.md) | Proven |
 | Province map reruns are exact | Same map run ID and checksum, [province evidence](../evidence/province-reporting/README.md) | Proven |
-| Full job run twice with the gate gives the same result | Needs two runs of the 50-task job on the same snapshots | **Pending** (#129) |
+| Full job run twice with the gate gives the same result | First run on October 19, 2026 passed the gate, see the [end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md). The second run on the same snapshots is still needed | **Pending** (#129) |
 
 ## GitHub governance
 

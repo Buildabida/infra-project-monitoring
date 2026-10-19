@@ -122,9 +122,13 @@ AS required(layer, task_key, notebook, results_table, anchor_table, expected_tab
 # MAGIC **What:** put the five existing results tables into one shape, then find each
 # MAGIC validator's latest run through its anchor table.
 # MAGIC
-# MAGIC **Why:** Bronze appends a new `run_id` each run. The other validators `MERGE` on a
-# MAGIC deterministic `validation_run_id` and refresh `run_ts`, so the newest `run_ts` always
-# MAGIC marks the latest execution. Only the columns the gate needs are read.
+# MAGIC **Why:** every validator saves all of its rows in one write stamped with one
+# MAGIC `CURRENT_TIMESTAMP()` (Bronze appends, the others `MERGE`). So the anchor's newest
+# MAGIC `run_ts` marks that validator's latest execution, and the rows with exactly that
+# MAGIC `run_ts` are everything it saved then. Grouping by `run_ts`, not by run ID, matters:
+# MAGIC a validator may give each of its tables its own `validation_run_id`, and the two
+# MAGIC Gold validators both write `fact_project_snapshot` rows to the same table, at
+# MAGIC different times. Only the columns the gate needs are read.
 
 # COMMAND ----------
 
@@ -336,7 +340,7 @@ WITH counted AS (
     FROM gate_latest_validation AS latest
     LEFT JOIN gate_evidence AS evidence
         ON evidence.results_table = latest.results_table
-        AND evidence.validation_run_id = latest.validation_run_id
+        AND evidence.run_ts = latest.evidence_run_ts
     GROUP BY ALL
 ),
 judged AS (
@@ -431,7 +435,7 @@ WITH gold_evidence AS (
     FROM gate_latest_validation AS latest
     INNER JOIN gate_evidence AS evidence
         ON evidence.results_table = latest.results_table
-        AND evidence.validation_run_id = latest.validation_run_id
+        AND evidence.run_ts = latest.evidence_run_ts
     CROSS JOIN gate_context AS context
     WHERE latest.task_key = 'gold_validation'
 ),
@@ -445,7 +449,7 @@ analytics_evidence AS (
     FROM gate_latest_validation AS latest
     INNER JOIN gate_evidence AS evidence
         ON evidence.results_table = latest.results_table
-        AND evidence.validation_run_id = latest.validation_run_id
+        AND evidence.run_ts = latest.evidence_run_ts
     CROSS JOIN gate_context AS context
     WHERE latest.task_key = 'analytics_validation'
         AND evidence.table_name = 'analytics_implementation_monitoring'

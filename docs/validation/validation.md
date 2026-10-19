@@ -1104,7 +1104,15 @@ FLAG findings pass and stay visible. Missing evidence never passes. The gate sav
 overall. See the [quality gate guide](../../notebooks/06_data_quality/README.md).
 
 `tests/test_quality_gate.py` runs the notebook on local Spark with Delta against
-synthetic tables. The gate has not run on Databricks yet.
+synthetic tables, including real-run patterns such as one validation run ID per
+table.
+
+The gate first ran on Databricks on October 19, 2026, in job run
+`457335378856032`. It found no failed STOP check and no missing evidence across 675
+checks, and its four cross-layer checks passed. That run also exposed a gate bug,
+which was fixed: the gate now groups each validator's rows by their save time
+(`run_ts`) instead of by run ID. See the
+[end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md).
 
 ## Future validation documents
 

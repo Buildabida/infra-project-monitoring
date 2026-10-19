@@ -73,21 +73,38 @@ ANALYTICS_TABLES = [
     "analytics_integration_coverage",
     "analytics_layer",
 ]
+# each validator saves all its rows in one write with one timestamp, at its own time
+SAVED_AT = {
+    name: VALIDATED + timedelta(minutes=minute)
+    for minute, name in enumerate(
+        [
+            "bronze-run-1",
+            "config-run",
+            *SILVER_VALIDATORS,
+            "gold-run",
+            "gold-province-run",
+            "analytics-run",
+        ]
+    )
+}
+# like the real geography validator before #138: one validation run ID per table
+PER_TABLE_RUN_IDS = {"silver-geography"}
 EVIDENCE_COLUMNS = (
     "validation_run_id string, pipeline_run_id string, table_name string, "
     "source_snapshot_id string, status string, action string, run_ts timestamp"
 )
 
 
-def evidence_row(validation_run_id, table, pipeline_run_id="run", **changes):
+def evidence_row(validator, table, pipeline_run_id="run", **changes):
+    run_id = f"{validator}-{table}" if validator in PER_TABLE_RUN_IDS else validator
     row = {
-        "validation_run_id": validation_run_id,
+        "validation_run_id": run_id,
         "pipeline_run_id": pipeline_run_id,
         "table_name": table,
         "source_snapshot_id": SNAPSHOT,
         "status": "PASS",
         "action": "stop",
-        "run_ts": VALIDATED,
+        "run_ts": SAVED_AT[validator],
     }
     row.update(changes)
     return row
@@ -118,7 +135,7 @@ def healthy_world():
                 else f"snap-{table}",
                 "status": "PASS",
                 "action": "stop",
-                "run_ts": VALIDATED,
+                "run_ts": SAVED_AT["bronze-run-1"],
             }
             for table in BRONZE_TABLES
         ],
@@ -128,7 +145,7 @@ def healthy_world():
                 "table_name": "config_place_name_alias",
                 "status": "PASS",
                 "action": "stop",
-                "run_ts": VALIDATED,
+                "run_ts": SAVED_AT["config-run"],
             }
         ],
         "silver_dq_results": [
@@ -452,7 +469,8 @@ def test_gate_recovers_after_the_validator_is_fixed_and_rerun(spark, world):
     # the validator reruns on the same data: same validation run ID, new run time
     world["gold_dq_results"][0]["status"] = "PASS"
     for row in world["gold_dq_results"]:
-        row["run_ts"] = VALIDATED + timedelta(minutes=30)
+        if row["validation_run_id"] == "gold-run":
+            row["run_ts"] = VALIDATED + timedelta(minutes=30)
     namespace = run_gate(spark, world)
     rows = gate_rows(spark, namespace["gate_run_id"])
     assert {row["status"] for row in rows.values()} == {"PASS"}
@@ -509,3 +527,45 @@ def test_gate_uses_no_third_party_quality_framework():
     text = GATE.read_text(encoding="utf-8").lower()
     for name in ("great_expectations", "great expectations", "soda", "deequ"):
         assert name not in text
+
+
+# Regression tests for the first Databricks run on October 19, 2026, where the gate
+# grouped evidence by run ID and wrongly reported missing geography tables.
+def test_validator_that_gives_each_table_its_own_run_id_passes(spark, world):
+    namespace = run_gate(spark, world)
+    geography = gate_rows(spark, namespace["gate_run_id"])[
+        "silver_validation_geography_population"
+    ]
+    assert geography["status"] == "PASS"
+    assert geography["required_checks"] == 3
+    assert geography["missing_checks"] == 0
+
+
+def test_gold_validators_that_share_a_table_stay_separate(spark, world):
+    # both Gold validators write fact_project_snapshot rows to gold_dq_results
+    world["gold_dq_results"].append(
+        evidence_row(
+            "gold-province-run",
+            "fact_project_snapshot",
+            "gold-project-run",
+            status="FAIL",
+        )
+    )
+    rows = expect_stop(spark, world, "gold_validation_province_reporting")
+    assert rows["gold_validation_province_reporting"]["failed_stop_checks"] == 1
+    assert rows["gold_validation"]["status"] == "PASS"
+
+
+def test_rows_from_an_older_run_of_the_same_validator_are_ignored(spark, world):
+    world["silver_dq_results"].append(
+        evidence_row(
+            "silver-projects",
+            "silver_project",
+            status="FAIL",
+            run_ts=SAVED_AT["silver-projects"] - timedelta(minutes=30),
+        )
+    )
+    namespace = run_gate(spark, world)
+    rows = gate_rows(spark, namespace["gate_run_id"])
+    assert rows["silver_validation_projects"]["status"] == "PASS"
+    assert rows["silver_validation_projects"]["required_checks"] == 2
