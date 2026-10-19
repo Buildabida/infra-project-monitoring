@@ -1,11 +1,47 @@
-# Settings for the Databricks extension for VS Code.
-# The extension reads this file, so you only sign in. See docs/vscode-setup.md.
+# Databricks Asset Bundle for the pipeline job.
+# The VS Code extension reads this file too, so you only sign in. See docs/vscode-setup.md.
+# How to deploy: resources/README.md. CI/CD: docs/operations.md.
 bundle:
   name: infra-project-monitoring
+  databricks_cli_version: ">= 0.278.0"
+
+include:
+  - resources/*.yml
+
+# The job runs notebooks and imports src/. Docs, evidence images, and the dashboard
+# export are not needed in the workspace.
+sync:
+  exclude:
+    - assets/**
+    - docs/**
+    - dashboard/**
+    - tests/**
+
+variables:
+  warehouse_id:
+    description: SQL warehouse that refreshes the dashboard.
+    default: 0ed5be803b3a683e
+  dashboard_id:
+    description: AI/BI dashboard that the last job task refreshes.
+    default: 01f1c6c961841d67a6c6264da1e0fe8b
+  alert_email:
+    description: Who gets an email when a job run fails. Set DATABRICKS_ALERT_EMAIL in GitHub for prod.
 
 targets:
+  # Each person's own copy. Development mode adds a "[dev name]" prefix to the job,
+  # deploys under the person's home folder, and pauses schedules, so it never
+  # touches the production job. Failure emails go to the person who deployed.
   dev:
     mode: development
     default: true
     workspace:
       host: https://dbc-1106b696-980b.cloud.databricks.com
+    variables:
+      alert_email: ${workspace.current_user.userName}
+
+  # The team job. Only the deploy workflow on main, or a person with the same
+  # rights, deploys it. The host comes from DATABRICKS_HOST.
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/infra-project-monitoring/.bundle/${bundle.target}

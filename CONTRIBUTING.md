@@ -24,10 +24,12 @@ Who to ask: Nadine for invites, the org and the team workspace. Kinah for the re
 4. **Run it before you push.** Run the notebook as a workflow and check the results. Keep test runs small. The team workspace has one daily quota for all of us.
 5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Source Control view, check the list of changed files. Commit only the files you meant to change.
 6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`. Want eyes before it is done? Open it as a draft.
-7. **Get a review** from the reviewer named in the issue. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
+7. **Get a review** from the reviewer named in the issue. GitHub also asks the [code owners](.github/CODEOWNERS) of the files you changed. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
 8. **Pull again** after a merge, so you have the latest `main`.
 
 The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
+
+A merge that changes notebooks, `src`, or the bundle deploys the job to Databricks automatically. It does not run the pipeline. See the [operations guide](docs/operations.md).
 
 ### Keep each change small
 
@@ -175,6 +177,7 @@ If AI suggests a data quality check, add it to `04-validation.dq_results`. Don't
 | Tasks, owners and reviewers | Issues and our [project board](https://github.com/orgs/Buildabida/projects/1) |
 | Big choices | Our [decisions](docs/decisions.md) and the team Doc |
 | Screenshots, files and links | Our Drive folder, Docs and Sheets |
+| Old change manifests and handoffs | [`docs/change-history`](docs/change-history/README.md) and [`docs/handoffs`](docs/handoffs/README.md) |
 | Meetings and work sessions | Gather |
 
 ## Where we talk
