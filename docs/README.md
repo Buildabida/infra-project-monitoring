@@ -22,7 +22,14 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review Databricks evidence for Silver fixes | [Silver validation evidence](evidence/silver/README.md) |
 | Know what each Analytics view answers, its grain, and its limits | [Analytics views](../notebooks/05_analytics/README.md) |
 | Review the seven-tab dashboard, its datasets, and its check values | [Dashboard specification](../dashboard/dashboard_spec.md) |
-| Run the full pipeline as one Databricks job | [Pipeline job](../resources/README.md) |
+| Run the full pipeline as one Databricks job, and deploy it with the bundle | [Pipeline job](../resources/README.md) |
+| Monitor a run, get failure emails, recover with Repair run, and set up GitHub | [Operations guide](operations.md) |
+| Know what the end-to-end quality gate checks and how to read its result | [Quality gate](../notebooks/06_data_quality/README.md) |
+| Know what each Gold fact and dimension holds, its grain, and its keys | [Gold model](gold_model.md) |
+| Set up and test the Genie space | [Genie setup](genie_space.md) |
+| Test the README from a new workspace | [Clean-workspace test](clean_workspace_test.md) |
+| See how the pipeline handles a new source pull or changed columns | [Update resilience](update_resilience.md) |
+| Read old change manifests, review summaries, and handoffs | [Change history](change-history/README.md) and [handoffs](handoffs/README.md) |
 | Know why we chose something | [Decisions](decisions.md) |
 | Write docs, SQL or Python the way we do | [Style guide](style-guide.md) |
 | Make a change, write an issue or open a pull request | [How we work](../CONTRIBUTING.md) |

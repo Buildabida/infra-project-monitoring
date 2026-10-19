@@ -3,7 +3,8 @@
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
 project-region, regional flood-exposure, and project-flood mapping validators, the
-Gold validator, and the analytics validator.
+Gold validator, the analytics validator, and the
+[end-to-end quality gate](#end-to-end-quality-gate).
 
 ## Bronze validation
 
@@ -1076,6 +1077,34 @@ after `09_validation_gold` and before this validator, the gate would not notice.
 The documented run order, `09_validation_gold` then the views then this
 validator, avoids the gap. A fix that adds the dimension runs to the gate is a
 separate follow-up. It needs its own review against D-52.
+
+The [end-to-end quality gate](#end-to-end-quality-gate) narrows this gap at publish
+time. It stops when a fact was rebuilt after `09_validation_gold`, and it re-checks
+the project count and reported budget across Silver, Gold, and the views. It does
+not cover a rebuilt dimension alone.
+
+## End-to-end quality gate
+
+`notebooks/06_data_quality/01_end_to_end_quality_gate.py` runs after
+`11_publish_acceptance_evidence` and before the dashboard refresh. It repeats no layer
+check. It reads the evidence the 13 validators saved and stops when:
+
+- a validator saved no evidence, or its latest run misses a table it should cover
+- the evidence is older than the latest Bronze load event, so it is stale
+- any STOP check failed, or any check returned `ERROR`
+- the latest DPWH load, Silver, current Gold, and the Analytics view name different
+  snapshots
+- the project count, the reported budget, or the number of projects with a budget
+  differ across Silver, current Gold, and `analytics_implementation_monitoring`
+- the latest Gold or Analytics evidence names a fact run that is no longer current
+
+FLAG findings pass and stay visible. Missing evidence never passes. The gate saves
+`04-validation.quality_gate_results` with `MERGE` before it raises, and
+`04-validation.quality_gate_summary` gives PASS, FLAG, or STOP for each layer and
+overall. See the [quality gate guide](../notebooks/06_data_quality/README.md).
+
+`tests/test_quality_gate.py` runs the notebook on local Spark with Delta against
+synthetic tables. The gate has not run on Databricks yet.
 
 ## Future validation documents
 
