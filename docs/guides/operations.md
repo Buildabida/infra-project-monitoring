@@ -137,7 +137,7 @@ Write every production failure up in the run's evidence folder with these four p
 | Gold reruns change nothing | Two runs on October 12 kept 75 checks under one ID, [validation](../validation/validation.md#gold-validation-runtime-evidence) | Proven |
 | Analytics reruns change nothing | 111 saved checks unchanged on rerun, [six-view evidence](../evidence/six-analytics-views/README.md) | Proven |
 | Province map reruns are exact | Same map run ID and checksum, [province evidence](../evidence/province-reporting/README.md) | Proven |
-| Full job run twice with the gate gives the same result | First run on October 19, 2026 passed the gate, see the [end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md). The second run on the same snapshots is still needed | **Pending** (#129) |
+| Full job run twice with the gate gives the same result | Job runs `457335378856032` and `880939659105900` on October 19, 2026 gave the same gate result, totals, and validator run IDs, see the [end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md#rerun-on-unchanged-data) | Proven (#129) |
 
 ## GitHub governance
 

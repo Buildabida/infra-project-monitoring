@@ -1,6 +1,6 @@
-# End-to-end quality gate: first Databricks run
+# End-to-end quality gate: first two Databricks runs
 
-The 50-task `buildabida-full-pipeline` job ran in the team workspace on October 19, 2026, with the end-to-end quality gate for the first time. The first attempt stopped at the gate because of a bug in the gate. The fix, a repair, and a passing gate followed in the same job run. This page records what happened and what the gate saw.
+The 50-task `buildabida-full-pipeline` job ran in the team workspace on October 19, 2026, with the end-to-end quality gate for the first time. The first attempt stopped at the gate because of a bug in the gate. The fix, a repair, and a passing gate followed in the same job run. A second job run on the same data then gave the same result. This page records what happened and what the gate saw.
 
 | Field | Value |
 | --- | --- |
@@ -48,11 +48,31 @@ The check counts match earlier evidence: 126 Bronze checks, 112 Analytics checks
 
 This is the reported project or contract budget, not payment (D-28). The October 12 and 13 Gold evidence had 265,656 current projects. This run has 74 fewer. The difference has not been traced yet. A likely cause is the Bronze multiline CSV fix in #133, but that is not confirmed.
 
-## Validator runs
+## Rerun on unchanged data
 
-After this one gate run, `quality_gate_results` holds one validator run ID for each of the 13 validators. The four cross-layer checks have no validator run ID by design. This becomes rerun evidence only after a second run, below.
+Job run `880939659105900` ran the same job again with no data change. Its gate saved at 2026-10-19 17:08:31 UTC. Each job run saved 17 gate rows, all at one timestamp. The exports are in this folder: [gate runs](gate-runs.csv), [gate summary](gate-summary-run1-run2.csv), [totals](totals-after-run2.csv), and [validator run IDs](validator-run-ids.csv).
+
+| Layer | Run `457335378856032` | Run `880939659105900` |
+| --- | --- | --- |
+| bronze | FLAG, 126 / 119 / 7 | FLAG, 126 / 119 / 7 |
+| silver | FLAG, 334 / 263 / 71 | FLAG, 334 / 263 / 71 |
+| gold | FLAG, 99 / 90 / 9 | FLAG, 99 / 90 / 9 |
+| analytics | FLAG, 112 / 90 / 22 | FLAG, 112 / 90 / 22 |
+| end_to_end | PASS, 4 / 4 / 0 | PASS, 4 / 4 / 0 |
+| **ALL** | **FLAG, 675 / 566 / 109** | **FLAG, 675 / 566 / 109** |
+
+The numbers are checks / pass / flag. Both runs had 0 failed STOP checks and 0 missing checks in every layer.
+
+After the second run:
+
+- **Totals did not change.** Silver, current Gold, and Analytics still hold 265,582 projects and 6,535,616,688,947.00 pesos, so the rerun added no duplicates.
+- **Run IDs did not change.** Silver `run_id` stays `c6317d2b45b2b3f9832e9dfccf130317fea4d1b06a18922d837d22d449b6a424`, and Gold `run_id` stays `8ade0907b7a642b47dded535a800228b19afe5ba5342a8f09ea5e3b703e4c3ac`.
+- **Validator evidence was updated, not copied.** Across both gate runs, each of the 12 Silver, Gold, and Analytics validators has one validation run ID. Bronze has two, one per run, by design. The four cross-layer checks have none, by design.
+
+The geography validator used one run ID for all its tables in both runs, because commit `adb3a1f` stayed in place. So these runs did not exercise the gate with one run ID per table. The regression tests cover that case.
+
+The queries used are the gate summary for the latest gate run, the row counts and budget sums per layer, and `COUNT(DISTINCT evidence_validation_run_id)` per `check_scope` in `quality_gate_results`.
 
 ## Still to record
 
-- **Rerun on unchanged data.** Run the job again with no data change, then repeat the gate summary, the totals, and the validator-run query. The totals must not change. Every Silver, Gold, and Analytics validator must keep one run ID across both runs. Bronze gets a new run ID each run, by design.
 - **Screenshots** for this folder: the failure email, the failed gate task with its error, the run timeline with `business_dashboard` skipped, and the final task graph with every task green. Add them under `images/` and link them here.

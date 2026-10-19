@@ -72,4 +72,4 @@ This happened on October 16, 2026. The first attempts stopped on four Databricks
 
 The 49-task job ran in full on October 16, 2026, in job run `1077732256280159`. See the [six Analytics views evidence](../docs/evidence/six-analytics-views/README.md).
 
-The 50-task job with the end-to-end gate first ran on October 19, 2026, in job run `457335378856032`. Its first attempt stopped at the gate because of a gate bug, which was fixed. The repaired run passed. See the [end-to-end gate evidence](../docs/evidence/end-to-end-gate-2026-10-19/README.md). A rerun on unchanged data is still to be recorded.
+The 50-task job with the end-to-end gate first ran on October 19, 2026, in job run `457335378856032`. Its first attempt stopped at the gate because of a gate bug, which was fixed. The repaired run passed. See the [end-to-end gate evidence](../docs/evidence/end-to-end-gate-2026-10-19/README.md). A second run on unchanged data, job run `880939659105900`, gave the same gate result and totals.
