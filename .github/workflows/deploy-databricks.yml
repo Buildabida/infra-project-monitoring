@@ -55,7 +55,7 @@ jobs:
           [ -n "$ALERT_EMAIL" ] || missing+=("variable DATABRICKS_ALERT_EMAIL")
           if [ ${#missing[@]} -gt 0 ]; then
             printf '::error::The production environment is missing: %s\n' "${missing[@]}"
-            echo "See docs/operations.md#github-configuration"
+            echo "See docs/guides/operations.md#github-configuration"
             exit 1
           fi
 
