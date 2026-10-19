@@ -1,0 +1,406 @@
+# Silver geography and population
+
+This milestone implements three Silver tables for official geography and authoritative
+population. It does not implement project matching, flood mapping, Gold tables, or
+population-based investment measures.
+
+## Source authority
+
+PSGC supplies official codes, names, geographic levels, hierarchy, region membership,
+and publisher version when available.
+
+PSA Census Table C supplies authoritative population. PSGC population is diagnostic
+only. The pipeline never overwrites Table C population, averages the two sources, or
+uses PSGC population because it is easier to join.
+
+The production path remains R2 to Bronze to Silver. Local CSVs supported schema review,
+but the notebooks do not depend on a developer file path.
+
+## Implementation status
+
+| Item | Status |
+| --- | --- |
+| Five Silver configuration tables | Implemented |
+| `silver_psgc_place` | Implemented. Databricks execution is required. |
+| `silver_population_place_reconciliation` | Implemented. Databricks execution is required. |
+| `silver_region_population` | Implemented. Databricks execution is required. |
+| Silver geography and population validation | Implemented. Databricks execution is required. |
+| Project and flood Silver outputs | Implemented in later milestones. Databricks execution is required. |
+| Gold facts and dimensions | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
+
+## Dependency order
+
+Run the notebooks in this order:
+
+1. `02_silver/00_config_mappings.ipynb`
+2. `04_validation/02_validation_silver_config.ipynb`
+3. `02_silver/01_silver_psgc_place.ipynb`
+4. `02_silver/02_silver_population_place_reconciliation.ipynb`
+5. `02_silver/03_silver_region_population.ipynb`
+6. `04_validation/03_validation_silver_geography_population.ipynb`
+
+Do not run a dependent notebook after a blocking failure.
+
+## Bronze safety gate
+
+Before Silver reads a selected source, it checks the newest terminal `load_log` event.
+The status must be `SUCCESS` or `SKIPPED_IDEMPOTENT`. Snapshot identity must be present,
+and loaded rows must be positive.
+
+The latest Bronze validation for the selected snapshot must contain no `FAIL` or `ERROR`
+with action `stop`. An older successful load cannot hide a newer failed or incomplete load.
+The gate reads compact audit evidence and does not rescan R2.
+
+## `silver_psgc_place`
+
+Purpose: provide one reusable official PSGC place hierarchy.
+
+Grain: one official PSGC place per selected PSGC version or source snapshot.
+
+Natural key:
+
+- `psgc_code`
+- `psgc_version` when published, otherwise `source_snapshot_id`
+
+The table retains raw and conservatively standardized place names. Standardization trims,
+uses consistent case, and collapses repeated whitespace. It does not remove geographic
+words or use fuzzy matching.
+
+Region, province, and city or municipality values come from rows that exist in the same
+selected PSGC snapshot. Code prefixes locate candidate ancestors, but missing verified
+ancestors remain null. Blank or unknown geographic levels remain visible with an exception
+status.
+
+Repeated names are expected. Names such as `Poblacion` are never treated as globally
+unique. Code, place type, and hierarchy provide identity.
+
+## `silver_population_place_reconciliation`
+
+Purpose: explain the outcome for every current Table C source row.
+
+Grain: one Table C source-row reconciliation result per deterministic Silver run.
+
+Natural key:
+
+- `source_file`
+- `sheet_name`
+- `source_row_number`
+- `run_id`
+
+The current Bronze contract contains 43,750 Table C rows. Historical documentation also
+records 45,611 source rows, 1,861 copied BARMM rows, and 43,750 analysis rows. Those older
+counts are reference evidence, not a new filtering rule. Silver does not remove another
+1,861 rows.
+
+### Matching waterfall
+
+Context comes first:
+
+1. Resolve the sheet to one verified PSGC province, independent city, or the BARMM
+   Special Geographic Area. Use the exact sheet name. When it finds nothing, use one
+   approved `TABLE_C_SHEET_NAME` alias that names the target region.
+2. Resolve locality headings inside that sheet context: exact name, then an approved
+   `TABLE_C_LOCALITY_HEADING` alias, then the normalization key below. A Manila district
+   or an SGA municipality belongs to its sheet through the verified PSGC place at its
+   five-digit code, because neither has a `province_code`.
+3. Decide `row_role` before any barangay candidate is built. A uniquely resolved
+   locality is `RESOLVED_HEADING`. A non-first-sheet uppercase row is
+   `UNRESOLVED_HEADING_LIKE` unless one active, approved, source-file and
+   sheet-scoped `BARANGAY` exception permits it as
+   `APPROVED_UPPERCASE_BARANGAY`. Other rows are `NORMAL_BARANGAY_CANDIDATE`.
+4. `UNRESOLVED_HEADING_LIKE` never enters exact, alias, normalized, or
+   footnote-removed barangay matching. It clears locality context, publishes no
+   accepted PSGC target, and remains `UNMATCHED`. Every later row up to a new
+   `RESOLVED_HEADING` also becomes `UNMATCHED` with the reason
+   `Follows an unresolved heading-like row, so no locality is trusted` (#113).
+   Before its first heading, a city or municipality sheet is its own locality.
+
+Each row then follows a four-rank waterfall. A later rank runs only when every
+earlier rank found nothing for that row.
+
+| Rank | `match_method` | Rule |
+| --- | --- | --- |
+| 1 | `EXACT_CONTEXT` | Exact name: the sheet place, a heading's locality, or a barangay in the current locality |
+| 2 | `APPROVED_ALIAS` | One active `APPROVED` alias from the selected version, with nonblank context |
+| 3 | `NORMALIZED_NAME_CONTEXT` | The normalization key, against barangays in the current locality |
+| 4 | `FOOTNOTE_REMOVED_CONTEXT` | The name without its last number, by the same key, in the current locality |
+
+The normalization key is one shared view, applied to Table C and PSGC names alike.
+It removes superscript footnote digits and a trailing `*`. It reads `STO.`, `STA.`,
+and `ST.` as `SANTO`, `SANTA`, and `SAINT`. It treats a hyphen, a space between
+letters, and no separator as the same. It does not score similarity.
+
+Safeguards:
+
+- Ranks 3 and 4 never take a PSGC place that an exact or alias match already claimed.
+  When two rows reach the same place through them, both stay `AMBIGUOUS`.
+- Rank 4 never removes a number that is part of a real name. `Barangay 1` and
+  `Zapote 3` match at rank 1, so they never reach rank 4. `Zapote 3 5` loses only `5`.
+- An uppercase source value is not automatically a barangay. It needs an active,
+  approved, exact row-role exception keyed by source file and sheet before it can
+  enter the contextual barangay waterfall. The exception does not assign a PSGC code.
+- Matched province, city, municipality, and Manila district subtotals stay
+  `MATCHED_NON_PRIMARY_LEVEL` and never enter the regional total.
+
+Rank 1 gives `MATCHED_EXACT_CONTEXT`, rank 2 gives `MATCHED_ALIAS`, and ranks 3 and 4
+give `MATCHED_NORMALIZED_CONTEXT`. Multiple candidates stay `AMBIGUOUS`. Zero
+candidates stay `UNMATCHED`. `sheet_context_method` and `locality_context_code` show
+how each row got its context.
+
+An approved alias must include geographic context. Blank context fields do not authorize
+a global name-only match. Unresolved rows remain visible.
+
+Fuzzy similarity cannot assign an accepted PSGC code. It may support a review queue, but
+it never decides a match.
+
+### Population handling
+
+`population_raw` is preserved. `population_count` uses a safe numeric conversion. A parse
+failure remains invalid and never becomes zero.
+
+Non-positive values keep their original value and receive `INVALID_POPULATION`. Current
+Bronze evidence reports 12 such rows. This count is a review reference, not transformation
+logic.
+
+Each source row receives one final disposition:
+
+- `ACCEPTED_PRIMARY`
+- `MATCHED_NON_PRIMARY_LEVEL`
+- `AMBIGUOUS`
+- `UNMATCHED`
+- `INVALID_POPULATION`
+- `SOURCE_EXCEPTION`
+
+Disposition counts must equal current Table C rows exactly.
+
+For matched rows at an equivalent level, PSGC population is carried as a cross-check.
+Differences and percentages remain diagnostic. A difference does not replace Table C or
+block the pipeline by itself.
+
+## `silver_region_population`
+
+Purpose: create the authoritative region-level input for the future Gold population fact.
+
+Grain: one official PSGC region per reference year, source, and selected source snapshots.
+
+Natural key:
+
+- `psgc_region_code`
+- `reference_year`
+- `source_name`
+- `source_snapshot_id`
+- `psgc_source_snapshot_id`
+
+The population reference date is July 1, 2024. It is centralized in the population
+reconciliation setup and never derived from the current date.
+
+Only positive `ACCEPTED_PRIMARY` barangay rows contribute. Province, city, municipality,
+and region subtotals do not join the aggregate. This avoids double or triple counting.
+Region membership comes from the matched PSGC hierarchy, not a second text match.
+
+The selected PSGC snapshot determines the official region set. No region count is hardcoded.
+A missing official-region population remains null, which is different from a population of
+zero. NCR remains its own region. BARMM population remains present when Table C supports it.
+
+Unresolved Table C rows do not enter a fake region `0`. Gold reserves key `0` for unknown,
+unmapped, or non-geographic dimension members later.
+
+## Lineage and versions
+
+The tables distinguish these concepts:
+
+- `run_id`: deterministic Silver processing identity
+- `source_ingest_run_id`: upstream Table C or PSGC Bronze ingestion identity
+- `source_snapshot_id`: selected Table C or PSGC source snapshot
+- `psgc_version`: publisher PSGC version when available
+- `alias_version`: selected place-alias rules, or `NO_APPROVED_ALIAS`
+- `transformation_rule_version`: version of the Silver transformation contract
+
+The reconciliation table retains Table C source lineage for every source row.
+
+Successfully matched rows also retain the matched PSGC snapshot and ingest run.
+PSGC target lineage is required only when `match_status` is
+`MATCHED_EXACT_CONTEXT`, `MATCHED_ALIAS`, or `MATCHED_NORMALIZED_CONTEXT`.
+
+Rows with `UNMATCHED`, `AMBIGUOUS`, or `INVALID_SOURCE` status may legitimately
+have null matched-target PSGC lineage because no single PSGC target was accepted.
+These rows remain traceable through their Table C source lineage and Silver run
+identity.
+
+The reconciliation `run_id` hashes the Table C snapshot, the selected PSGC snapshot,
+the alias version, the selected row-role exception version or
+`NO_APPROVED_ROW_ROLE_EXCEPTION`, and the rule version. The PSGC snapshot comes from the selected
+PSGC load, not from each row. So unmatched rows share the run ID of matched rows, and
+one run publishes one run ID (#112). The rule version is `silver-population-place-v5`,
+which makes the #113 row-role decision before matching.
+`silver_region_population` stops when the reconciliation table holds more than one
+run ID.
+
+The October 13, 2026 Databricks run is recorded in the
+[Silver validation evidence](evidence/silver/README.md#october-13-2026-pre-match-table-c-row-role-guard-issue-113-pr-130).
+All 25 geography and population STOP checks passed. The run found five
+`UNRESOLVED_HEADING_LIKE` rows and forced 41 following rows to remain unmatched
+until a new resolved heading. No row-role exceptions were approved or seeded.
+
+The regional table retains the lineage of the accepted matched inputs plus the
+reconciliation run identity.
+
+## Idempotency and cost
+
+Stable identities use source lineage and deterministic hashes. They do not use random row
+keys. Exact reruns replace current-snapshot Silver tables atomically and do not append
+duplicate logical rows.
+
+The three source tables are small enough for straightforward SQL. They are not partitioned,
+cached, optimized, streamed, collected into Python, or processed with Python UDFs. This
+milestone does not read MGB, boundaries, DPWH projects, or flood-control projects.
+
+## Validation
+
+`03_validation_silver_geography_population.ipynb` writes results to
+`04-validation.silver_dq_results`. It leaves the existing Bronze and CONFIG result tables
+unchanged.
+
+Stop checks protect:
+
+- Bronze and Silver row reconciliation
+- documented natural keys
+- snapshot and run lineage
+- one reconciliation run ID that reproduces from its lineage (#112)
+- controlled match statuses and row dispositions
+- valid approved alias targets
+- controlled row roles and approved row-role exception use
+- unresolved heading-like rows and following rows cannot retain a trusted locality
+- positive matched barangay inclusion
+- each PSGC barangay accepted for at most one Table C row (#114)
+- official PSGC region coverage
+- population input and regional total reconciliation
+
+Flag checks report:
+
+- unassigned PSGC levels or hierarchy exceptions
+- repeated standardized place names
+- exact, alias, and normalized-rule coverage
+- active approved aliases that produced no accepted match (#114)
+- active approved row-role exceptions that produced no source row
+- unresolved heading-like rows and rows forced unmatched after them (#113)
+- ambiguous and unmatched Table C rows
+- invalid or non-positive population
+- missing official-region population
+
+Every coverage check retains a numerator, denominator, and percentage when meaningful.
+Results are stored before the validator enforces the stop gate.
+
+## Uppercase row-role review query
+
+Run this read-only query after rebuilding the reconciliation table and before
+approving any uppercase barangay exception. `source_row_number` is diagnostic
+evidence only. It is not part of the exception key or matching rule.
+
+```sql
+USE CATALOG `buildabida-capstone`;
+
+WITH higher_level_name AS (
+    SELECT DISTINCT place_name_standardized
+    FROM `02-silver`.silver_psgc_place
+    WHERE place_type <> 'BARANGAY'
+),
+reconciliation AS (
+    SELECT
+        result.*,
+        COUNT(*) OVER (
+            PARTITION BY result.source_snapshot_id, result.place_name_standardized
+        ) AS standardized_value_occurrences
+    FROM `02-silver`.silver_population_place_reconciliation AS result
+),
+profiled AS (
+    SELECT
+        result.source_file,
+        result.sheet_name,
+        result.place_name_raw,
+        result.place_name_standardized,
+        result.source_row_number,
+        result.locality_context_code,
+        context.place_name_raw AS locality_context_name,
+        result.matched_psgc_code,
+        result.matched_place_name,
+        result.matched_place_type,
+        result.candidate_match_count,
+        result.match_method,
+        result.match_status,
+        result.population_count,
+        higher.place_name_standardized IS NOT NULL AS is_higher_level_psgc_name,
+        result.standardized_value_occurrences,
+        CASE
+            WHEN result.row_role = 'APPROVED_UPPERCASE_BARANGAY' THEN 'BARANGAY'
+        END AS proposed_row_role
+    FROM reconciliation AS result
+    LEFT JOIN `02-silver`.silver_psgc_place AS context
+        ON result.locality_context_code = context.psgc_code
+       AND result.psgc_source_snapshot_id = context.source_snapshot_id
+    LEFT JOIN higher_level_name AS higher
+        ON result.place_name_standardized = higher.place_name_standardized
+    WHERE result.row_role IN (
+        'UNRESOLVED_HEADING_LIKE',
+        'APPROVED_UPPERCASE_BARANGAY'
+    )
+)
+SELECT *
+FROM profiled
+ORDER BY source_file, sheet_name, TRY_CAST(source_row_number AS BIGINT);
+```
+
+Human review must supply `BARANGAY` only when the exact source-file and sheet
+evidence supports it. A null `proposed_row_role` means no approval has been made.
+
+## Known limitations
+
+- Table C provides no reliable PSGC code, so matching depends on verified sheet and section
+  context.
+- Empty alias configuration is valid and may leave unresolved rows.
+- Some Table C barangays are spelled differently from PSGC, such as `Lurogan` and
+  `LURUGAN`. The normalization key does not cover them, so each needs a reviewed alias
+  with its PSGC code and locality context. Fifteen are approved for issue #88.
+- After issue #88, two Table C barangays have no PSGC match and stay `UNMATCHED`:
+  `Sawata` under Sawata, Davao del Norte (4,152 people), and `San Rafael` under the
+  City of Calaca, Batangas (637 people). No PSGC barangay in either place has a close
+  name, so they need a source check before any alias.
+- An uppercase value can be a true barangay, but it remains unresolved unless a human
+  approves one exact source-file and sheet exception. This protects against a
+  misspelled locality heading that happens to equal a real barangay in the preceding
+  locality. No exception is seeded in this change.
+- Historical evidence says 43,748 of 43,750 rows matched PSGC population during an earlier
+  review. The current snapshots determine the actual result.
+- The historical national population reference of 112,727,776 applies only when the selected
+  source is confirmed compatible. It is not transformation logic.
+- Databricks must execute the notebooks before match coverage and validation outcomes can be
+  claimed.
+
+## Gold handoff
+
+`silver_psgc_place` later supports `03-gold.dim_region`.
+`silver_region_population` later supports `03-gold.fact_region_population`.
+
+Gold will add surrogate keys and serving contracts. This milestone does not calculate budget
+share, population share, budget per resident, or a budget-to-population ratio. Future results
+must describe allocation differences and regional patterns, not fairness or sufficiency.
+
+## D-57 reporting-area population
+
+`silver_province_reporting_area` derives the approved areas from the selected
+PSGC hierarchy and keeps each area's parent region. NCR is one area. A city is an
+`INDEPENDENT_CITY` only when PSGC gives it no province parent and it is outside
+NCR. Unknown is key `0`.
+
+`silver_province_reporting_area_population` reuses the reconciled Table C
+output. Only positive `ACCEPTED_PRIMARY` barangay rows contribute; province,
+city, municipality, region, and other subtotal rows do not. NCR barangays roll
+to NCR, province-parented barangays roll to the province, and barangays under a
+city with no province parent roll to that city. Each accepted row resolves once
+or remains visibly unresolved under Unknown.
+
+The table grain is one reporting area per population reference year,
+authoritative source, and deterministic run. Missing area population remains
+`NULL`. Source snapshot, ingest, PSGC, alias, row-role, reconciliation, and
+reporting-area run lineage are retained. The validator reconciles accepted
+population before and after aggregation and reports excluded diagnostics.
