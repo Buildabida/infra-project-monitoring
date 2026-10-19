@@ -26,8 +26,9 @@ concurrency:
 jobs:
   preview:
     name: Validate dev bundle
-    # pull requests from forks get no secrets, so skip them instead of failing
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # skip, instead of failing, for pull requests from forks (they get no secrets) and
+    # until the team sets DATABRICKS_HOST. Once it is set, missing settings fail below
+    if: github.event.pull_request.head.repo.full_name == github.repository && vars.DATABRICKS_HOST != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: development
