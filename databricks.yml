@@ -35,7 +35,7 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://dbc-1106b696-980b.cloud.databricks.com
+      host: https://dbc-1a052b2e-8e60.cloud.databricks.com
     variables:
       alert_email: ${workspace.current_user.userName}
 

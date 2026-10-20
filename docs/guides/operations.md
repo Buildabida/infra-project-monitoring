@@ -31,7 +31,7 @@ First, add one **repository** variable under **Settings**, then **Secrets and va
 
 | Name | Value |
 | --- | --- |
-| `DATABRICKS_HOST` | `https://dbc-1106b696-980b.cloud.databricks.com` |
+| `DATABRICKS_HOST` | `https://dbc-1a052b2e-8e60.cloud.databricks.com` |
 
 It must be a repository variable, not an environment one. The preview job checks it before it enters an environment, and GitHub can't see environment values at that point. Until it exists, both **Databricks preview** and **Databricks deploy** are skipped, not failed, so a merge to `main` never deploys before the team is ready. The host is not a secret.
 
