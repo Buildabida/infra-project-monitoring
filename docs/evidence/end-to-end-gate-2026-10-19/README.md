@@ -73,6 +73,24 @@ The geography validator used one run ID for all its tables in both runs, because
 
 The queries used are the gate summary for the latest gate run, the row counts and budget sums per layer, and `COUNT(DISTINCT evidence_validation_run_id)` per `check_scope` in `quality_gate_results`.
 
-## Still to record
+## Screenshots
 
-- **Screenshots** for this folder: the failure email, the failed gate task with its error, the run timeline with `business_dashboard` skipped, and the final task graph with every task green. Add them under `images/` and link them here.
+The failure on the first attempt of job run `457335378856032`. The gate saved its result, then failed with the reason. The account name is hidden.
+
+![The end_to_end_quality_gate task failed and named the missing geography tables](images/01-failed-gate.png)
+
+Because the gate failed, Databricks skipped the dashboard refresh.
+
+![business_dashboard was skipped after the gate failed](images/02-dashboard-skipped.png)
+
+The failure email arrived for the same job run.
+
+![The Databricks failure email for job run 457335378856032](images/03-failure-email.png)
+
+After the fix and **Repair run**, every task of job run `457335378856032` succeeded.
+
+![The task graph after the repair, with every task green](images/04-task-graph-after-repair.png)
+
+The rerun on unchanged data, job run `880939659105900`, also succeeded on every task.
+
+![The task graph of the rerun, with every task green](images/05-rerun-task-graph.png)
