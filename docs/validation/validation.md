@@ -951,8 +951,7 @@ nothing. Every FLAG count equals the run above. The rows are in
 
 ## Analytics validation
 
-`notebooks/04_validation/10_validation_analytics.ipynb` checks the six Analytics
-views in `05-analytics` that the dashboard reads (D-56, proposed),
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the Analytics views in `05-analytics` that the dashboard reads (D-56, proposed),
 including the D-57 province reporting area in views 1, 2, 4, 5, and 6. It
 only reads Gold, the views, `information_schema.views`, and the validation
 results. It writes only `04-validation.analytics_dq_results`.
@@ -970,7 +969,7 @@ in the analytics notebook, so a view never checks itself. The shared rules, such
 as the flood point class and the status reason, are written in a different form
 from the views on purpose.
 
-The six views and their grains are in the
+The Analytics views and their grains are in the
 [Analytics views guide](../../notebooks/05_analytics/README.md).
 
 ### Analytics gates
@@ -994,7 +993,7 @@ There are 84 STOP checks. A failed one is `FAIL`, and the gate stops the run.
 
 | Group | What the checks prove |
 | --- | --- |
-| Layer contract | `05-analytics` holds all six D-56 views, and no retired or unexpected view. `analytics_region_project_progress` does not exist. |
+| Layer contract | `05-analytics` holds every D-56 Analytics view, and no retired or unexpected view. `analytics_region_project_progress` does not exist. |
 | Grain and keys | One row per documented grain in each view, no `NULL` key, and every expected row present with no extra row. View 1 has exactly the `REGION` and `REPORTING_AREA` levels. |
 | Measures | Every count, budget, average, share, rank, running share, gap, ratio, per-capita value, area, flag, date, and review indicator equals a separate rebuild from Gold. |
 | `NULL` handling | Budgets compare with `<=>`, so a `NULL` that turned into `0` breaks. Unavailable progress, dates, population, and area stay `NULL`. A region with no mapped project keeps `NULL` flood figures. |
@@ -1041,7 +1040,7 @@ The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot
 `dim_region`, `fact_region_population`, `fact_region_flood_exposure`,
 `dim_province_reporting_area`, and `fact_province_reporting_area_population`, and
 the rule version `analytics-validation-v4`. The rule version moved to v3 with the
-six-view contract and to v4 with the province reporting area. D-57 adds the two
+Analytics view contract and to v4 with the province reporting area. D-57 adds the two
 province runs to the D-52 recipe, so new province data gives a new ID. Earlier
 evidence stays as it was. The `MERGE` key is the validation run ID, the table,
 and the check name. A rerun on the same Gold data updates the same rows, and the
@@ -1049,16 +1048,16 @@ rerun check proves the results did not change.
 
 ### Analytics validation runtime evidence
 
-The six-view contract first ran on Databricks on October 16, 2026, in job run
+The Analytics view contract first ran on Databricks on October 16, 2026, in job run
 `1077732256280159`. Validation run
 `2b0558751cb722b38b61b16d97a4f974318b36a939232af669defc59d555e933` saved 112
 checks: 84 STOP checks passed, 26 FLAG checks reported findings, and 2 FLAG
-checks passed. `05-analytics` held exactly the six views, and every rebuild from
+checks passed. `05-analytics` held exactly the Analytics views, and every rebuild from
 Gold matched its view with no break. The rerun check compared no saved rows,
 because it was the first run of that validation run ID. A second run on the same
 Gold data, under the same validation run ID, compared 111 saved checks and found
-none changed, so the six views are stable on unchanged Gold. See the
-[six Analytics views evidence](../evidence/six-analytics-views/README.md).
+none changed, so the Analytics views are stable on unchanged Gold. See the
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 The earlier runs validated the retired designs and stay as history only:
 
@@ -1166,15 +1165,14 @@ no reporting area. A FLAG check with findings is saved as `FLAG`, the same as in
 `03b`. The October 16, 2026 run saved these two rows as `FAIL` with action `flag`
 before that fix. They were findings, not failures, and did not block the run.
 
-`10_validation_analytics` validates the province content of the six Analytics
-views (D-56). See [analytics validation](#analytics-validation). The first
+`10_validation_analytics` validates the province content of the Analytics views (D-56). See [analytics validation](#analytics-validation). The first
 province validator, `10a_validation_provincial_analytics`, checked the five
 retired `analytics_reporting_area_*` views and is removed.
 
 All three validators `MERGE` evidence before their STOP gate. Their local tests
 prove contract text and ordering only. All three ran on Databricks on October 16,
 2026, with no failed STOP check. See the
-[six Analytics views evidence](../evidence/six-analytics-views/README.md).
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 ### Province-reporting acceptance publication
 
@@ -1204,4 +1202,4 @@ The October 16, 2026 execution published 159 checks under the v2 province rules
 and `analytics-validation-v4`: Silver 23, Gold 24, and Analytics 112, with no
 failed STOP check. The exact-rerun comparison passed against the October 15
 capture with the same project-map run ID and mapping checksum. See the
-[six Analytics views evidence](../evidence/six-analytics-views/README.md).
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).

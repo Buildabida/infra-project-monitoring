@@ -3,7 +3,7 @@
 This doc defines the regional Gold model and the three D-57 province
 reporting-area additions in the `03-gold` schema.
 
-Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard reads the views. See [Analytics views](../../notebooks/05_analytics/README.md).
+Gold holds the facts and dimensions that answer the project questions. The Analytics views in `05-analytics` read these tables, and the dashboard reads the views. See [Analytics views](../../notebooks/05_analytics/README.md).
 
 Status: Gold notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the province reporting-area model. Runtime evidence for both is in [Runtime evidence](#runtime-evidence) and the [province-reporting evidence](../evidence/province-reporting/README.md).
 
@@ -477,7 +477,7 @@ Before you finish any Gold task, check that:
 
 The full pipeline ran on Databricks in job run `1077732256280159`. `09a_validation_gold_province_reporting` saved 24 checks under rule `gold-province-reporting-validation-v2` and validation run `5a863b35c04a16aba4c76bbe652a69c927f61c26652d672c1ce419c3ea275f4e`. All 22 STOP checks passed, including the three population reconciliations against `fact_region_population` and key `0` holding exactly the unresolved and non-geographic projects. The two FLAG checks found 2,709 projects whose region differs from the parent region of their reporting area and 64,974 projects with an official region but no reporting area. They were saved as `FAIL` with action `flag` before the status fix, and did not block the run.
 
-The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [six Analytics views evidence](../evidence/six-analytics-views/README.md).
+The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 ### Population refresh on October 13, 2026 (final Issue #113 run)
 

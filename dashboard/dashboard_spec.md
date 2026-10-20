@@ -8,9 +8,9 @@ Build or refresh it only after `10_validation_analytics` and the end-to-end qual
 
 ## Data rules
 
-- Every dataset reads only the six views in `` `buildabida-capstone`.`05-analytics` ``. The map datasets also read the Gold boundary tables `dim_region_boundary` and `dim_province_reporting_area_boundary`, for map shapes only.
+- Every dataset reads only the Analytics views in `` `buildabida-capstone`.`05-analytics` ``. The map datasets also read the Gold boundary tables `dim_region_boundary` and `dim_province_reporting_area_boundary`, for map shapes only.
 - No dataset reads Silver, Bronze, or any table that is not listed here.
-- No dataset creates an object in Unity Catalog. `05-analytics` holds only the six views.
+- No dataset creates an object in Unity Catalog. `05-analytics` holds only the Analytics views.
 - A missing value shows as "No data", never as 0.
 - Never add up columns that repeat on many rows: `geography_project_count`, `geography_budget_pesos`, `geography_budget_share_pct`, the population columns of view 5, `physical_progress_pct`, and every rank. Read them with `MAX`, or group to one row per place first.
 - In `analytics_investment_distribution`, always filter one `geography_level`. Never add regions and provinces together.

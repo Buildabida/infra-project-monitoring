@@ -128,7 +128,7 @@ Write every production failure up in the run's evidence folder with these four p
 | --- | --- |
 | Incident | Job run `1077732256280159` stopped on its first attempts in four province notebooks. Every later task was skipped, so no partial data was published. |
 | Problem | Four Databricks SQL errors: two ambiguous column names after a join, a `MERGE` that dropped the geometry SRID, and a `''` escape that Spark SQL does not read as a quote. The notebooks had never run in a job before. |
-| Resolution | Fixed in the workspace, ported to the repository with tests, then Repair 2 of the same run finished all 49 tasks. See the [evidence](../evidence/six-analytics-views/README.md#runtime-fixes-found-by-this-run). |
+| Resolution | Fixed in the workspace, ported to the repository with tests, then Repair 2 of the same run finished all 49 tasks. See the [evidence](../evidence/analytics-2026-10-16/README.md#runtime-fixes-found-by-this-run). |
 | Prevention | The bundle now deploys exactly what is in `main`, so the workspace can't drift from the repository. CI checks the job and bundle on every pull request. |
 
 ## Rerun and idempotency evidence
@@ -137,7 +137,7 @@ Write every production failure up in the run's evidence folder with these four p
 | --- | --- | --- |
 | Bronze skips an identical snapshot | `SKIPPED_IDEMPOTENT` in `load_log`, [Bronze evidence](../evidence/bronze-r2/README.md) | Proven |
 | Gold reruns change nothing | Two runs on October 12 kept 75 checks under one ID, [validation](../validation/validation.md#gold-validation-runtime-evidence) | Proven |
-| Analytics reruns change nothing | 111 saved checks unchanged on rerun, [six-view evidence](../evidence/six-analytics-views/README.md) | Proven |
+| Analytics reruns change nothing | 111 saved checks unchanged on rerun, [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | Proven |
 | Province map reruns are exact | Same map run ID and checksum, [province evidence](../evidence/province-reporting/README.md) | Proven |
 | Full job run twice with the gate gives the same result | Job runs `457335378856032` and `880939659105900` on October 19, 2026 gave the same gate result, totals, and validator run IDs, see the [end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md#rerun-on-unchanged-data) | Proven (#129) |
 

@@ -12,7 +12,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. The category taxonomy (D-39), status mapping (D-40), DPWH region aliases (D-41), and Census Table C aliases (D-48) are approved. No manual geographic override is approved yet. |
 | Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
-| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026; awaiting team approval | Six governed views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
+| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026; awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
@@ -405,7 +405,7 @@ Check 6 covers the population fact today: no population row uses region key `0`.
 
 ## Analytics coverage
 
-The six Analytics views answer the capstone insights from Gold. The full
+The Analytics views answer the capstone insights from Gold. The full
 contracts are in the [Analytics views guide](../../notebooks/05_analytics/README.md).
 
 | Insight | View | Main Gold tables | Interpretation boundary |
@@ -445,7 +445,7 @@ Gold adds `dim_province_reporting_area`, its boundary dimension,
 status fields to `fact_project_snapshot`. The fact keeps `region_key`, unchanged
 `project_key`, one current row per project, and the same reported-budget total.
 
-Analytics reads the reporting area in the six D-56 views. View 1 reports both
+Analytics reads the reporting area in the D-56 Analytics views. View 1 reports both
 levels, region and reporting area, each from its own Gold key. View 2 compares
 investment and population per reporting area. Views 4, 5, and 6 carry the
 reporting area per project, and view 6 shows where the project region and the

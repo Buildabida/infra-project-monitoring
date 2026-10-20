@@ -448,12 +448,12 @@ Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01
 
 Analytics lives in one notebook, `05_analytics/01_business_questions.ipynb`. After `09_validation_gold` passes, run:
 
-1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, drops the retired views, and builds six persisted views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
-2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. It also stops unless the latest province Gold validation passed. Then it proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, drops the retired views, and builds the persisted Analytics views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. It also stops unless the latest province Gold validation passed. Then it proves that `05-analytics` holds exactly the Analytics views, rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
 
 The retired regional progress notebooks (`02_regional_project_progress` and `11_validation_regional_project_progress`, D-55) are removed. Their one-snapshot run stays as [retired evidence](../docs/evidence/regional-project-progress/README.md).
 
-The dashboard reads only these six views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
+The dashboard reads only these Analytics views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
 
 ## Validation connection
 
@@ -637,7 +637,7 @@ retained one project-map run ID and one mapping checksum. See the
 [province-reporting runtime evidence](../docs/evidence/province-reporting/README.md).
 
 The October 16, 2026 run of the full order, with the v2 province validators and
-the six Analytics views, also satisfied them: 159 checks were published with no
+the Analytics views, also satisfied them: 159 checks were published with no
 failed STOP check, and the exact rerun passed against the October 15 capture.
 That run found four Databricks SQL errors, fixed in steps 8, 22, 32, and 39. See
-the [six Analytics views evidence](../docs/evidence/six-analytics-views/README.md).
+the [Analytics evidence](../docs/evidence/analytics-2026-10-16/README.md).

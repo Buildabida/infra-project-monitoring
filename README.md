@@ -25,7 +25,7 @@ The [dashboard](dashboard/README.md) answers one business question: **How can DP
 2. **What are we building?** Which project types get the money, where they are built, how long they usually take, and how they do in flood-risk areas.
 3. **Who are we leaving behind?** Which places get relatively little compared with their population and flood risk.
 
-The six Analytics views behind it each answer one insight:
+The Analytics views behind it each answer one insight:
 
 1. Where does the money go?
 2. Are investments proportional to population?
@@ -89,7 +89,7 @@ Each layer is a schema in the `buildabida-capstone` catalog:
 | `02-silver` | Cleaned, standardized, and matched data | Cleaning, mappings, population reconciliation, place and flood matching |
 | `03-gold` | Facts and dimensions | Grain, deterministic keys, business measures |
 | `04-validation` | Every check result | Evidence from each validator, and the end-to-end gate |
-| `05-analytics` | Six views, one per insight | What the dashboard reads |
+| `05-analytics` | Analytics views, one per insight | What the dashboard reads |
 
 Each layer runs only after the layer before it passes its checks. Checks are **STOP** (blocks the next step) or **FLAG** (a known data limit that stays visible). Every validator saves its results before it decides, so a failure stays readable. The [end-to-end quality gate](notebooks/06_data_quality/README.md) then confirms that every validator passed for this run and that the layers agree. Only after that does the dashboard refresh.
 
@@ -155,7 +155,7 @@ The `ALL` row must be `PASS` or `FLAG`. `FLAG` means known data limits, listed b
 
 ## Results so far
 
-Every layer is implemented. Bronze loads all six sources, and Silver cleans, maps, and matches them. The six Gold dimensions are implemented, plus the two province reporting-area dimensions from D-57 and all four facts. The six Analytics views and the dashboard read them.
+Every layer is implemented. Bronze loads all six sources, and Silver cleans, maps, and matches them. The six Gold dimensions are implemented, plus the two province reporting-area dimensions from D-57 and all four facts. The Analytics views and the dashboard read them.
 
 On October 16, 2026, the full 49-task job ran in Databricks job run `1077732256280159`. Every task succeeded after a repair:
 
@@ -163,7 +163,7 @@ On October 16, 2026, the full 49-task job ran in Databricks job run `10777322562
 - 75.3267 percent of projects and 83.6904 percent of reported budget are mapped to a province reporting area.
 - A second run on the same Gold data changed none of the Analytics checks.
 
-See the [six Analytics views evidence](docs/evidence/six-analytics-views/README.md).
+See the [Analytics evidence](docs/evidence/analytics-2026-10-16/README.md).
 
 The 50-task job with the end-to-end gate first ran on October 19, 2026, in job run `457335378856032`. After a repair it passed with no failed STOP check, and Silver, Gold, and Analytics agree on 265,582 projects and their reported budget. See the [end-to-end gate evidence](docs/evidence/end-to-end-gate-2026-10-19/README.md). A second run on unchanged data, job run `880939659105900`, gave the same gate result and totals.
 
@@ -192,7 +192,7 @@ The 50-task job with the end-to-end gate first ran on October 19, 2026, in job r
 │   ├── 02_silver/         clean, map, and match
 │   ├── 03_gold/           facts and dimensions
 │   ├── 04_validation/     one validator per layer step
-│   ├── 05_analytics/      the six views
+│   ├── 05_analytics/      the Analytics views
 │   └── 06_data_quality/   the end-to-end quality gate
 ├── src/                   shared Python for Bronze
 ├── tests/                 automated tests

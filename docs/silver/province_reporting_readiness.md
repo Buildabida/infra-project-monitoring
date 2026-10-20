@@ -25,9 +25,9 @@ are complete for source snapshot `metadata-6321c7aa6f2a14e12f4c`. All blocking
 checks passed, and an exact rerun retained the same mapping run ID and checksum.
 See the [province-reporting runtime evidence](../evidence/province-reporting/README.md)
 for coverage, population, boundary, and limitation details. The v2 Silver and
-Gold validators and the six Analytics views ran on October 16, 2026, with no
+Gold validators and the Analytics views ran on October 16, 2026, with no
 failed STOP check. See the
-[six Analytics views evidence](../evidence/six-analytics-views/README.md).
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 The retained readiness profiler is
 `notebooks/02_silver/08b_profile_project_province_readiness.ipynb`. It remains a
@@ -95,7 +95,7 @@ Gold:
 
 Analytics:
 
-- The six D-56 views read the reporting area from Gold. View 1,
+- The D-56 Analytics views read the reporting area from Gold. View 1,
   `analytics_investment_distribution`, has a `REGION` and a `REPORTING_AREA`
   level. View 2, `analytics_population_equity`, has one row per reporting area.
   Views 4, 5, and 6 carry the reporting area per project.

@@ -42,7 +42,7 @@ Write the result of each step, and the exact error if one fails.
 | 8 | `databricks bundle deploy -t dev` with the same `--var` values | A job named `[dev <you>] buildabida-full-pipeline` appears | |
 | 9 | `databricks bundle run -t dev buildabida_full_pipeline` with the same values | All 50 tasks succeed. Write down the run ID and the time it took | |
 | 10 | Query `` `04-validation`.quality_gate_summary `` | The `ALL` row is `PASS` or `FLAG`, with no failed STOP checks | |
-| 11 | Compare counts with the [six-view evidence](../evidence/six-analytics-views/README.md) | Same checks and counts, unless the source files differ | |
+| 11 | Compare counts with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | Same checks and counts, unless the source files differ | |
 | 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | |
 | 13 | Open the dashboard | All four tabs and the Read Me page show data | |
 | 14 | Click every link in the README and the docs index | Every link opens | |

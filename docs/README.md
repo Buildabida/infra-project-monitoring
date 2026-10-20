@@ -15,7 +15,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review the approved D-57 reporting-area policy, implementation status, runtime checklist, and flood deferral | [Province reporting readiness and production status](silver/province_reporting_readiness.md) |
 | Review project-to-reporting-area precedence, configuration, spatial rules, lineage, and validation | [Silver project-to-reporting-area mapping](silver/silver_project_province_mapping.md) |
 | Review the completed D-57 Databricks acceptance and exact-rerun results | [Province-reporting runtime evidence](evidence/province-reporting/README.md) |
-| Review the first Databricks run of the six Analytics views and the v2 province validators | [Six Analytics views evidence](evidence/six-analytics-views/README.md) |
+| Review the first Databricks run of the Analytics views and the v2 province validators | [Analytics evidence](evidence/analytics-2026-10-16/README.md) |
 | Review the parsed MGB flood polygons (`silver_mgb_flood_area`), the Esri parser, the skip rule, and validation | [Silver MGB flood areas](silver/silver_mgb_flood_area.md) |
 | Review regional MGB flood exposure, the equal-area CRS, zero versus no data, overlap, lineage, and validation | [Silver regional flood exposure](silver/silver_region_flood_exposure.md) |
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver/silver_project_flood_mapping.md) |

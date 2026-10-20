@@ -1,18 +1,18 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) reads. The Analytics layer has **exactly six views**, one per capstone insight ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
+This folder builds the views that the dashboard (#20) reads. The Analytics layer has **one view per capstone insight** ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
 
 The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired: six business-question views (D-50, D-51), five exploratory monitoring views (D-54), a proposed regional progress view (D-55) in a second notebook, and five `analytics_reporting_area_*` views first built for D-57. The notebook now drops those views, and `10_validation_analytics` stops the run if any of them remains.
 
 ## Run order
 
 1. `04_validation/09_validation_gold.ipynb` and `04_validation/09a_validation_gold_province_reporting.ipynb` must pass first.
-2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the six views with `CREATE OR REPLACE VIEW`.
-3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation/validation.md#analytics-validation).
+2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the Analytics views with `CREATE OR REPLACE VIEW`.
+3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the Analytics views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation/validation.md#analytics-validation).
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The [pipeline job](../../resources/buildabida_full_pipeline.job.yml) runs them after both Gold validators, then refreshes the dashboard. `run_all.py` coordinates Bronze only.
 
-## The six views
+## The Analytics views
 
 | # | Insight | View | One row per | Gold tables read |
 | --- | --- | --- | --- | --- |
@@ -125,4 +125,4 @@ Every view and column has a comment that says what it means. The dashboard build
 
 ## Evidence
 
-The six-view design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. A second run of the validator on the same Gold data compared 111 saved checks and found none changed. See the [six Analytics views evidence](../../docs/evidence/six-analytics-views/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.
+The Analytics design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. A second run of the validator on the same Gold data compared 111 saved checks and found none changed. See the [Analytics evidence](../../docs/evidence/analytics-2026-10-16/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.

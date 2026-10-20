@@ -112,7 +112,7 @@ independent-city, and BARMM findings.
 
 Databricks runtime evidence passed on October 15 and October 16, 2026. See the
 [province-reporting evidence](../evidence/province-reporting/README.md) and the
-[six Analytics views evidence](../evidence/six-analytics-views/README.md). Coverage
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md). Coverage
 does not need to be 100%; it must reconcile to the national project and
 reported-budget totals.
 

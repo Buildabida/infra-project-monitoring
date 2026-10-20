@@ -26,6 +26,6 @@ Issue #48 asks whether the pipeline survives an update: a newer DPWH pull, new o
 1. Put the newer `dpwh_projects.csv` in the volume, keeping the older one as R2 history.
 2. Run `01_check_sources`. Save its output, including `header_drift`.
 3. Run the pipeline job. Save the run ID, every task status, and `quality_gate_summary`.
-4. Compare row counts and FLAG counts with the [six-view evidence](../evidence/six-analytics-views/README.md).
+4. Compare row counts and FLAG counts with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 5. Open the dashboard and confirm it shows the newer `source_snapshot_id`.
 6. Save everything in a new dated folder under `docs/evidence/`, and link it from `docs/validation/validation.md`.

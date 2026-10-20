@@ -3,10 +3,10 @@
 > [!NOTE]
 > This run was recorded under the branch decision ID D-55, now D-57, because `main` already used D-55.
 > Its Silver and Gold results stay valid for the identities below. Its Analytics rows validated the five
-> `analytics_reporting_area_*` views, which D-56 (proposed) retires. Province Analytics now lives in the six
+> `analytics_reporting_area_*` views, which D-56 (proposed) retires. Province Analytics now lives in the
 > views and is validated by `10_validation_analytics`. Silver and Gold province validators moved to rule
 > version v2 with added population and hierarchy checks. Those ran on October 16, 2026, in the
-> [six Analytics views evidence](../six-analytics-views/README.md).
+> [Analytics evidence](../analytics-2026-10-16/README.md).
 
 ## Scope
 
