@@ -51,6 +51,32 @@ You are the second pair of eyes. Open **Files changed**, read the diff, and chec
 
 Leave a comment on the line when something is off. Then click **Review changes** and pick **Approve** or **Request changes**. Say what to change, not who was wrong.
 
+## Who owns what
+
+Each area has owners who built it and review changes to it. The [code owners](.github/CODEOWNERS) file sets who GitHub asks to review.
+
+| Area | Owners |
+| --- | --- |
+| Bronze | killuazai, czekinah |
+| Silver | killuazai, lustrousiana |
+| Gold | czekinah, samchvs |
+| Analytics | killuazai, triciakieth |
+| Dashboard | killuazai, triciakieth, samchvs, lustrousiana |
+| CI/CD | killuazai, czekinah |
+| Docs | Everyone |
+
+Commit counts don't show all the work. Reviews, testing, and dashboard building happen outside commits. To see who reviewed what, open the **Pull requests** tab, then filter by `reviewed-by:<handle>`.
+
+### Give credit
+
+- If two people work on one change together, add a line at the end of the commit message for each other person: `Co-authored-by: Name <their GitHub email>`. GitHub then credits both. Only add people who really worked on it.
+- Add the email you commit with to your GitHub account, under **Settings**, then **Emails**. Otherwise GitHub can't link your commits to you.
+- The [`.mailmap`](.mailmap) file joins names that belong to the same person, so `git shortlog -sn` counts each person once.
+
+### Never commit straight to `main`
+
+Some early fixes went straight to `main` from the GitHub web editor, so they have no pull request. The `main` ruleset now blocks that. When you edit a file on GitHub, pick **Create a new branch for this commit and start a pull request**.
+
 ## Write issues and pull requests
 
 We write each issue like a small plan, so anyone can pick it up or review it without guessing. The issue forms ask for these parts:
