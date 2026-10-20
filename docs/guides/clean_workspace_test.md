@@ -44,7 +44,7 @@ Write the result of each step, and the exact error if one fails.
 | 10 | Query `` `04-validation`.quality_gate_summary `` | The `ALL` row is `PASS` or `FLAG`, with no failed STOP checks | |
 | 11 | Compare counts with the [six-view evidence](../evidence/six-analytics-views/README.md) | Same checks and counts, unless the source files differ | |
 | 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | |
-| 13 | Open the dashboard | All seven tabs show data | |
+| 13 | Open the dashboard | All four tabs and the Read Me page show data | |
 | 14 | Click every link in the README and the docs index | Every link opens | |
 
 Steps 6 to 9 follow the current bundle setup, which has not run in a new workspace yet. If a step fails, fix the doc or the code in a pull request, and say which step.

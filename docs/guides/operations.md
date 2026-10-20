@@ -33,7 +33,9 @@ First, add one **repository** variable under **Settings**, then **Secrets and va
 | --- | --- |
 | `DATABRICKS_HOST` | `https://dbc-1106b696-980b.cloud.databricks.com` |
 
-It must be a repository variable, not an environment one. The preview job checks it before it enters an environment, and GitHub can't see environment values at that point. Until it exists, **Databricks preview** is skipped, not failed. The host is not a secret.
+It must be a repository variable, not an environment one. The preview job checks it before it enters an environment, and GitHub can't see environment values at that point. Until it exists, both **Databricks preview** and **Databricks deploy** are skipped, not failed, so a merge to `main` never deploys before the team is ready. The host is not a secret.
+
+Set it last: create the environments, then bind the existing job (see [First production deploy](#first-production-deploy)), then add `DATABRICKS_HOST`. The first deploy after that updates the team job instead of creating a second one.
 
 Then create two GitHub environments under **Settings**, then **Environments**: `development` and `production`. Each needs:
 
@@ -49,7 +51,7 @@ For `production`, limit **Deployment branches** to `main`, and add **Required re
 Once `DATABRICKS_HOST` is set, a missing value makes the workflow fail on its first step and name what is missing. A pull request from a fork gets no secrets, so the preview skips it.
 
 > [!NOTE]
-> We have not yet confirmed that our Free Edition workspace allows a service principal or a personal access token for CI. Check **Settings**, then **Developer**, in the workspace before you add the secrets. Until then, the deploy workflows fail on their configuration check, and you can deploy from VS Code or the CLI.
+> We have not yet confirmed that our Free Edition workspace allows a service principal or a personal access token for CI. Check **Settings**, then **Developer**, in the workspace before you add the secrets. Until then, leave `DATABRICKS_HOST` unset so both workflows skip, and deploy from VS Code or the CLI.
 
 ### First production deploy
 

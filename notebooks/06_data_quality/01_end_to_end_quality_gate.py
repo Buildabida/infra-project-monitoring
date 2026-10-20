@@ -5,7 +5,7 @@
 # MAGIC ## Purpose
 # MAGIC
 # MAGIC Decide once, at the end of the pipeline, whether the current Gold and Analytics
-# MAGIC data is safe to publish to the dashboard and Genie.
+# MAGIC data is safe to publish to the dashboard.
 # MAGIC
 # MAGIC The layer validators in `04_validation` check each layer. This notebook does not
 # MAGIC repeat their checks. It reads the evidence they already saved and asks four questions:

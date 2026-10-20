@@ -37,7 +37,7 @@ Use SQL for setup, silver, gold and validation. Most of us know SQL best, and Sp
 9. **Use `TRY_CAST` for messy values,** so one bad value doesn't stop the run. Then count the new NULLs in your checks.
 10. **Keep one row per key with `QUALIFY`.** Rank the rows with `ROW_NUMBER()`, and keep the rows where the rank is 1.
 11. **Use `GROUP BY ALL`,** so you never leave out a column.
-12. **Add a comment to every gold table and column.** Genie reads them, so clear comments give better answers.
+12. **Add a comment to every gold table and column.** Anyone who queries the table reads them, so clear comments prevent wrong answers.
 
 Here's a short, clear silver table:
 
@@ -123,7 +123,7 @@ Every pull request runs these checks. A red X means a check found a problem. Cli
 - [GitHub issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms), for our issue and pull request forms
 - [NYC Mobility Pipeline](https://github.com/hyenalouise/nyc-mobility-pipeline), a class repo Bri shared, for issues that read like small plans and for how we work
 - [dbt SQL style guide](https://docs.getdbt.com/best-practices/how-we-style/2-how-we-style-our-sql) and [SQLFluff](https://docs.sqlfluff.com/)
-- [Databricks SQL formatting](https://docs.databricks.com/aws/en/sql/user/sql-editor/custom-format) and [Genie best practices](https://docs.databricks.com/aws/en/genie/best-practices)
+- [Databricks SQL formatting](https://docs.databricks.com/aws/en/sql/user/sql-editor/custom-format)
 - [Where PySpark and Spark SQL fit best](https://community.databricks.com/t5/technical-blog/where-pyspark-and-sparksql-fit-best-in-the-enterprise/ba-p/111021)
 - [Palantir PySpark style guide](https://github.com/palantir/pyspark-style-guide)
 - [Databricks notebook best practices](https://docs.databricks.com/aws/en/notebooks/best-practices)

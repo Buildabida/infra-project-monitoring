@@ -1,6 +1,6 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer has **exactly six views**, one per capstone insight ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
+This folder builds the views that the dashboard (#20) reads. The Analytics layer has **exactly six views**, one per capstone insight ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
 
 The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired: six business-question views (D-50, D-51), five exploratory monitoring views (D-54), a proposed regional progress view (D-55) in a second notebook, and five `analytics_reporting_area_*` views first built for D-57. The notebook now drops those views, and `10_validation_analytics` stops the run if any of them remains.
 
@@ -23,7 +23,7 @@ A rerun replaces the view definitions and updates the same validation rows, so i
 | 5 | Are we seeing projects or a connected infrastructure network? | `analytics_infrastructure_network` | Current DPWH project | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area`, `dim_project_status`, `dim_flood_susceptibility`, `fact_region_population`, `fact_province_reporting_area_population` |
 | 6 | What can we see only after connecting the datasets? | `analytics_integration_coverage` | Integration link, link outcome, and region key | `fact_project_snapshot`, `dim_project`, `dim_project_status`, `dim_region`, `dim_province_reporting_area`, `fact_region_population`, `fact_province_reporting_area_population` |
 
-Every view and column has a comment, so Genie can read what each one means. The dashboard build is in the [dashboard specification](../../dashboard/dashboard_spec.md).
+Every view and column has a comment that says what it means. The dashboard build is in the [dashboard specification](../../dashboard/dashboard_spec.md).
 
 ## Rules every view follows
 

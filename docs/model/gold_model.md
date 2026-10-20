@@ -3,7 +3,7 @@
 This doc defines the regional Gold model and the three D-57 province
 reporting-area additions in the `03-gold` schema.
 
-Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard and Genie read the views. See [Analytics views](../../notebooks/05_analytics/README.md).
+Gold holds the facts and dimensions that answer the project questions. The six Analytics views in `05-analytics` read these tables, and the dashboard reads the views. See [Analytics views](../../notebooks/05_analytics/README.md).
 
 Status: Gold notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the province reporting-area model. Runtime evidence for both is in [Runtime evidence](#runtime-evidence) and the [province-reporting evidence](../evidence/province-reporting/README.md).
 
@@ -14,7 +14,7 @@ Follow the [style guide](../style-guide.md) for all Gold work. These points matt
 1. Write Gold in SQL. See decision [D-08](../decisions.md).
 2. Start each notebook with ``USE CATALOG `buildabida-capstone` ``. Name tables as `` `03-gold`.dim_region ``.
 3. Make every run safe to repeat. Create each table once with `CREATE TABLE IF NOT EXISTS`, then load it with `MERGE INTO`. Never use `CREATE OR REPLACE TABLE`, `DELETE`, or `TRUNCATE` on a Gold table.
-4. Add a comment to every table and every column. Genie reads them.
+4. Add a comment to every table and every column, so anyone who queries them knows what they mean.
 5. Use the table names, column names, types and column order in this doc exactly.
 6. Do not add tables, columns or relationships that this doc does not list.
 7. If a name looks like a typo, flag it. Do not change it without approval.

@@ -204,6 +204,12 @@ Blocking checks fail when row accounting, keys, lineage, accepted population gra
 official region coverage, or population totals are unsafe. Findings such as ambiguous
 matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
 
+Validation version `silver-geography-population-validation-v5` changes only the
+validation run ID. It adds no check. One run ID now covers all three tables. It is a
+hash of the sorted `pipeline_run_id` values of the three tables and the version, so it
+changes when any one table is rebuilt. Version 4 gave each table its own run ID. The
+end-to-end gate groups a validator's rows by save time, so it reads either recipe.
+
 Validation version `silver-geography-population-validation-v4` adds these checks:
 
 - `One reconciliation run ID reproduces from its lineage` is a STOP (#112). Every row
@@ -946,7 +952,7 @@ nothing. Every FLAG count equals the run above. The rows are in
 ## Analytics validation
 
 `notebooks/04_validation/10_validation_analytics.ipynb` checks the six Analytics
-views in `05-analytics` that the dashboard and Genie read (D-56, proposed),
+views in `05-analytics` that the dashboard reads (D-56, proposed),
 including the D-57 province reporting area in views 1, 2, 4, 5, and 6. It
 only reads Gold, the views, `information_schema.views`, and the validation
 results. It writes only `04-validation.analytics_dq_results`.

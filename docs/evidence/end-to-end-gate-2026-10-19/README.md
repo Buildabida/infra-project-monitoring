@@ -69,7 +69,7 @@ After the second run:
 - **Run IDs did not change.** Silver `run_id` stays `c6317d2b45b2b3f9832e9dfccf130317fea4d1b06a18922d837d22d449b6a424`, and Gold `run_id` stays `8ade0907b7a642b47dded535a800228b19afe5ba5342a8f09ea5e3b703e4c3ac`.
 - **Validator evidence was updated, not copied.** Across both gate runs, each of the 12 Silver, Gold, and Analytics validators has one validation run ID. Bronze has two, one per run, by design. The four cross-layer checks have none, by design.
 
-The geography validator used one run ID for all its tables in both runs, because commit `adb3a1f` stayed in place. So these runs did not exercise the gate with one run ID per table. The regression tests cover that case.
+The geography validator used one run ID for all its tables in both runs, because commit `adb3a1f` stayed in place. So these runs did not exercise the gate with one run ID per table. The regression tests cover that case. After these runs, validation version `silver-geography-population-validation-v5` replaced the `adb3a1f` recipe with one run ID built from all three tables' run IDs (see [validation](../../validation/validation.md)). The next job run creates new geography evidence rows under the new ID, and the old rows stay as history.
 
 The queries used are the gate summary for the latest gate run, the row counts and budget sums per layer, and `COUNT(DISTINCT evidence_validation_run_id)` per `check_scope` in `quality_gate_results`.
 

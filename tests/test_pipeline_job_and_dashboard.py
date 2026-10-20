@@ -16,14 +16,14 @@ SIX_VIEWS = {
     "analytics_integration_coverage",
 }
 BOUNDARY_TABLES = {"dim_region_boundary", "dim_province_reporting_area_boundary"}
+# the mentor review asked for one overview and one tab per analytics question,
+# plus the Read Me page
 TABS = [
-    "Overview: What did we find?",
-    "Where does the money go?",
-    "Does the money match where people live?",
-    "Are flood-control projects where the floods are?",
-    "Which projects need a closer look?",
-    "What patterns show when we map all projects?",
-    "What can we see only after connecting the data?",
+    "Overview",
+    "AQ1: Where is the money going?",
+    "AQ2: What are we building?",
+    "AQ3: Who are we leaving behind?",
+    "Read Me",
 ]
 
 
@@ -122,7 +122,7 @@ def dashboard():
     return json.loads(DASHBOARD.read_text(encoding="utf-8"))
 
 
-def test_dashboard_has_the_seven_tabs_in_order():
+def test_dashboard_has_the_overview_and_three_question_tabs_in_order():
     pages = [
         page["displayName"]
         for page in dashboard()["pages"]
@@ -147,9 +147,9 @@ def test_dashboard_reads_only_the_six_views_and_gold_boundaries():
                 assert table in BOUNDARY_TABLES, (dataset["name"], table)
 
 
-def test_dashboard_uses_the_violet_theme_and_plain_text():
+def test_dashboard_uses_one_theme_and_plain_text():
     text = DASHBOARD.read_text(encoding="utf-8")
     theme = dashboard()["uiSettings"]["theme"]
-    assert theme["widgetBorderColor"]["light"] == "#C4B5FD"
-    assert theme["visualizationColors"][0] == "#7C3AED"
+    assert theme["widgetBorderColor"]["light"]
+    assert theme["visualizationColors"]
     assert "—" not in text

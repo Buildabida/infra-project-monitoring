@@ -19,7 +19,13 @@ Our brief asks:
 > Where is government infrastructure investment concentrated, and what types of projects are being funded?
 > Which areas have relatively low investment compared with population and infrastructure needs?
 
-The dashboard tells six stories, one per Analytics view:
+The [dashboard](dashboard/README.md) answers one business question: **How can DPWH better monitor where its infrastructure investments go?** It has an overview and one tab for each analytics question:
+
+1. **Where is the money going?** Which regions get the most budget over the project years, and how well each region finishes its projects.
+2. **What are we building?** Which project types get the money, where they are built, how long they usually take, and how they do in flood-risk areas.
+3. **Who are we leaving behind?** Which places get relatively little compared with their population and flood risk.
+
+The six Analytics views behind it each answer one insight:
 
 1. Where does the money go?
 2. Are investments proportional to population?
@@ -65,7 +71,7 @@ flowchart LR
     BV --> SV["Silver"]:::silver --> SVV{{"Silver checks"}}:::val
     SVV --> G["Gold"]:::gold --> GV{{"Gold checks"}}:::val
     GV --> A["Analytics<br>six views"]:::gold --> AV{{"Analytics checks"}}:::val
-    AV --> Q{{"End-to-end<br>quality gate"}}:::val --> D["Dashboard<br>and Genie"]:::dash
+    AV --> Q{{"End-to-end<br>quality gate"}}:::val --> D["Dashboard"]:::dash
     classDef src fill:#D7E8FF,stroke:#2B2A4C,color:#2B2A4C
     classDef bronze fill:#FFDCC8,stroke:#2B2A4C,color:#2B2A4C
     classDef silver fill:#D2F4E4,stroke:#2B2A4C,color:#2B2A4C
@@ -83,7 +89,7 @@ Each layer is a schema in the `buildabida-capstone` catalog:
 | `02-silver` | Cleaned, standardized, and matched data | Cleaning, mappings, population reconciliation, place and flood matching |
 | `03-gold` | Facts and dimensions | Grain, deterministic keys, business measures |
 | `04-validation` | Every check result | Evidence from each validator, and the end-to-end gate |
-| `05-analytics` | Six views, one per insight | What the dashboard and Genie read |
+| `05-analytics` | Six views, one per insight | What the dashboard reads |
 
 Each layer runs only after the layer before it passes its checks. Checks are **STOP** (blocks the next step) or **FLAG** (a known data limit that stays visible). Every validator saves its results before it decides, so a failure stays readable. The [end-to-end quality gate](notebooks/06_data_quality/README.md) then confirms that every validator passed for this run and that the layers agree. Only after that does the dashboard refresh.
 
@@ -220,7 +226,7 @@ Team members are Kinah, Bri, Nadine, Sam, and Tricia. Carmi is the mentor, and S
 | --- | --- |
 | Oct 3 | Bronze ingestion and reviewed draft schema |
 | Oct 10 | Silver and Gold tables with validation |
-| Oct 17 | Dashboard, Genie, and Databricks Associate exam |
+| Oct 17 | Dashboard and Databricks Associate exam. Genie was dropped ([#21](https://github.com/Buildabida/infra-project-monitoring/issues/21)) |
 | Oct 24 | Final Capstone Showcase and graduation |
 
 Tasks are tracked on the [project board](https://github.com/orgs/Buildabida/projects/1).

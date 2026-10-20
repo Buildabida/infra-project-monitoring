@@ -62,10 +62,11 @@ for source_name in config.SOURCE_ORDER:
         metadata = bronze.inspect_source(source["path"])
         clean_header, _ = bronze._column_mapping(metadata["header"])
         bronze.validate_source_header(source, clean_header)
-        try:
-            previous = spark.table(bronze.table_name(source["table"])).columns
-        except Exception:  # noqa: BLE001 - a first load has no table to compare with
-            previous = None
+        target = bronze.table_name(source["table"])
+        # a first load has no table to compare with
+        previous = (
+            spark.table(target).columns if spark.catalog.tableExists(target) else None
+        )
         drift = None
         if previous is not None:
             added, removed = bronze.header_drift(clean_header, previous)

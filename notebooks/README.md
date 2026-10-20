@@ -453,7 +453,7 @@ Analytics lives in one notebook, `05_analytics/01_business_questions.ipynb`. Aft
 
 The retired regional progress notebooks (`02_regional_project_progress` and `11_validation_regional_project_progress`, D-55) are removed. Their one-snapshot run stays as [retired evidence](../docs/evidence/regional-project-progress/README.md).
 
-The dashboard and Genie read only these six views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
+The dashboard reads only these six views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
 
 ## Validation connection
 

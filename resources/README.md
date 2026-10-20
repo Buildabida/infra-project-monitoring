@@ -58,6 +58,9 @@ databricks bundle deployment bind buildabida_full_pipeline <job_id> -t prod --va
 databricks bundle deploy -t prod --var alert_email=<team address>
 ```
 
+> [!NOTE]
+> Not tested yet: the bundle has not been validated or deployed against the workspace. The October 19, 2026 runs used the job created by hand, with notebooks under `/Workspace/Shared/infra-project-monitoring/`. Before the first `prod` deploy, run `databricks bundle validate -t dev`, then `databricks bundle deploy -t dev`, and run the dev copy once. Record the result here.
+
 After the bind, the old `/Workspace/Shared/infra-project-monitoring/` notebook folder is no longer used by the job. Keep it until one production run passes, then remove it.
 
 ## Failure and recovery

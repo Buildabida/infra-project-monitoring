@@ -341,7 +341,10 @@ def test_region_population_and_validator_require_one_reconciliation_run_id():
         "'One reconciliation run ID reproduces from its lineage',\n"
         "        unreproduced_run_id_rows, silver_rows_1, 'stop'" in sql
     )
-    assert "'silver-geography-population-validation-v4'" in sql
+    assert "'silver-geography-population-validation-v5'" in sql
+    # one validation run ID for all three tables, built from every table's run ID,
+    # so it changes when any one of them is rebuilt
+    assert "ARRAY_JOIN(ARRAY_SORT(COLLECT_SET(pipeline_run_id) OVER ()), '|')" in sql
 
 
 def test_unresolved_heading_clears_the_locality_context():
