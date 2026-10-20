@@ -70,7 +70,7 @@ flowchart LR
     S["Source<br>six CSV snapshots"]:::src --> B["Bronze"]:::bronze --> BV{{"Bronze checks"}}:::val
     BV --> SV["Silver"]:::silver --> SVV{{"Silver checks"}}:::val
     SVV --> G["Gold"]:::gold --> GV{{"Gold checks"}}:::val
-    GV --> A["Analytics<br>six views"]:::gold --> AV{{"Analytics checks"}}:::val
+    GV --> A["Analytics"]:::gold --> AV{{"Analytics checks"}}:::val
     AV --> Q{{"End-to-end<br>quality gate"}}:::val --> D["Dashboard"]:::dash
     classDef src fill:#D7E8FF,stroke:#2B2A4C,color:#2B2A4C
     classDef bronze fill:#FFDCC8,stroke:#2B2A4C,color:#2B2A4C
