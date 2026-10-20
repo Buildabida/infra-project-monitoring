@@ -32,6 +32,9 @@ concurrency:
 jobs:
   deploy:
     name: Deploy prod bundle
+    # skip, instead of failing, until the team sets DATABRICKS_HOST. Bind the existing
+    # job first (resources/README.md), so the first deploy never creates a second job
+    if: vars.DATABRICKS_HOST != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # add required reviewers to this GitHub environment to approve each deploy

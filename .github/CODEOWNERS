@@ -1,5 +1,5 @@
 # Code owners are asked to review changes to their area automatically.
-# Requiring their approval is a separate branch-rule setting. See docs/operations.md#github-governance.
+# Requiring their approval is a separate branch-rule setting. See docs/guides/operations.md#github-governance.
 # Every path names two people, so one absence never blocks a merge. The last matching line wins.
 # Handles verified from merged pull requests on October 19, 2026:
 # killuazai (Nadine), czekinah (Kinah), samchvs (Sam), lustrousiana, triciakieth (Tricia).
