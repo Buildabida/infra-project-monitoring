@@ -1,0 +1,3 @@
+# Show each person under one name in git shortlog, git log, and git blame.
+# Format: Proper Name <commit email>
+killuazai <canquinf@gmail.com>
