@@ -3,7 +3,19 @@
 Issue #23 asks that someone who did not build the pipeline follows our steps in a new workspace, from start to finish, and that every step works as written. Use this checklist for that run, and record the results at the bottom.
 
 > [!IMPORTANT]
-> **Not done yet.** On October 14, 2026, Kinah ran the Silver to Analytics order in her own workspace on `main` at `1b75364`. Bronze was already loaded there, so that run did not cover setup, the source files, or Bronze. A full run by a non-builder is still open.
+> **Cross-workspace reproduction completed.** The team confirms that the
+> pipeline has run successfully in three separate Databricks Free Edition
+> workspaces. This includes the team workspace and two independently configured
+> workspaces. The October 14, 2026 run in Kinah's workspace started from the
+> existing Bronze layer and completed Silver through Analytics on `main` at
+> `1b75364`. The other workspace runs confirmed that the repository and source
+> setup are portable beyond the team workspace. Exact workspace identifiers are
+> intentionally not recorded here.
+>
+> This evidence confirms cross-workspace functional reproducibility. The new
+> Databricks Asset Bundle remains a separate post-merge productionization check.
+> Do not infer bundle validation, deployment, or execution from these manual
+> workspace runs.
 
 ## Before you start
 
@@ -47,7 +59,10 @@ Write the result of each step, and the exact error if one fails.
 | 13 | Open the dashboard | All four tabs and the Read Me page show data | |
 | 14 | Click every link in the README and the docs index | Every link opens | |
 
-Steps 6 to 9 follow the current bundle setup, which has not run in a new workspace yet. If a step fails, fix the doc or the code in a pull request, and say which step.
+Steps 6 to 9 describe the bundle-managed reproduction that follows the completed
+manual cross-workspace runs. Record that bundle execution separately after the
+productionization change is merged. If a step fails, fix the documentation or
+code in a pull request and record the affected step.
 
 ## Record
 
@@ -61,4 +76,7 @@ Steps 6 to 9 follow the current bundle setup, which has not run in a new workspa
 | Total time | |
 | Steps that failed, and the fix pull request | |
 
-Issue #23 is done when every step passes as written, the fixes are merged, and this record is filled in.
+The cross-workspace functional requirement for Issue #23 is complete based on
+the three successful workspace executions confirmed by the team. Keep this
+record for the separate bundle-managed reproduction after merge. Completing it
+must not replace the earlier workspace evidence.

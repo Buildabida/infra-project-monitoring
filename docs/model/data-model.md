@@ -10,8 +10,8 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Layer | Status | Meaning |
 | --- | --- | --- |
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
-| Silver | Partially implemented | Configuration, geography and population, project foundation, source reconciliation, project-region mapping, regional flood-exposure, and project-flood mapping outputs are implemented. The category taxonomy (D-39), status mapping (D-40), DPWH region aliases (D-41), and Census Table C aliases (D-48) are approved. No manual geographic override is approved yet. |
-| Gold | Partially implemented | Eight notebooks in `notebooks/03_gold` build the six dimensions and three facts. `notebooks/04_validation/09_validation_gold.ipynb` checks them. The [Gold model](gold_model.md) holds the exact table definitions. |
+| Silver | Implemented | All governed Silver transformations and validators are implemented. Empty exception tables remain valid until a reviewer approves an exception. |
+| Gold | Implemented | Ten notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the reporting-area extension. The [Gold model](gold_model.md) holds the exact table definitions and runtime evidence. |
 | Analytics | Implemented and runtime-validated on Databricks on October 16, 2026; awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
 
 ```text
@@ -342,7 +342,11 @@ Uniqueness includes these fields:
 
 ## Gold dimensions (implemented)
 
-Five notebooks in `notebooks/03_gold` build these six dimensions. The exact columns and types are in the [Gold model](gold_model.md).
+Six dimension notebooks in `notebooks/03_gold` build eight dimensions. Five
+notebooks build the six regional-model dimensions listed below. Notebook
+`01a_gold_dim_province_reporting_area` builds the two D-57 reporting-area
+dimensions documented in the [Gold model](gold_model.md) and the
+[province reporting-area extension](#province-reporting-area-extension-d-57).
 
 | Dimension | Grain and key | Main columns |
 | --- | --- | --- |
