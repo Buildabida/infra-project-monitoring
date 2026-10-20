@@ -1,0 +1,459 @@
+# Data model
+
+Every table lives in the `buildabida-capstone` catalog.
+Bronze preserves one selected source snapshot.
+Silver owns cleaning, reconciliation, matching, and mapping.
+Gold contains the facts and dimensions used to answer the project questions.
+
+## Implementation status
+
+| Layer | Status | Meaning |
+| --- | --- | --- |
+| Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
+| Silver | Implemented | All governed Silver transformations and validators are implemented. Empty exception tables remain valid until a reviewer approves an exception. |
+| Gold | Implemented | Ten notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the reporting-area extension. The [Gold model](gold_model.md) holds the exact table definitions and runtime evidence. |
+| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026; awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
+
+```text
+R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
+                      ↓                    ↓                         ↓                       ↓
+                 04-validation shared results for Bronze, Silver, Gold, and Analytics
+```
+
+## Bronze source contracts (implemented)
+
+| Table | One row is | Source-grain identity |
+| --- | --- | --- |
+| `01-bronze.dpwh_projects` | One exported DPWH project row | Contract or project identifier |
+| `01-bronze.flood_control_projects` | One exported flood-control feature. Repeated Contract IDs remain. | Source object identifier |
+| `01-bronze.psgc` | One exported PSGC place row | PSGC code |
+| `01-bronze.census_2024_table_c` | One exported Table C row, including known BARMM copies | Source file, sheet, and row |
+| `01-bronze.boundaries` | One exported geographic shape row | Source file and feature identifier |
+| `01-bronze.flood_susceptibility` | One flood area in the approved trimmed MGB extract | Source row. No key is invented. |
+| `01-bronze.load_log` | One ingestion status event | `run_id`, `status` |
+| `04-validation.dq_results` | One data-quality check in one validation run | `run_id`, `table_name`, `column`, `data_quality_check` |
+
+The Bronze result schema remains Bronze-only. Silver configuration checks use
+`04-validation.silver_config_dq_results`. Silver transformation checks use
+`04-validation.silver_dq_results`. Gold checks use `04-validation.gold_dq_results`,
+with the same columns as `silver_dq_results` (D-47). Separate result tables avoid
+breaking fixed writers. Silver and Gold results retain their source layer,
+snapshots, and rule versions.
+
+Census Table C is the authoritative population source.
+PSGC population remains a cross-check.
+There is no authoritative generic `01-bronze.population_2024` table.
+
+Every business-source Bronze table adds these technical fields:
+
+- `_source_system`
+- `_source_path`
+- `_source_file`
+- `_source_format`
+- `_source_snapshot_id`
+- `_ingest_run_id`
+- `_ingested_at`
+- `_source_file_size_bytes`
+- `_source_modified_ns`
+- `_source_modified_at`
+
+An optional publisher `source_version` is stored in `load_log`.
+Silver must carry it through `_ingest_run_id` when a target requires a source version.
+This applies to PSGC, boundary, MGB, and flood-list versions.
+
+Business columns remain source strings.
+Only the minimum column-name substitutions required by Delta are permitted.
+`load_log.column_mapping_json` records those changes.
+
+## Silver configuration tables (implemented)
+
+These six small Delta tables govern mappings used by later Silver transformations.
+Only active `APPROVED` rows may drive downstream standardization or matching.
+
+| Table | Grain | Natural key |
+| --- | --- | --- |
+| `02-silver.config_place_name_alias` | One context-specific source alias per alias version | Source system, raw place and context fields, place type, alias version |
+| `02-silver.config_project_category_mapping` | One source category and infrastructure-type pair per taxonomy version | Source system, raw category, source infrastructure type, taxonomy version |
+| `02-silver.config_project_status_mapping` | One source status per mapping version | Source system, source status, status mapping version |
+| `02-silver.config_mgb_susceptibility_mapping` | One raw MGB code per source-contract and mapping version | Source system, raw code, source version, mapping version |
+| `02-silver.config_manual_geographic_match` | One source-record override per mapping version | Source system, record type, source record ID, mapping version |
+| `02-silver.config_table_c_row_role_exception` | One approved uppercase Table C barangay exception per source-file and sheet | Source system, source file, sheet name, standardized raw place name, mapping version |
+
+Every table records an approval status, version, active flag, and review evidence.
+The category table also records `is_flood_related` for each approved atomic
+classification. The approved DPWH taxonomy maps the seven observed
+`componentCategories` values under version
+`dpwh-component-categories-2026-10-v1`. The approved MGB seed maps `LF`, `MF`,
+`HF`, and `VHF` to the documented levels. Other rules remain empty until
+reviewers approve them.
+
+See [Silver configuration mappings](../silver/silver_config_mappings.md) for the field contracts,
+approval workflow, validation rules, and current limits.
+
+## Silver geography and population tables (implemented)
+
+Place-level matching and region-level aggregation have different grains.
+The approved population path is:
+
+```text
+01-bronze.psgc → silver_psgc_place
+                         ↓
+01-bronze.census_2024_table_c + config_place_name_alias + config_table_c_row_role_exception
+                         ↓
+       silver_population_place_reconciliation
+                         ↓
+              silver_region_population
+                         ↓
+       03-gold.fact_region_population
+```
+
+The earlier single population-reconciliation design is retired.
+It combined source-row reconciliation and region aggregation into one unclear contract.
+
+| Table | Grain | Natural key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_psgc_place` | One official PSGC place per selected PSGC version or snapshot | `psgc_code`, then `psgc_version` or `source_snapshot_id` | Raw and standardized name, place type, official hierarchy, PSGC population cross-check, snapshots, ingest run, Silver run, hierarchy status, rule version |
+| `02-silver.silver_population_place_reconciliation` | One current Table C source-row result per Silver run | `source_file`, `sheet_name`, `source_row_number`, `run_id` | Raw and parsed population, row role, unresolved-heading follow flag, matched PSGC place, method, status, quality, candidate count, final disposition, cross-check, snapshots, versions, lineage |
+| `02-silver.silver_region_population` | One official PSGC region per reference year, source, and selected snapshots | `psgc_region_code`, `reference_year`, `source_name`, Table C snapshot, PSGC snapshot | Table C population, contributing rows, reference date, primary-source status, snapshots, ingest runs, alias and rule versions |
+
+Only positive `ACCEPTED_PRIMARY` matched barangay rows contribute to region population.
+Higher-level Table C subtotals remain reconciled but do not enter the aggregate.
+PSGC population remains a cross-check.
+
+See [Silver geography and population](../silver/silver_geography_population.md) for the matching,
+lineage, validation, and cost contracts.
+
+## Silver project foundation tables (implemented)
+
+These tables implement the Silver project foundation and source-reconciliation layers.
+
+The project foundation preserves DPWH project source evidence.
+
+It creates a canonical project-level output for future project matching and geographic assignment.
+
+The same output also supports flood-control reconciliation, portfolio analysis, delivery analysis, and Gold project facts.
+
+The component and project tables are implemented and require Databricks execution.
+
+Project-region mapping and project-flood mapping are implemented.
+
+The source-reconciliation path is:
+
+```text
+01-bronze.flood_control_projects
+        ↓
+silver_flood_control_component
+        ↓
+silver_project_source_match
+        ↑
+silver_project
+        ├──→ silver_project_region_map
+        ├──→ silver_project_flood_map ← silver_mgb_flood_area + config_mgb_susceptibility_mapping
+        ↓
+03-gold.dim_project and fact_project_snapshot
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_dpwh_project_component` | One selected Bronze DPWH source row | `component_key`. Source-row identity is the snapshot, `source_row_hash`, and `source_row_ordinal`. | Raw evidence: DPWH category and normalized `componentCategories`.<br>Taxonomy: approved category sets, sector, mapping state, version, and flood flag.<br>Controls: parsed values, quality states, raw District Engineering Office (`deo`), run identity, and Bronze lineage. |
+| `02-silver.silver_project` | One canonical project per Contract ID | `project_key` | Taxonomy: unioned sorted evidence, sector or `Multi-sector`, mapping state, version, and flood flag.<br>Project controls: component count, resolved attributes including `implementing_office` and `contractor` with their resolution statuses, budget, conflicts, source lineage, and deterministic identity. |
+| `02-silver.silver_flood_control_component` | One selected Bronze flood-control source feature | `flood_component_key` | Source ID, Contract ID, component and cost fields, statuses, and lineage |
+| `02-silver.silver_project_source_match` | One usable normalized flood-source Contract ID per selected source snapshot, source version, and match run | `project_source_match_key` | Component count, raw ID evidence, distinct-cost evidence, candidate count, exact-match status, matched project identity, source and target lineage, deterministic rule and run versions |
+| `02-silver.silver_project_region_map` | One canonical `silver_project` mapping result per deterministic geographic mapping run | `project_region_map_key` | Project identity, reported region, coordinates, accepted and coordinate PSGC regions, method, status, quality, and candidate evidence.<br>Reason evidence, reviewed manual evidence, project/PSGC/boundary/config/rule lineage, deterministic `run_id`, and source load times. |
+| `02-silver.silver_project_flood_map` | One final project-to-flood classification per canonical `silver_project` row per deterministic project-flood mapping run | `project_flood_map_key` | `source_system`, `project_key`, `contract_id`, coordinates and `coordinate_status`, `flood_susceptibility_level`, `severity_rank`, `match_status`, `match_method`, `match_quality`, `matched_polygon_count`, `matched_level_count`, `candidate_levels`, ambiguity and exception reasons.<br>`classification_rule`, `classification_rule_version`, project and MGB snapshot, ingest, version, and load lineage, mapping versions, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness:
+
+- Implemented project-region map: `source_system`, `contract_id`, `run_id`.
+- Implemented project-flood map: `source_system`, `contract_id`, `run_id`.
+- DPWH components: `component_key`. DPWH has no stable component ID or source row number, so the key hashes the snapshot, `source_row_hash`, and `source_row_ordinal`.
+- Flood-control components: `source_system`, `source_snapshot_id`, real source `object_id`, and rule version.
+- Project source matches: normalized source Contract ID, source snapshot, source version, and match run.
+- Implemented population reconciliation: `source_file`, `sheet_name`, `source_row_number`, `run_id`.
+- Implemented region population: region code, reference year, source name, and both selected snapshots.
+
+Table 13 retains official `psgc_region_code`. It does not create the Gold
+surrogate `region_key`. Central Office is a non-geographic result with a null
+PSGC region. Unmatched, ambiguous, and conflicting projects remain in the table.
+See [Silver project-to-region mapping](../silver/silver_project_region_mapping.md) for the
+complete precedence, boundary, lineage, and validation contracts.
+
+Table 15 retains the approved `flood_susceptibility_level` and `severity_rank`
+only when a project's map point falls inside polygons of exactly one approved
+MGB level. It does not create the Gold `flood_susceptibility_key`. Points inside
+polygons of several approved levels stay `AMBIGUOUS` with no level, because
+D-45 approves no severity precedence. Projects without a usable point or without an
+approved polygon stay `UNMATCHED`. That is never Low, zero, or `Unknown` risk.
+See [Silver project flood mapping](../silver/silver_project_flood_mapping.md) for the
+complete coordinate, MGB, spatial, lineage, and validation contracts.
+
+## Silver MGB flood-area table (implemented)
+
+`silver_mgb_flood_area` parses every selected MGB polygon once. Tables 14 and 15
+and their validators read it, so none of them parses `geometry_json`. It is a
+Silver matching table, not part of the Gold star schema.
+
+```text
+01-bronze.flood_susceptibility
+        ↓
+silver_mgb_flood_area
+        ├──→ silver_region_flood_exposure
+        └──→ silver_project_flood_map
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_mgb_flood_area` | One MGB flood-susceptibility polygon (one Bronze source row) per Bronze snapshot per parse rule version | `mgb_flood_area_key` | `object_id`, `raw_susceptibility_code`, `geometry_wkb`, `geometry_srid`, `geometry_parse_method`, `source_geometry_status`.<br>MGB snapshot, ingest run, and publisher version, `parse_rule_version`, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness: `object_id`, `mgb_source_snapshot_id`, `parse_rule_version`.
+
+`mgb_flood_area_key` is a deterministic SHA-256 key. Codes stay raw; Tables 14
+and 15 apply the approved mapping. See [Silver MGB flood areas](../silver/silver_mgb_flood_area.md)
+for the parser, skip rule, and validation.
+
+## Silver regional flood-exposure table (implemented)
+
+Table 14 performs the MGB-to-region spatial work once in Silver.
+It reads only parsed MGB polygons from `silver_mgb_flood_area`, region boundaries,
+official PSGC regions, approved MGB mappings, and compact audit and validation evidence. It does not read projects, population,
+Table 13, or Gold.
+
+```text
+01-bronze.flood_susceptibility
+        ↓
+silver_mgb_flood_area
+        ↓
+config_mgb_susceptibility_mapping
+        ↓
+standardized MGB flood polygons
+        ↓
+regional spatial intersection ← 01-bronze.boundaries ← silver_psgc_place
+        ↓
+silver_region_flood_exposure
+        ↓
+03-gold.fact_region_flood_exposure
+```
+
+| Table | Grain | Primary key | Main columns |
+| --- | --- | --- | --- |
+| `02-silver.silver_region_flood_exposure` | One official PSGC region × one active approved MGB susceptibility level × selected MGB snapshot × selected boundary snapshot × deterministic exposure run | `region_flood_exposure_key` | Region code and name, raw code, level, severity rank, region area, susceptible area, share, source polygon and fragment counts, overlap measures and additivity status.<br>Mapping, boundary, spatial, version, and geometry statuses, exception reason, MGB/mapping/boundary/PSGC lineage, area CRS, rule versions, deterministic `run_id`, and `source_load_ts`. |
+
+Required Silver uniqueness: `psgc_region_code`, `flood_susceptibility_level`, `run_id`.
+
+`region_flood_exposure_key` is a deterministic Silver SHA-256 key. It is not the
+future Gold BIGINT surrogate key. Areas use `DECIMAL(18,4)` and the share uses
+`DECIMAL(7,4)`. Area is calculated in EPSG:6933, an equal-area CRS, never in
+square degrees.
+
+A safe region with no exposure has real zero values. A region without one safe
+boundary keeps `NULL` measures with `NO_SAFE_REGION_BOUNDARY`. Blank and
+`No rating` MGB values stay unmapped and never enter an approved level.
+
+See [Silver regional flood exposure](../silver/silver_region_flood_exposure.md) for the
+complete CRS, boundary, overlap, lineage, validation, and Gold handoff contracts.
+
+## Gold fact tables (implemented)
+
+Three notebooks in `notebooks/03_gold` build these fact tables. The exact columns and types are in the [Gold model](gold_model.md).
+
+### `03-gold.fact_project_snapshot`
+
+Grain: one DPWH project per distinct source snapshot.
+
+Flood source: `02-silver.silver_project_flood_map`. Gold resolves `MATCHED`
+levels to `flood_susceptibility_key` and may route other rows to key `0`. It must
+not repeat MGB mapping, geometry parsing, point creation, spatial matching, or
+ambiguity resolution.
+
+Primary key: `project_snapshot_key`.
+
+Foreign keys:
+
+- `project_key`
+- `region_key`
+- `status_key`
+- `flood_susceptibility_key`
+- `snapshot_date_key`
+- `start_date_key`
+- `source_completion_date_key`
+
+Main measures and lineage:
+
+- `reported_budget_pesos DECIMAL(20,2)`.
+- `physical_progress_pct DECIMAL(5,2)`.
+- `latitude DOUBLE`, `longitude DOUBLE`, and coordinate or match status fields.
+- `long_running_flag`, `zero_progress_flag`, and `delivery_rule_version`.
+- `source_snapshot_id`, `run_id`, `is_current_snapshot`, and `source_load_ts`.
+
+`long_running_flag` exists only here. Gold applies D-32 to it, and `silver_project` publishes no long-running column (D-44).
+
+Uniqueness: `project_key`, `source_snapshot_id`.
+
+### `03-gold.fact_region_population`
+
+Grain: one region per population reference year and source.
+
+Primary key: `region_population_fact_key`.
+Foreign key: `region_key`.
+
+Main columns:
+
+- `reference_year`
+- `population_count`
+- `source_name`
+- `is_primary_source`
+- `population_match_status`
+- `source_row_count`
+- `run_id`
+- `source_load_ts`
+
+Uniqueness: `region_key`, `reference_year`, `source_name`.
+
+### `03-gold.fact_region_flood_exposure`
+
+Grain: one region per susceptibility level, MGB version, and boundary version.
+
+Source: `02-silver.silver_region_flood_exposure`. Gold assigns `region_key` and
+`flood_susceptibility_key` only. It must not repeat MGB mapping, geometry
+parsing, clipping, area calculation, or overlap handling.
+
+Primary key: `region_flood_exposure_key`.
+Foreign keys: `region_key` and `flood_susceptibility_key`.
+
+Measures and lineage:
+
+- `susceptible_area_sqkm`
+- `share_of_region_area_pct`
+- `source_polygon_count`
+- `mgb_source_version`
+- `boundary_version`
+- `spatial_match_status`
+- `area_calculation_crs`
+- `area_rule_version`
+- `run_id`
+- `source_load_ts`
+
+Uniqueness includes these fields:
+
+- `region_key`
+- `flood_susceptibility_key`
+- `mgb_source_version`
+- `boundary_version`
+
+## Gold dimensions (implemented)
+
+Six dimension notebooks in `notebooks/03_gold` build eight dimensions. Five
+notebooks build the six regional-model dimensions listed below. Notebook
+`01a_gold_dim_province_reporting_area` builds the two D-57 reporting-area
+dimensions documented in the [Gold model](gold_model.md) and the
+[province reporting-area extension](#province-reporting-area-extension-d-57).
+
+| Dimension | Grain and key | Main columns |
+| --- | --- | --- |
+| `03-gold.dim_date` | One row per calendar date. Key: `date_key`. | `calendar_date`, year, quarter, month, and day fields |
+| `03-gold.dim_project` | One unique contract per source system. Key: `project_key`. | `contract_id`, descriptions, raw category evidence, Silver-owned `source_infra_type`, `standardized_sector`, `taxonomy_version`, `is_dpwh_flood_related`, separate official flood-list membership, funding source, office, contractor, infrastructure year, and lineage |
+| `03-gold.dim_region` | One official PSGC region per PSGC version plus key `0`. Key: `region_key`. | PSGC code, names, version, BARMM and geographic flags, centroid, lineage |
+| `03-gold.dim_project_status` | One source-status mapping per version. Key: `status_key`. | Source and standardized status, group, mapping version, source system, active flag, lineage |
+| `03-gold.dim_flood_susceptibility` | One susceptibility classification per source version. Key: `flood_susceptibility_key`. | Level, severity rank, source system, source version, lineage |
+| `03-gold.dim_region_boundary` | One boundary version per official region. Key: `boundary_key`. | `region_key`, geometry, version, CRS, validity, PSGC-match status, source system, lineage |
+
+Dimension uniqueness:
+
+- `dim_date`: `calendar_date`.
+- `dim_project`: `source_system`, `contract_id`.
+- `dim_region`: `psgc_region_code`, `psgc_version`.
+- `dim_project_status`: `source_system`, `source_status`, `status_mapping_version`.
+- `dim_flood_susceptibility`: `source_system`, `flood_susceptibility_level`, `source_version`.
+- `dim_region_boundary`: `region_key`, `boundary_version`.
+
+## Six-source lineage
+
+| Source | Downstream destination |
+| --- | --- |
+| DPWH projects | DPWH component mapping, category mapping, project and status dimensions, and project snapshot fact |
+| Flood-control list | Row-preserved flood-control components and exact Contract-ID reconciliation evidence for future official flood-list flags |
+| PSGC | Region dimension and population reconciliation |
+| PSA Table C | Population reconciliation and region population fact |
+| BetterGov boundaries | Region boundary dimension, project-region mapping, and regional flood intersection |
+| MGB flood susceptibility | Project-flood mapping, susceptibility dimension, and region flood-exposure fact |
+
+## Join rules
+
+- `fact_project_snapshot.project_key` joins to `dim_project.project_key`.
+- `fact_project_snapshot.region_key` joins to `dim_region.region_key`.
+- Status, susceptibility, and date keys join to their corresponding dimensions.
+- Population and flood-exposure facts join to `dim_region` through `region_key`.
+- Silver mapping tables retain the run, method, quality, and source version for every Gold key.
+- Key `0` is reserved for unknown, unmapped, or non-geographic records.
+  Central Office uses key `0` with `region_match_status = 'NON_GEOGRAPHIC'`.
+
+## Required analytical validation
+
+`notebooks/04_validation/09_validation_gold.ipynb` runs these checks on Gold.
+See [Gold validation](../validation/validation.md#gold-validation).
+
+1. At most one `is_current_snapshot = true` row exists per `project_key`.
+2. Physical progress is between 0 and 100 or null.
+3. Reported budget is non-negative or null.
+4. Flood-exposure area is non-negative. Its regional share is between 0 and 100.
+5. Primary population is positive. Each region and year has exactly one primary source.
+6. Central Office is excluded from population-based ratios.
+7. MGB classifications include Unknown, Low, Moderate, High, and Very High.
+8. Severity rank is unique within each source system and version.
+9. `source_snapshot_id` is not null. All fact foreign keys resolve.
+10. Spatial areas use an appropriate projected CRS instead of square degrees.
+
+Check 6 covers the population fact today: no population row uses region key `0`.
+`10_validation_analytics` runs the same check on the per-person ratios of
+`analytics_population_equity` (#61).
+
+## Analytics coverage
+
+The Analytics views answer the capstone insights from Gold. The full
+contracts are in the [Analytics views guide](../../notebooks/05_analytics/README.md).
+
+| Insight | View | Main Gold tables | Interpretation boundary |
+| --- | --- | --- | --- |
+| Where does the money go? | `analytics_investment_distribution` | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area` | Reported budget by region or reporting area and `infra_year` cohort (D-57). Never add the two levels. A cohort is not a past portfolio. |
+| Are investments proportional to population? | `analytics_population_equity` | `fact_province_reporting_area_population` and view 1 | Per reporting area. A screening indicator, not fairness. Key `0` is excluded. |
+| Do flood-control investments overlap with flood-prone areas? | `analytics_flood_alignment` | `fact_project_snapshot`, `dim_flood_susceptibility`, `fact_region_flood_exposure` | Overlap does not prove protection. A point outside mapped zones is not low risk. |
+| Which projects need a closer look? | `analytics_implementation_monitoring` | `fact_project_snapshot`, `dim_project_status`, `dim_date` | Review indicators, not findings. No overdue flag, because no trustworthy target date exists. |
+| Are we seeing projects or a connected infrastructure network? | `analytics_infrastructure_network` | `fact_project_snapshot` and its dimensions | Spatial patterns only. No network topology exists. |
+| What can we see only after connecting the datasets? | `analytics_integration_coverage` | `fact_project_snapshot`, `dim_project`, `dim_project_status`, `fact_region_population` | "Not linked" means the governed rules could not connect a record. |
+
+The available need proxies are population and flood-risk exposure.
+They do not represent every form of infrastructure need.
+Reported budgets and contract costs are not actual payments or disbursements.
+
+## Bronze preservation boundary
+
+Bronze does not clean names, cast business types, map places, or deduplicate source rows.
+It does not standardize categories, calculate measures, or perform spatial joins.
+These decisions begin in Silver and remain traceable.
+Traceability uses snapshot IDs, run IDs, mapping statuses, rule versions, and source versions.
+
+## Province reporting-area extension (D-57)
+
+The approved reporting-area hierarchy adds official provinces, independent
+cities with no selected PSGC province parent, NCR, and Unknown. It does not
+replace region. Region remains the parent, national reconciliation level, BARMM
+control, and existing consumer contract.
+
+Silver publishes one reporting-area reference and boundary-status row per area,
+one population row per area/year/source/run, and exactly one project mapping row
+per canonical project. Only reconciled `ACCEPTED_PRIMARY` Table C barangays
+enter population. Raw DPWH province text is never a foreign key.
+
+Gold adds `dim_province_reporting_area`, its boundary dimension,
+`fact_province_reporting_area_population`, and `reporting_area_key` plus mapping
+status fields to `fact_project_snapshot`. The fact keeps `region_key`, unchanged
+`project_key`, one current row per project, and the same reported-budget total.
+
+Analytics reads the reporting area in the D-56 Analytics views. View 1 reports both
+levels, region and reporting area, each from its own Gold key. View 2 compares
+investment and population per reporting area. Views 4, 5, and 6 carry the
+reporting area per project, and view 6 shows where the project region and the
+parent region of its reporting area disagree. Unknown stays visible in views 4,
+5, and 6 and in the key `0` checks. The five `analytics_reporting_area_*` views
+first built for D-57 are retired. Province flood exposure is not part of this
+implementation, and regional exposure is never allocated to reporting areas.
