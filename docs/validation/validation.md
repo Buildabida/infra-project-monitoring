@@ -2,8 +2,9 @@
 
 This document covers the implemented Bronze, Silver configuration, and Silver geography
 and population validators. It also covers the Silver project, source-reconciliation,
-project-region, regional flood-exposure, and project-flood mapping validators, the
-Gold validator, and the analytics validator.
+project-region, regional flood-exposure, and project-flood mapping validators.
+The document includes the Gold validator, the analytics validator, and the
+[end-to-end quality gate](#end-to-end-quality-gate).
 
 ## Bronze validation
 
@@ -175,7 +176,7 @@ This table includes `layer`, `mapping_version`, and `run_id` fields.
 The existing Bronze writer uses a fixed result structure.
 A separate result table preserves backward compatibility during this milestone.
 
-See [Silver configuration mappings](silver_config_mappings.md) for the approval workflow
+See [Silver configuration mappings](../silver/silver_config_mappings.md) for the approval workflow
 and table contracts.
 
 ## Silver geography and population validation
@@ -202,6 +203,12 @@ It applies the seven relevant quality attributes:
 Blocking checks fail when row accounting, keys, lineage, accepted population grain,
 official region coverage, or population totals are unsafe. Findings such as ambiguous
 matches, unmatched rows, non-positive population, and hierarchy exceptions remain flags.
+
+Validation version `silver-geography-population-validation-v5` changes only the
+validation run ID. It adds no check. One run ID now covers all three tables. It is a
+hash of the sorted `pipeline_run_id` values of the three tables and the version, so it
+changes when any one table is rebuilt. Version 4 gave each table its own run ID. The
+end-to-end gate groups a validator's rows by save time, so it reads either recipe.
 
 Validation version `silver-geography-population-validation-v4` adds these checks:
 
@@ -243,7 +250,7 @@ Results are merged into `04-validation.silver_dq_results` before the stop gate r
 The deterministic key prevents duplicate evidence on an exact rerun.
 The existing Bronze and Silver configuration result tables remain unchanged.
 
-See [Silver geography and population](silver_geography_population.md) for table contracts
+See [Silver geography and population](../silver/silver_geography_population.md) for table contracts
 and known limitations. Runtime validation outcomes require Databricks execution.
 
 ### Reconciliation lineage rule
@@ -346,7 +353,7 @@ check is `FAIL`, and a failed `flag` check is `FLAG`. The validator reports
 mapped and unmapped project and budget coverage, single-sector and multi-sector
 counts, missing categories, and DPWH flood-related projects. A second grouped
 component scan independently reconstructs the no-double-count project-budget
-control total. The same scan recounts each project's coordinate pair from the
+control total. The same scan recounts each project's coordinate pair. It uses the
 rows that hold both values, and the project scan compares it with the published
 pair.
 
@@ -409,7 +416,7 @@ instead of creating duplicate validation records.
 Source-quality findings remain visible as review evidence rather than being silently cleaned.
 
 The v4 Databricks run wrote 39 checks. All 24 STOP checks passed. Its results
-are in [runtime evidence](silver_project_cleaning.md#runtime-evidence).
+are in [runtime evidence](../silver/silver_project_cleaning.md#runtime-evidence).
 
 ## Silver source-reconciliation validation
 
@@ -488,7 +495,7 @@ Silver flood-control component rows
 
 Both expected differences are zero.
 
-See [Silver source reconciliation](silver_source_reconciliation.md) for the complete
+See [Silver source reconciliation](../silver/silver_source_reconciliation.md) for the complete
 table, matching, lineage, and cost contracts.
 
 ## Silver project-region mapping validation
@@ -568,10 +575,10 @@ The validator does not create aliases, select among ambiguous candidates, assign
 Central Office to a normal region, or convert source limitations into accepted
 data.
 
-See [Silver project-to-region mapping](silver_project_region_mapping.md) for the
+See [Silver project-to-region mapping](../silver/silver_project_region_mapping.md) for the
 complete Table 13 grain, precedence, lineage, cost, and Gold handoff contracts.
 The first documented Databricks run passed all 18 STOP checks. Its results are
-in [runtime evidence](silver_project_region_mapping.md#runtime-evidence).
+in [runtime evidence](../silver/silver_project_region_mapping.md#runtime-evidence).
 
 ## Silver MGB flood-area validation
 
@@ -606,14 +613,14 @@ evidence.
 
 FLAG checks keep unusable geometry, blank codes, geometry outside the degree
 screen, and differences from the 63,684-row reference visible. See
-[Silver MGB flood areas](silver_mgb_flood_area.md) for the table contract.
+[Silver MGB flood areas](../silver/silver_mgb_flood_area.md) for the table contract.
 
-On 2026-10-11, `06a` passed all 18 of its STOP checks on parse rule v2, with
-297 polygons repaired under D-43 and none outside the area tolerance.
+On 2026-10-11, `06a` passed all 18 STOP checks on parse rule v2. It repaired
+297 polygons under D-43, with none outside the area tolerance.
 Validators 07 and 08 passed all 37 of their STOP checks each after reading this
 table, both before and after the repair. Their results are in
-[Silver regional flood exposure](silver_region_flood_exposure.md#geometry-parsing)
-and [Silver project flood mapping](silver_project_flood_mapping.md#rerun-after-the-bronze-reload-and-one-time-parsing-issue-92).
+[Silver regional flood exposure](../silver/silver_region_flood_exposure.md#geometry-parsing)
+and [Silver project flood mapping](../silver/silver_project_flood_mapping.md#rerun-after-the-bronze-reload-and-one-time-parsing-issue-92).
 
 ## Silver regional flood exposure validation
 
@@ -633,9 +640,9 @@ run ID is deterministic for the exposure run and validation-rule version, so an
 exact rerun updates the same evidence.
 
 The validator recomputes evidence independently. It reads the published MGB
-snapshot from the validated `silver_mgb_flood_area`, rebuilds the expected
-region × level grid from current inputs, reparses the selected region
-boundaries, and recalculates region areas.
+snapshot from the validated `silver_mgb_flood_area`. It rebuilds the expected
+region × level grid from current inputs. It reparses the selected region
+boundaries and recalculates region areas.
 
 ### Regional flood exposure data-quality attributes
 
@@ -709,7 +716,7 @@ Nonblocking checks retain:
 The validator does not invent an unknown level, repair geometry, deduplicate
 boundaries, fabricate a region polygon, or turn missing geography into zero.
 
-See [Silver regional flood exposure](silver_region_flood_exposure.md) for the
+See [Silver regional flood exposure](../silver/silver_region_flood_exposure.md) for the
 complete Table 14 grain, CRS, overlap, lineage, cost, and Gold handoff contracts.
 Runtime outcomes require Databricks execution.
 
@@ -808,10 +815,10 @@ Nonblocking checks retain:
 The validator never picks a level for an ambiguous project or invents an unknown
 level. It does not repair geometry or treat a missing match as low or zero risk.
 
-See [Silver project flood mapping](silver_project_flood_mapping.md) for the
+See [Silver project flood mapping](../silver/silver_project_flood_mapping.md) for the
 complete Table 15 grain, coordinate, MGB, spatial, lineage, cost, and Gold
 handoff contracts. The first Databricks run passed every STOP check. Its results
-are in [runtime evidence](silver_project_flood_mapping.md#runtime-evidence).
+are in [runtime evidence](../silver/silver_project_flood_mapping.md#runtime-evidence).
 
 ## Gold validation
 
@@ -823,7 +830,7 @@ Run it after the last Gold fact:
 
 1. `notebooks/03_gold/00_gold_dim_date.ipynb` to
    `notebooks/03_gold/07_gold_fact_project_snapshot.ipynb`, in the
-   [Gold build order](gold_model.md#build-order)
+   [Gold build order](../model/gold_model.md#build-order)
 2. `notebooks/04_validation/09_validation_gold.ipynb`
 
 The validator saves its results to `04-validation.gold_dq_results` before its
@@ -853,7 +860,7 @@ from issue #61.
   CRS it found. Levels are Unknown, Low, Moderate, High and Very High. Each
   source system and version has one severity rank per level.
 - **Grain and keys (#63):** every fact and dimension passes its uniqueness rule
-  from the [data model](data-model.md#required-analytical-validation). The
+  from the [data model](../model/data-model.md#required-analytical-validation). The
   date, region, flood and status dimensions each have one key `0` row. Key `0`
   appears only in the documented cases. Central Office uses region key `0` with
   the `NON_GEOGRAPHIC` match status.
@@ -940,13 +947,13 @@ fixes for issues #109 to #115, from commit `dbd1824` of branch
 `fix/issue-109-stale-mgb-gate`. It wrote 75 checks under validation run ID
 `eb6145ab…`. All 65 STOP checks passed. 9 FLAG checks had findings, and 1 found
 nothing. Every FLAG count equals the run above. The rows are in
-[`issue-109-115-gold-validation-2026-10-13.csv`](evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
+[`issue-109-115-gold-validation-2026-10-13.csv`](../evidence/silver/issue-109-115-gold-validation-2026-10-13.csv).
 
 ## Analytics validation
 
-`notebooks/04_validation/10_validation_analytics.ipynb` checks the six Analytics
-views in `05-analytics` that the dashboard and Genie read (D-56, proposed),
-including the D-57 province reporting area in views 1, 2, 4, 5, and 6. It
+`notebooks/04_validation/10_validation_analytics.ipynb` checks the Analytics views
+in `05-analytics`. The dashboard reads these views (D-56, proposed). They include
+the D-57 province reporting area in views 1, 2, 4, 5, and 6. The validator
 only reads Gold, the views, `information_schema.views`, and the validation
 results. It writes only `04-validation.analytics_dq_results`.
 
@@ -963,8 +970,8 @@ in the analytics notebook, so a view never checks itself. The shared rules, such
 as the flood point class and the status reason, are written in a different form
 from the views on purpose.
 
-The six views and their grains are in the
-[Analytics views guide](../notebooks/05_analytics/README.md).
+The Analytics views and their grains are in the
+[Analytics views guide](../../notebooks/05_analytics/README.md).
 
 ### Analytics gates
 
@@ -978,8 +985,8 @@ evidence:
   population, and exposure facts together has no failed STOP check. A later
   partial run, such as the province validator, cannot hide it.
 - **Province Gold passed:** the latest `09a_validation_gold_province_reporting`
-  run of the current project fact exists, covers the reporting-area dimension
-  and population fact, and has no failed STOP check (D-57).
+  run of the current project fact exists. It covers the reporting-area dimension
+  and population fact, with no failed STOP check (D-57).
 
 ### Analytics stop checks
 
@@ -987,7 +994,7 @@ There are 84 STOP checks. A failed one is `FAIL`, and the gate stops the run.
 
 | Group | What the checks prove |
 | --- | --- |
-| Layer contract | `05-analytics` holds all six D-56 views, and no retired or unexpected view. `analytics_region_project_progress` does not exist. |
+| Layer contract | `05-analytics` holds every D-56 Analytics view, and no retired or unexpected view. `analytics_region_project_progress` does not exist. |
 | Grain and keys | One row per documented grain in each view, no `NULL` key, and every expected row present with no extra row. View 1 has exactly the `REGION` and `REPORTING_AREA` levels. |
 | Measures | Every count, budget, average, share, rank, running share, gap, ratio, per-capita value, area, flag, date, and review indicator equals a separate rebuild from Gold. |
 | `NULL` handling | Budgets compare with `<=>`, so a `NULL` that turned into `0` breaks. Unavailable progress, dates, population, and area stay `NULL`. A region with no mapped project keeps `NULL` flood figures. |
@@ -1034,7 +1041,7 @@ The validation run ID is a SHA-256 hash of the run IDs of `fact_project_snapshot
 `dim_region`, `fact_region_population`, `fact_region_flood_exposure`,
 `dim_province_reporting_area`, and `fact_province_reporting_area_population`, and
 the rule version `analytics-validation-v4`. The rule version moved to v3 with the
-six-view contract and to v4 with the province reporting area. D-57 adds the two
+Analytics view contract and to v4 with the province reporting area. D-57 adds the two
 province runs to the D-52 recipe, so new province data gives a new ID. Earlier
 evidence stays as it was. The `MERGE` key is the validation run ID, the table,
 and the check name. A rerun on the same Gold data updates the same rows, and the
@@ -1042,28 +1049,28 @@ rerun check proves the results did not change.
 
 ### Analytics validation runtime evidence
 
-The six-view contract first ran on Databricks on October 16, 2026, in job run
+The Analytics view contract first ran on Databricks on October 16, 2026, in job run
 `1077732256280159`. Validation run
 `2b0558751cb722b38b61b16d97a4f974318b36a939232af669defc59d555e933` saved 112
 checks: 84 STOP checks passed, 26 FLAG checks reported findings, and 2 FLAG
-checks passed. `05-analytics` held exactly the six views, and every rebuild from
+checks passed. `05-analytics` held exactly the Analytics views, and every rebuild from
 Gold matched its view with no break. The rerun check compared no saved rows,
-because it was the first run of that validation run ID. A second run on the same
-Gold data, under the same validation run ID, compared 111 saved checks and found
-none changed, so the six views are stable on unchanged Gold. See the
-[six Analytics views evidence](evidence/six-analytics-views/README.md).
+because it was the first run of that validation run ID. A second run used the same
+Gold data and validation run ID. It compared 111 saved checks and found none
+changed. The Analytics views are stable on unchanged Gold. See the
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 The earlier runs validated the retired designs and stay as history only:
 
 - the October 12, 2026 run of the six D-50 views under v1, in the
-  [analytics evidence](evidence/analytics-views/README.md)
+  [analytics evidence](../evidence/analytics-views/README.md)
 - the run of all eleven views under v2, in the
-  [exploratory analytics evidence](evidence/exploratory-analytics-views/README.md)
+  [exploratory analytics evidence](../evidence/exploratory-analytics-views/README.md)
 - the October 15, 2026 run of the five retired `analytics_reporting_area_*`
-  views, in the [province-reporting evidence](evidence/province-reporting/README.md).
+  views, in the [province-reporting evidence](../evidence/province-reporting/README.md).
   Its Silver and Gold province results stay valid for the snapshot they name.
 - the October 15, 2026 run of the withdrawn D-55 view, in the
-  [regional progress evidence](evidence/regional-project-progress/README.md)
+  [regional progress evidence](../evidence/regional-project-progress/README.md)
 
 ### Known gap: dimension runs in the Gold gate
 
@@ -1076,6 +1083,42 @@ after `09_validation_gold` and before this validator, the gate would not notice.
 The documented run order, `09_validation_gold` then the views then this
 validator, avoids the gap. A fix that adds the dimension runs to the gate is a
 separate follow-up. It needs its own review against D-52.
+
+The [end-to-end quality gate](#end-to-end-quality-gate) narrows this gap at publish
+time. It stops when a fact was rebuilt after `09_validation_gold`, and it re-checks
+the project count and reported budget across Silver, Gold, and the views. It does
+not cover a rebuilt dimension alone.
+
+## End-to-end quality gate
+
+`notebooks/06_data_quality/01_end_to_end_quality_gate.py` runs after
+`11_publish_acceptance_evidence` and before the dashboard refresh. It repeats no layer
+check. It reads the evidence the 13 validators saved and stops when:
+
+- a validator saved no evidence, or its latest run misses a table it should cover
+- the evidence is older than the latest Bronze load event, so it is stale
+- any STOP check failed, or any check returned `ERROR`
+- the latest DPWH load, Silver, current Gold, and the Analytics view name different
+  snapshots
+- the project count, the reported budget, or the number of projects with a budget
+  differ across Silver, current Gold, and `analytics_implementation_monitoring`
+- the latest Gold or Analytics evidence names a fact run that is no longer current
+
+FLAG findings pass and stay visible. Missing evidence never passes. The gate saves
+`04-validation.quality_gate_results` with `MERGE` before it raises, and
+`04-validation.quality_gate_summary` gives PASS, FLAG, or STOP for each layer and
+overall. See the [quality gate guide](../../notebooks/06_data_quality/README.md).
+
+`tests/test_quality_gate.py` runs the notebook on local Spark with Delta against
+synthetic tables, including real-run patterns such as one validation run ID per
+table.
+
+The gate first ran on Databricks on October 19, 2026, in job run
+`457335378856032`. It evaluated 675 checks with no failed STOP check or missing
+evidence. Its four cross-layer checks passed. That run also exposed a gate bug.
+The fix groups each validator's rows by their save time (`run_ts`) instead of by
+run ID. See the
+[end-to-end gate evidence](../evidence/end-to-end-gate-2026-10-19/README.md).
 
 ## Future validation documents
 
@@ -1103,44 +1146,43 @@ missing coordinates, zero and multiple candidates, conflicts, unresolved areas,
 NCR, independent-city, and BARMM findings.
 
 Rule version `silver-province-reporting-validation-v2` adds five STOP checks for
-the population contract (D-57): each contributing Table C row is counted once,
-every reporting area has one official parent region, the reporting-area total
-equals the region total, no region has more reporting-area population than its
-own total, and region minus reporting-area population equals the population left
-on key `0`. Two FLAG checks report that unresolved and excluded population in
-people, and one counts the regions that hold unresolved population.
+the population contract (D-57). Each contributing Table C row is counted once.
+Every reporting area has one official parent region. The reporting-area total
+equals the region total. No region has more reporting-area population than its
+own total. Region minus reporting-area population equals the population left on
+key `0`. Two FLAG checks report unresolved and excluded population in people.
+One FLAG counts the regions that hold unresolved population.
 
-`09a_validation_gold_province_reporting` then checks dimension and fact keys,
-one Unknown, parent regions, reporting-area orphans, unchanged current project
-grain, unchanged reported budget, population reconciliation, one current
-snapshot, and lineage. Rule version `gold-province-reporting-validation-v2` adds
-STOP checks for a unique PSGC code per version, a parent region that exists in
-`dim_region`, the same three population reconciliations against
-`fact_region_population`, and key `0` holding exactly the unresolved and
-non-geographic projects. Two FLAG checks count projects whose region differs
+`09a_validation_gold_province_reporting` then checks dimension and fact keys.
+It also checks one Unknown, parent regions, reporting-area orphans, current project
+grain, reported budget, population reconciliation, one current snapshot, and lineage.
+Rule version `gold-province-reporting-validation-v2` adds STOP checks for a unique
+PSGC code per version and a parent region that exists in `dim_region`. It repeats
+the three population reconciliations against `fact_region_population`. Key `0`
+must hold exactly the unresolved and non-geographic projects. Two FLAG checks
+count projects whose region differs
 from the parent region of their reporting area, and projects with a region but
 no reporting area. A FLAG check with findings is saved as `FLAG`, the same as in
 `03b`. The October 16, 2026 run saved these two rows as `FAIL` with action `flag`
 before that fix. They were findings, not failures, and did not block the run.
 
-`10_validation_analytics` validates the province content of the six Analytics
-views (D-56). See [analytics validation](#analytics-validation). The first
+`10_validation_analytics` validates the province content of the Analytics views (D-56). See [analytics validation](#analytics-validation). The first
 province validator, `10a_validation_provincial_analytics`, checked the five
 retired `analytics_reporting_area_*` views and is removed.
 
 All three validators `MERGE` evidence before their STOP gate. Their local tests
 prove contract text and ordering only. All three ran on Databricks on October 16,
 2026, with no failed STOP check. See the
-[six Analytics views evidence](evidence/six-analytics-views/README.md).
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 
 ### Province-reporting acceptance publication
 
 `11_publish_acceptance_evidence.sql` consolidates the latest D-57 rows from
 `silver_dq_results`, `gold_dq_results`, and `analytics_dq_results`. It publishes
-current mapped and unmapped project and budget coverage, mapping-method totals,
-NCR, independent-city, and BARMM totals, population coverage and exclusions,
-selected PSGC, boundary, configuration, and rule versions, and boundary
-availability.
+current mapped and unmapped project and budget coverage. It also publishes
+mapping-method, NCR, independent-city, and BARMM totals. The record includes
+population coverage, exclusions, selected PSGC, boundary, configuration, rule
+versions, and boundary availability.
 
 Each execution appends one compact record to
 `province_reporting_acceptance_runs`. The record includes the deterministic
@@ -1155,10 +1197,10 @@ The October 15, 2026 execution recorded 43 passed checks and retained five
 non-blocking Silver coverage flags. Two captures retained one project-map run
 ID and one mapping checksum. The complete identities, coverage, budgets,
 special-area totals, population values, boundaries, and limitations are in the
-[province-reporting runtime evidence](evidence/province-reporting/README.md).
+[province-reporting runtime evidence](../evidence/province-reporting/README.md).
 
 The October 16, 2026 execution published 159 checks under the v2 province rules
-and `analytics-validation-v4`: Silver 23, Gold 24, and Analytics 112, with no
-failed STOP check. The exact-rerun comparison passed against the October 15
+and `analytics-validation-v4`. Silver published 23, Gold 24, and Analytics 112.
+No STOP check failed. The exact-rerun comparison passed against the October 15
 capture with the same project-map run ID and mapping checksum. See the
-[six Analytics views evidence](evidence/six-analytics-views/README.md).
+[Analytics evidence](../evidence/analytics-2026-10-16/README.md).

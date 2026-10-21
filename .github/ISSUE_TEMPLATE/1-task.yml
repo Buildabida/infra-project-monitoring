@@ -74,4 +74,4 @@ body:
     id: docs
     attributes:
       label: "Docs affected"
-      placeholder: "README.md, docs/data-model.md"
+      placeholder: "README.md, docs/model/data-model.md"

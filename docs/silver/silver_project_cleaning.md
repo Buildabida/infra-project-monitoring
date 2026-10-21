@@ -51,12 +51,12 @@ Local files may support profiling and schema review, but the production notebook
 | `silver_population_place_reconciliation` | Implemented |
 | `silver_region_population` | Implemented |
 | `silver_dpwh_project_component` | Implemented. Runtime-validated in Databricks on rule version v6 on Oct 12. |
-| `silver_project` | Implemented. Runtime-validated in Databricks on rule version `silver_project_v7` (#110). See the [#110 evidence](evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). |
+| `silver_project` | Implemented. Runtime-validated in Databricks on rule version `silver_project_v7` (#110). See the [#110 evidence](../evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). |
 | Silver project validation | Implemented. Validation version `silver_project_validation_v6` adds the #110 checks, for 43 checks, 27 of them STOP. All 27 STOP checks passed on the v7 run. All 25 STOP checks passed on the v6 run on Oct 12. |
 | Flood-control component and source-match outputs | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 13 STOP checks passed. |
 | `silver_project_region_map` and its validator | Implemented. Runtime-validated in Databricks on the v6 run on Oct 12. All 18 STOP checks passed. |
 | `silver_project_flood_map` and its validator | Implemented in the follow-up project-flood milestone. Runtime-validated in Databricks for the selected snapshots. |
-| Gold dimensions and facts | Implemented in `notebooks/03_gold`. See the [Gold model](gold_model.md). |
+| Gold dimensions and facts | Implemented in `notebooks/03_gold`. See the [Gold model](../model/gold_model.md). |
 
 ## Dependency order
 
@@ -162,7 +162,7 @@ Each parsed field has a status, so a reader can tell why a value is `NULL` or su
 | `progress_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE`, `OUT_OF_RANGE` |
 | `infra_year_quality_status` | `VALID`, `MISSING`, `UNPARSEABLE` |
 
-The progress range is 0 to 100, from the required analytical validation in [Data model](data-model.md#required-analytical-validation). It is declared once in the notebook's parameter view.
+The progress range is 0 to 100, from the required analytical validation in [Data model](../model/data-model.md#required-analytical-validation). It is declared once in the notebook's parameter view.
 
 `infra_year` keeps the raw string. `infra_year_parsed` adds the integer, so Gold does not need to cast it.
 
@@ -318,7 +318,7 @@ The project table currently supports:
 
 The project table leaves `stalled_flag` as `NULL`. Stalled is out of scope for the capstone (D-46).
 
-The project table has no long-running flag. See D-44 and the [Gold model](gold_model.md#project-delivery-rules).
+The project table has no long-running flag. See D-44 and the [Gold model](../model/gold_model.md#project-delivery-rules).
 
 ### Project lineage
 
@@ -368,7 +368,7 @@ to avoid duplicate logical rows.
 - lineage completeness
 - source-quality findings
 
-The validator covers all seven data-quality attributes. Each check shows its failed rows and its denominator. The full list is in [Data-quality checks](validation.md#silver-project-validation).
+The validator covers all seven data-quality attributes. Each check shows its failed rows and its denominator. The full list is in [Data-quality checks](../validation/validation.md#silver-project-validation).
 
 ### Stop checks
 
@@ -604,7 +604,7 @@ run above replaces those category counts.
 - 97 projects have no single implementing office. They stay visible with a `NULL` office and a `MISSING` or `CONFLICT` status. The v6 run on October 12 shows all 97 are `MISSING` and none is `CONFLICT`.
 - Tables 13 and 15 reran on the `silver_project_v5` run on October 11, 2026, and both validators passed every STOP check. See [Run on rule version 5](#run-on-rule-version-5).
 - The v6 run on October 12 changed the project `run_id`. The project validator, the source match, Tables 13 and 15 with their validators, and Gold `03`, `04`, and `07` reran after it, and every STOP check passed. See [Run on rule version 6](#run-on-rule-version-6).
-- `silver_project_v7` (#110) changed the project `run_id` again. The project validator, the source match, and Tables 13 and 15 with their validators reran on it, and every STOP check passed. See the [#110 evidence](evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). Gold `03`, `04`, and `07` have not rerun on v7.
+- `silver_project_v7` (#110) changed the project `run_id` again. The project validator, the source match, and Tables 13 and 15 with their validators reran on it, and every STOP check passed. See the [#110 evidence](../evidence/silver/README.md#october-13-2026-coordinate-pairs-and-status-resolution-issue-110). Gold `03`, `04`, and `07` have not rerun on v7.
 
 ## Open questions for the team
 

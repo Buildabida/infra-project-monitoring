@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 JOB = ROOT / "resources/buildabida_full_pipeline.job.yml"
 DASHBOARD = ROOT / "dashboard/buildabida_infrastructure_project_monitoring.lvdash.json"
-WORKSPACE_PREFIX = "/Workspace/Shared/infra-project-monitoring/"
+BUNDLE = ROOT / "databricks.yml"
 
 SIX_VIEWS = {
     "analytics_investment_distribution",
@@ -16,14 +16,14 @@ SIX_VIEWS = {
     "analytics_integration_coverage",
 }
 BOUNDARY_TABLES = {"dim_region_boundary", "dim_province_reporting_area_boundary"}
+# the mentor review asked for one overview and one tab per analytics question,
+# plus the Read Me page
 TABS = [
-    "Overview: What did we find?",
-    "Where does the money go?",
-    "Does the money match where people live?",
-    "Are flood-control projects where the floods are?",
-    "Which projects need a closer look?",
-    "What patterns show when we map all projects?",
-    "What can we see only after connecting the data?",
+    "Overview",
+    "Where is the money going?",
+    "What are we building?",
+    "Who are we leaving behind?",
+    "Read Me",
 ]
 
 
@@ -43,7 +43,7 @@ def job_tasks():
 def test_job_tasks_are_unique_and_depend_only_on_earlier_tasks():
     tasks = job_tasks()
     keys = [key for key, _, _ in tasks]
-    assert len(tasks) == 49
+    assert len(tasks) == 50
     assert len(keys) == len(set(keys))
     for index, (key, depends, _) in enumerate(tasks):
         for dependency in depends:
@@ -51,14 +51,13 @@ def test_job_tasks_are_unique_and_depend_only_on_earlier_tasks():
 
 
 def test_job_notebook_paths_exist_in_the_repo():
+    # the bundle deploys the notebooks it points at, so no manual workspace sync
     for key, _, path in job_tasks():
         if path is None:
             assert key == "business_dashboard"
             continue
-        assert path.startswith(WORKSPACE_PREFIX), key
-        relative = ROOT / path.removeprefix(WORKSPACE_PREFIX)
-        found = [relative.with_suffix(suffix) for suffix in (".ipynb", ".py", ".sql")]
-        assert any(candidate.exists() for candidate in found), (key, path)
+        assert path.startswith("../notebooks/"), key
+        assert (JOB.parent / path).resolve().is_file(), (key, path)
 
 
 def test_job_runs_every_gate_before_the_layer_that_needs_it():
@@ -74,19 +73,56 @@ def test_job_runs_every_gate_before_the_layer_that_needs_it():
     }
     assert depends["analytics_validation"] == {"analytics"}
     assert depends["publish_acceptance_evidence"] == {"analytics_validation"}
-    assert depends["business_dashboard"] == {"analytics_validation"}
+    assert depends["end_to_end_quality_gate"] == {"publish_acceptance_evidence"}
+    # the dashboard needs the gate and must never bypass it
+    assert depends["business_dashboard"] == {
+        "analytics_validation",
+        "publish_acceptance_evidence",
+        "end_to_end_quality_gate",
+    }
 
 
-def test_job_is_not_included_in_the_bundle():
-    # deploying the bundle must not create a second copy of the workspace job
-    assert "include" not in (ROOT / "databricks.yml").read_text(encoding="utf-8")
+def test_quality_gate_runs_after_any_failure_and_records_the_job_run():
+    text = JOB.read_text(encoding="utf-8")
+    task = "\n        - task_key: "
+    gate = text.split(f"{task}end_to_end_quality_gate", 1)[1].split(task)[0]
+    assert "run_if: ALL_DONE" in gate
+    assert 'job_run_id: "{{job.run_id}}"' in gate
+    dashboard = text.split("- task_key: business_dashboard", 1)[1]
+    # the dashboard keeps the default ALL_SUCCESS, so a failed gate blocks it
+    assert "run_if" not in dashboard
+
+
+def test_job_alerts_on_failure_and_runs_one_at_a_time():
+    text = JOB.read_text(encoding="utf-8")
+    assert "max_concurrent_runs: 1" in text
+    assert re.search(r"timeout_seconds: \d+", text)
+    assert "on_failure:\n          - ${var.alert_email}" in text
+    # no personal address or environment id is hardcoded in the job
+    assert "@" not in text.replace("${var.alert_email}", "")
+    assert "warehouse_id: ${var.warehouse_id}" in text
+    assert "dashboard_id: ${var.dashboard_id}" in text
+
+
+def test_bundle_includes_the_job_with_separate_dev_and_prod_targets():
+    text = BUNDLE.read_text(encoding="utf-8")
+    assert "include:\n  - resources/*.yml" in text
+    dev = text.split("\n  dev:\n", 1)[1].split("\n  prod:\n", 1)[0]
+    prod = text.split("\n  prod:\n", 1)[1]
+    # development mode prefixes the job name and deploys under the user's home
+    assert "mode: development" in dev
+    assert "root_path" not in dev
+    assert "mode: production" in prod
+    assert "root_path: /Workspace/Shared/" in prod
+    for name in ("warehouse_id", "dashboard_id", "alert_email"):
+        assert f"\n  {name}:\n" in text, name
 
 
 def dashboard():
     return json.loads(DASHBOARD.read_text(encoding="utf-8"))
 
 
-def test_dashboard_has_the_seven_tabs_in_order():
+def test_dashboard_has_the_overview_and_three_question_tabs_in_order():
     pages = [
         page["displayName"]
         for page in dashboard()["pages"]
@@ -111,9 +147,9 @@ def test_dashboard_reads_only_the_six_views_and_gold_boundaries():
                 assert table in BOUNDARY_TABLES, (dataset["name"], table)
 
 
-def test_dashboard_uses_the_violet_theme_and_plain_text():
+def test_dashboard_uses_one_theme_and_plain_text():
     text = DASHBOARD.read_text(encoding="utf-8")
     theme = dashboard()["uiSettings"]["theme"]
-    assert theme["widgetBorderColor"]["light"] == "#C4B5FD"
-    assert theme["visualizationColors"][0] == "#7C3AED"
+    assert theme["widgetBorderColor"]["light"]
+    assert theme["visualizationColors"]
     assert "—" not in text

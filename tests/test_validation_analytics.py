@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATION = ROOT / "notebooks/04_validation/10_validation_analytics.ipynb"
 GOLD_VALIDATION = ROOT / "notebooks/04_validation/09_validation_gold.ipynb"
-VALIDATION_DOC = ROOT / "docs/validation.md"
+VALIDATION_DOC = ROOT / "docs/validation/validation.md"
 DECISIONS = ROOT / "docs/decisions.md"
 NOTEBOOKS_README = ROOT / "notebooks/README.md"
 RESULTS = "`04-validation`.analytics_dq_results"

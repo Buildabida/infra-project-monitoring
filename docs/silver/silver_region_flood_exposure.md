@@ -69,7 +69,7 @@ The expected ingest run comes from the `_ingest_run_id` of the current
 `SKIPPED_IDEMPOTENT` load writes a new `load_log` run ID but keeps the Bronze
 rows, so a `load_log` comparison would stop every routine Bronze rerun.
 The October 12, 2026 run is in the
-[Silver validation evidence](evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
+[Silver validation evidence](../evidence/silver/README.md#october-12-2026-parsed-mgb-lineage-check-issue-109).
 
 If MGB or boundary Bronze changed, run the Bronze pipeline and Bronze validation
 first.
@@ -550,7 +550,7 @@ ID and keys and never appends duplicates.
 `notebooks/04_validation/07_validation_silver_region_flood_exposure.ipynb`
 persists results to `04-validation.silver_dq_results` before its STOP gate.
 The gate then reads the persisted rows. See
-[Data-quality checks](validation.md#silver-regional-flood-exposure-validation)
+[Data-quality checks](../validation/validation.md#silver-regional-flood-exposure-validation)
 for the full list.
 
 All seven data-quality attributes have executable checks:

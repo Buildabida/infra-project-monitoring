@@ -1,134 +1,123 @@
 # Dashboard specification
 
-This spec describes the capstone dashboard as built on October 16, 2026. The exported file is [`buildabida_infrastructure_project_monitoring.lvdash.json`](buildabida_infrastructure_project_monitoring.lvdash.json). The dashboard is written for citizens: every title, note, and label uses plain words.
+This spec describes the latest capstone dashboard supplied on October 21, 2026.
+The canonical file is
+[`buildabida_infrastructure_project_monitoring.lvdash.json`](buildabida_infrastructure_project_monitoring.lvdash.json).
+The dashboard is written for citizens: titles, notes, and labels use plain
+words.
 
-It has seven tabs: an overview, then one tab per capstone insight. The tab name is the insight question. The view contracts are in the [Analytics views guide](../notebooks/05_analytics/README.md).
+It answers one business question: **How can DPWH better monitor where its
+infrastructure investments go?** It has five visible pages: an overview, one
+page per analytics question, and Read Me. Most charts compare two things at
+once, such as region and year, or flood risk and completion. The view contracts
+are in the [Analytics views guide](../notebooks/05_analytics/README.md).
 
-Build or refresh it only after `10_validation_analytics` passes. The `business_dashboard` task of the [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs after that gate.
+Build or refresh it only after `10_validation_analytics` and the end-to-end quality gate pass. The `business_dashboard` task of the [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs after both.
 
 ## Data rules
 
-- Every dataset reads only the six views in `` `buildabida-capstone`.`05-analytics` ``. The two map datasets also read the Gold boundary tables `dim_region_boundary` and `dim_province_reporting_area_boundary`, for map shapes only.
+- Every dataset reads only the Analytics views in `` `buildabida-capstone`.`05-analytics` ``. The map datasets also read the Gold boundary tables `dim_region_boundary` and `dim_province_reporting_area_boundary`, for map shapes only.
 - No dataset reads Silver, Bronze, or any table that is not listed here.
-- No dataset creates an object in Unity Catalog. `05-analytics` holds only the six views.
+- No dataset creates an object in Unity Catalog. `05-analytics` holds only the Analytics views.
 - A missing value shows as "No data", never as 0.
-- Never add up columns that repeat on many rows: `geography_project_count`, `geography_budget_pesos`, `geography_budget_share_pct`, the population columns of view 5, `physical_progress_pct`, and every rank. Read them with `MAX`.
+- Never add up columns that repeat on many rows: `geography_project_count`, `geography_budget_pesos`, `geography_budget_share_pct`, the population columns of view 5, `physical_progress_pct`, and every rank. Read them with `MAX`, or group to one row per place first.
 - In `analytics_investment_distribution`, always filter one `geography_level`. Never add regions and provinces together.
+- Leave BARMM (`LIMITED_SOURCE_COVERAGE`) out of every ranking and comparison. Keep it in coverage counts.
+- "Project year" is `infra_year`, a cohort. It is not the year money was paid.
 - Do not use a hyphen in a dataset name. The dashboard turns the name into an entity name, and a hyphen breaks the widget queries.
 
 ## Theme
 
 | Setting | Value |
 | --- | --- |
-| Colors | Violet only, light to dark: `#F5F3FF`, `#EDE9FE`, `#DDD6FE`, `#C4B5FD`, `#A78BFA`, `#8B5CF6`, `#7C3AED`, `#6D28D9`, `#5B21B6`, `#4C1D95`. Light gray `#D1D5DB` only for "No data" and "Outside the mapped flood areas". |
-| Canvas background | `#FAF9FF` |
-| Widget background | `#FFFFFF` |
-| Widget outline | `#C4B5FD` |
-| Text | `#2E1065` |
-| Maps | Custom sequential scale from `#DDD6FE` or `#F5F3FF` (low) to `#4C1D95` (high). Named color schemes are not used. |
-| Number format | Money as PHP with compact numbers, such as PHP 6.5T. Percentages with 1 decimal place. Counts with thousands separators. |
-
-Every page ends with this note: "Budgets are the amounts written in DPWH project records. They are not actual payments. Data as of the DPWH file dated October 4, 2026."
+| Visualization colors | `#077A9D`, `#FFAB00`, `#00A972`, `#FF3621`, `#8BCAE7`, `#AB4057`, `#99DDB4`, `#FCA4A1`, `#919191`, `#BF7080` |
+| Canvas background | Light mode: `#F6F5FA`. Dark mode: `#11171C` |
+| Widget background and outline | Light mode: `#FFFFFF`. Dark mode: `#11171C` |
+| Text | Light mode: `#11171C`. Dark mode: `#E8ECF0` |
+| Selection | Light mode: `#2272B4`. Dark mode: `#8ACAFF` |
+| Font | Space Grotesk |
+| Widget spacing | 20-pixel margin, left-aligned headers |
+| Number format | Money as PHP with compact numbers, such as PHP 6.5T. Percentages with 1 decimal place. Counts with thousands separators |
 
 ## Datasets
 
-| Dataset | Reads | Used on |
+The canonical export contains 38 datasets. Six unused Lakeview datasets were
+removed from the supplied live export because they read Gold facts directly.
+Three active support datasets were rewritten against Analytics without changing
+their output columns. The exact live export remains in the
+[dev-bundle evidence](../docs/evidence/dev-bundle-2026-10-21/README.md#dashboard-export).
+
+| Dataset group | Datasets | Governed sources |
 | --- | --- | --- |
-| National Totals | views 3 and 4 | Overview KPIs |
-| Region Scorecard | views 1, 3, 4, and 6, one row per region | Overview charts and table |
-| Region Scorecard Look First | Region Scorecard SQL, sorted by the share of projects to check | Tab 7 table |
-| Region Money by Year | view 1 at `REGION` level, with region boundaries | Overview map, Tab 2 |
-| Province Money by Year | view 1 at `REPORTING_AREA` level, with province boundaries | Tab 2 |
-| Top 3 Region Share | view 1, `MAX(geography_cumulative_budget_share_pct)` where `geography_budget_rank = 3` | Tab 2 KPI |
-| Money and Population | view 2 | Tab 3 |
-| Flood Risk by Region | view 3 | Tab 4 |
-| Region Flood Map | view 3, with region boundaries | Tab 4 map |
-| Flood Control Project Points | view 5, flood-control projects with a valid point | Tab 4 point map |
-| Project Check List | view 4, every current project | Tab 5 |
-| Project Map Cells | view 5, mappable projects grouped by 0.1-degree cell, region, province, type, year, status, and flood risk | Tab 6 map |
-| Project Mix | view 5, every current project grouped by region, province, type, year, and status | Tab 6 charts |
-| Data Connections | view 6 | Tab 7 |
+| Headline and connection measures | `national_totals`, `data_connections`, `project_mix` | views 3, 4, and 5 |
+| Region and province investment | `region_money_by_year`, `province_money_by_year`, `d01_region_budget_by_year`, `d09_region_share_by_year`, `top3_region_share`, `7d88fca9` | view 1 and boundary tables where a map needs geometry |
+| Completion and review | `d02_region_completion`, `d03_flagged_by_type_year`, `d05_months_to_complete`, `d10_region_money_vs_completion`, `d12_type_completion_by_year`, `regional_review_by_cohort`, `project_check_list`, `7434c3a7`, `c5574c4d`, `b774fc89` | views 1, 4, and 5 |
+| Project type and location | `d04_type_budget_by_year`, `d11_region_type_mix`, `d13_province_type_map`, `6d056075`, `4760d7d1` | views 1, 4, and 5, plus boundary tables for maps |
+| Population comparison | `d08_places_left_behind`, `d14_province_per_person_map`, `d15_province_people_vs_money`, `region_budget_per_person_by_year` | views 1, 2, and 5, plus province boundaries |
+| Flood alignment | `region_flood_map`, `d06_province_flood_vs_completion`, `d07_region_need_vs_money`, `flood_completion`, `flood_risk_by_region`, `flood_risk_per_project`, `4b45dfd2`, `flood_risk_by_province`, `completion_by_flood_risk`, `flood_budget_by_risk_year` | views 1, 2, 3, and 5, plus boundary tables where a map needs geometry |
+
+Views: 1 `analytics_investment_distribution`, 2 `analytics_population_equity`, 3 `analytics_flood_alignment`, 4 `analytics_implementation_monitoring`, 5 `analytics_infrastructure_network`, 6 `analytics_integration_coverage`.
 
 ## Tabs
 
-### 1. Overview: What did we find?
+### Overview
 
-KPIs: projects in the records, total budget in the records, projects worth a closer look, projects placed in a province or city, and flood-control projects in high or very high flood areas. Region map of the budget over all years, the top 10 regions by budget, the share of projects worth a closer look by region, and a region summary table.
+- The business question and the national counters
+- Region map, regional budget ranking, and budget by project type
+- Project completion by region
+- Region and province summary tables
 
-### 2. Where does the money go? (insight 1)
+### Where is the money going?
 
-Filters: year (2016 to 2026, and "No year given") and region. KPIs: budget and projects in the selected years, and the share held by the top three regions over all years. Region and province maps, the region ranking, the top 15 provinces and cities, and the budget year after year.
+Which regions get the most money, how that changed, and how well each region finishes its projects.
 
-The year is the infrastructure year on each project record. It groups projects. It is not the amount paid in that year. The tab counts projects placed in a region, so its totals leave out the 572 projects with no region.
+- Budget trend by region, the region-by-year share heat map, and the latest map
+- Most-funded and least-funded region, total budget, completion, and top type
+- Region ranking, a region filter, and a project-year filter
+- Budget by status and flood-risk classification, including a yearly trend
 
-### 3. Does the money match where people live? (insight 2)
+### What are we building?
 
-Filter: region. KPIs: provinces and cities compared, national budget per person, and highest budget per person. A scatter plot of people against budget for the compared provinces and cities, sized by budget per person and colored by whether the share of money is bigger or smaller than the share of people. Top 10 bigger and smaller shares, budget per person, and a table of the places not compared.
+What kinds of projects get the money, where they are built, how long they take, and how they do in flood-risk areas.
 
-This is a first look, not a fairness verdict. No threshold for a "substantial" difference is approved.
+- Project-count, budget, completion, and average-completion counters
+- Counts, budgets, and completion by project type and project-year cohort
+- Completed, ongoing, and flagged maps by region
+- Region-by-type mix, duration comparisons, and completion by flood risk
+- Flagged project types by region
 
-### 4. Are flood-control projects where the floods are? (insight 3)
+### Who are we leaving behind?
 
-Filter: region. KPIs: flood-control projects, how many are in high or very high flood risk areas, and their budget. A region map of the share of flood-control budget in high risk areas, a point map of flood-control projects colored by flood risk, projects by flood risk per region, and budget by flood risk level.
+Money compared with people and flood risk.
 
-A project inside a flood risk area does not prove it protects that area. Flood area is never added across levels, because the levels overlap in most regions.
+- Population versus budget by province
+- Budget per person and total budget maps and rankings for regions and provinces
+- Budget per person by flood-risk level
+- Provinces and cities to examine first
 
-### 5. Which projects need a closer look? (insight 4)
+### Read Me
 
-Filters: region, province or city, project type, year, and status. KPIs: projects to check and their share, their budget and its share, ongoing but zero progress, ongoing for a long time, and status not clear in the record. Status by region, reasons to check, projects to check by region and by province or city, budget by region, and the project list.
-
-Only the project list and the "to check" counts filter on `needs_review`. Shares divide by all projects in the current filter. No overdue flag exists, because the records have no official target end date.
-
-### 6. What patterns show when we map all projects? (insight 5)
-
-Filters: project type, year, status, region, province or city, and flood risk (map only). KPIs: projects, budget, and kinds of projects. A cluster map of 0.1-degree cells, project types year after year, a region by type heatmap, and the top 15 provinces and cities by number of projects.
-
-The map shows where projects cluster, not road or transport connections. Projects without a usable location are counted in the charts but not on the map.
-
-### 7. What can we see only after connecting the data? (insight 6)
-
-Filter: region. KPIs: placed in an official region, placed in a province or city, has a usable map location, and placed on the flood risk map. How much we could connect per link, why some records could not be connected, the "Where to look first, by region" table, and a "What we learned" summary without invented numbers.
-
-"Where to look first" is a guide for follow-up, not a performance ranking.
+Page guide, glossary, caveats, BARMM coverage, connection measures, and data
+lineage notes.
 
 ## Check values
 
-With no filter selected, on the October 16, 2026 data:
+With no filter selected, on the data of the October 19, 2026 job runs:
 
 | Tab | Widget | Value |
 | --- | --- | --- |
-| 1 | Projects in the records | 265,656 |
-| 1 | Total budget in the records | PHP 6.5T |
-| 1 | Projects worth a closer look | 16,178 |
-| 1 | Projects placed in a province or city | 75.3% |
-| 1 | Flood-control projects in high or very high flood areas | 52.4% |
-| 2 | Projects in selected years | 265,084 |
-| 2 | Share held by the top 3 regions | 28.8% |
-| 3 | Provinces and cities compared | 74 |
-| 3 | National budget per person | PHP 58.8K |
-| 4 | Flood-control projects | 34,967 |
-| 4 | In high or very high flood risk areas | 18,335 |
-| 4 | Budget in high or very high flood risk areas | PHP 1.0T |
-| 5 | Share of all projects to check | 6.1% |
-| 5 | Status not clear in the record | 102 |
-| 6 | Projects on the map | 215,138 |
-| 7 | Placed in an official region | 99.8% |
-| 7 | Has a usable map location | 81.0% |
-| 7 | Placed on the flood risk map | 42.4% |
+| Overview | Projects | 265,582 |
+| Overview | Recorded budget | PHP 6.5T |
+| Overview | Projects completed | 80.8% |
+| Overview | Projects flagged for checking | 6.1% |
+| Overview | Flood-control projects in high flood-risk areas | 52.4% |
+| AQ1 | Lowest completion, Zamboanga Peninsula | 72.8% |
+| AQ1 | Highest completion, SOCCSKSARGEN | 87.8% |
 
-If a widget shows another number with no filter, it is adding the wrong rows.
+The project count matches the [end-to-end gate evidence](../docs/evidence/end-to-end-gate-2026-10-19/README.md). If a widget shows another number with no filter, it is adding the wrong rows.
 
 ## Known gaps
 
-- The Global Filters page still holds the old "Source Coverage Status" filter, bound to Region Scorecard. Delete it in the workspace and export again.
-- The intro and note of tab 3 still describe a comparison by region. The charts compare provinces and cities. Fix the text in the workspace and export again.
-- The table widget cannot shade cells, so the percent columns of the tab 7 table have no color scale.
-
-## Genie
-
-Point the Genie space at the six views only. Their table and column comments carry the rules on this page. Add these instructions to the space:
-
-- Answer at region or province level. Province means the governed reporting area. Never add the two levels together, and never sum provinces to get a region.
-- Treat `infra_year` as a cohort in the current snapshot.
-- Never call a project overdue, delayed, or stalled. Never call a region underfunded or a project network connected.
-- Never add `region_*` columns of `analytics_investment_distribution` or rows across links of `analytics_integration_coverage`.
+- Budget per kilometer is not shown. The DPWH data has no project length field.
+- On AQ2, the Region filter does not change the year-by-year type charts, because their datasets have no region column.
+- The table widget cannot shade cells, so the percent columns of the tables have no color scale.

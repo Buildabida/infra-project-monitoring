@@ -1,10 +1,10 @@
-# Six Analytics views and D-57 province runtime evidence
+# Analytics and D-57 province runtime evidence
 
 ## Scope
 
-This report records the first Databricks run of the six D-56 (proposed) Analytics views with the
+This report records the first Databricks run of the D-56 (proposed) Analytics views with the
 D-57 province reporting area. It covers the Silver and Gold province validators under rule version
-v2, the six views, `10_validation_analytics` under `analytics-validation-v4`, and the acceptance
+v2, the Analytics views, `10_validation_analytics` under `analytics-validation-v4`, and the acceptance
 publisher.
 
 The run used Databricks Serverless (environment version 6) in the `buildabida-capstone` catalog on
@@ -29,7 +29,7 @@ ran all 49 tasks from Setup to the acceptance publisher.
 ## Job task graph
 
 All 49 tasks of the job succeeded. The task graph shows that every layer waits for its validation
-gate: Silver waits for Bronze validation, Gold waits for the Silver validators, the six views wait
+gate: Silver waits for Bronze validation, Gold waits for the Silver validators, the Analytics views wait
 for both Gold validators, and the evidence publisher and the dashboard refresh wait for
 `10_validation_analytics`.
 
@@ -77,12 +77,12 @@ The publisher's own gate passed: no `stop` row failed across the three layers.
 
 ![Analytics STOP gate](images/02-analytics-stop-gate.png)
 
-## Six views only
+## Analytics views only
 
-`05-analytics` held exactly the six D-56 views, with no retired view and no
+`05-analytics` held exactly the D-56 Analytics views, with no retired view and no
 `analytics_region_project_progress`.
 
-![Six views](images/01-six-views-only.png)
+![Only the Analytics views](images/01-analytics-views-only.png)
 
 | View | Compared rows | Breaks |
 | --- | ---: | ---: |
@@ -178,7 +178,7 @@ it up. It is about the size of the accepted total, so review it in
 
 The second run saved the same 112 results: 84 STOP checks passed, 26 FLAG checks reported findings,
 and 2 FLAG checks passed. Every check has the same failed and total rows as the first run, except the
-rerun check itself, which compared 0 checks the first time and 111 the second. The six views are
+rerun check itself, which compared 0 checks the first time and 111 the second. The Analytics views are
 stable on unchanged Gold data.
 
 ## Files

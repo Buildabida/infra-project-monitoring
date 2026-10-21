@@ -8,7 +8,7 @@ The details of our tables, checks and choices live in [`docs`](docs/README.md). 
 
 1. Accept your invite to the [Buildabida org](https://github.com/Buildabida) on GitHub. No invite yet? Ask Nadine, our org owner.
 2. Accept the invite to our Databricks team workspace. It comes by email from Nadine.
-3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/vscode-setup.md).
+3. Set up VS Code, clone the repo and sign in to the workspace. The steps are in [set up VS Code](docs/guides/vscode-setup.md).
 4. Run `00_setup_workspace` once as a workflow, so you know your setup works.
 
 Who to ask: Nadine for invites, the org and the team workspace. Kinah for the repo, the board and merges. Anyone on the team for a review.
@@ -24,10 +24,12 @@ Who to ask: Nadine for invites, the org and the team workspace. Kinah for the re
 4. **Run it before you push.** Run the notebook as a workflow and check the results. Keep test runs small. The team workspace has one daily quota for all of us.
 5. **Commit small.** Make one change per commit. Say what changed, like `Add bronze load for DPWH projects`. In the Source Control view, check the list of changed files. Commit only the files you meant to change.
 6. **Open a pull request** into `main`. Fill in every part of the form, and link the issue with `Closes #6`. Want eyes before it is done? Open it as a draft.
-7. **Get a review** from the reviewer named in the issue. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
+7. **Get a review** from the reviewer named in the issue. GitHub also asks the [code owners](.github/CODEOWNERS) of the files you changed. Answer every comment. If one is unclear, ask before you change anything. If you think the reviewer is wrong, say why. Then Kinah merges.
 8. **Pull again** after a merge, so you have the latest `main`.
 
 The `main` branch only takes pull requests that pass our checks, have one approval and have every review comment resolved. Everyone commits from their own account, so the history shows who did what.
+
+A merge that changes notebooks, `src`, or the bundle deploys the job to Databricks automatically. It does not run the pipeline. See the [operations guide](docs/guides/operations.md).
 
 ### Keep each change small
 
@@ -48,6 +50,32 @@ You are the second pair of eyes. Open **Files changed**, read the diff, and chec
 5. The docs changed in the same pull request, if the change needs it.
 
 Leave a comment on the line when something is off. Then click **Review changes** and pick **Approve** or **Request changes**. Say what to change, not who was wrong.
+
+## Who owns what
+
+Each area has owners who built it and review changes to it. The [code owners](.github/CODEOWNERS) file sets who GitHub asks to review.
+
+| Area | Owners |
+| --- | --- |
+| Bronze | killuazai, czekinah |
+| Silver | killuazai, lustrousiana |
+| Gold | czekinah, samchvs |
+| Analytics | killuazai, triciakieth |
+| Dashboard | killuazai, triciakieth, samchvs, lustrousiana |
+| CI/CD | killuazai, czekinah |
+| Docs | Everyone |
+
+Commit counts don't show all the work. Reviews, testing, and dashboard building happen outside commits. To see who reviewed what, open the **Pull requests** tab, then filter by `reviewed-by:<handle>`.
+
+### Give credit
+
+- If two people work on one change together, add a line at the end of the commit message for each other person: `Co-authored-by: Name <their GitHub email>`. GitHub then credits both. Only add people who really worked on it.
+- Add the email you commit with to your GitHub account, under **Settings**, then **Emails**. Otherwise GitHub can't link your commits to you.
+- The [`.mailmap`](.mailmap) file joins names that belong to the same person, so `git shortlog -sn` counts each person once.
+
+### Never commit straight to `main`
+
+Some early fixes went straight to `main` from the GitHub web editor, so they have no pull request. The `main` ruleset now blocks that. When you edit a file on GitHub, pick **Create a new branch for this commit and start a pull request**.
 
 ## Write issues and pull requests
 
@@ -109,7 +137,7 @@ Every table lives in our `buildabida-capstone` catalog. The names have hyphens, 
 
 ## Data quality
 
-Every table gets checks, and each layer waits for the one before it to pass. If a critical check fails, the run stops. Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. The full rules are in [data quality checks](docs/validation.md).
+Every table gets checks, and each layer waits for the one before it to pass. If a critical check fails, the run stops. Never skip a failed check, mark it as passed by hand or edit a table by hand to make a run look fine. The full rules are in [data quality checks](docs/validation/validation.md).
 
 ## Using AI tools
 
@@ -175,6 +203,7 @@ If AI suggests a data quality check, add it to `04-validation.dq_results`. Don't
 | Tasks, owners and reviewers | Issues and our [project board](https://github.com/orgs/Buildabida/projects/1) |
 | Big choices | Our [decisions](docs/decisions.md) and the team Doc |
 | Screenshots, files and links | Our Drive folder, Docs and Sheets |
+| Old change manifests and handoffs | [`docs/change-history`](docs/change-history/README.md) and [`docs/handoffs`](docs/handoffs/README.md) |
 | Meetings and work sessions | Gather |
 
 ## Where we talk

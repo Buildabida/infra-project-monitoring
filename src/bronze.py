@@ -352,6 +352,25 @@ def validate_source_header(source, header):
         )
 
 
+def header_drift(current_header, previous_columns):
+    """Return columns added and removed since the current Bronze table (#48).
+
+    Names are compared case-insensitively after the same Delta-safe renaming the
+    loader applies. Ingestion metadata columns are ignored. Drift is reported, not
+    blocked: `validate_source_header` already stops a load that lost a required field.
+    """
+    metadata = {name.casefold() for name in config.INGEST_METADATA_COLUMNS}
+    current = {name.casefold(): name for name in current_header}
+    previous = {
+        name.casefold(): name
+        for name in previous_columns
+        if name.casefold() not in metadata
+    }
+    added = sorted(current[name] for name in current.keys() - previous.keys())
+    removed = sorted(previous[name] for name in previous.keys() - current.keys())
+    return added, removed
+
+
 def _same_metadata(row, metadata, source):
     """Compare an audit claim with the selected artifact's inexpensive identity."""
     return (

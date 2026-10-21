@@ -211,7 +211,7 @@ def test_gold_schema_adds_reporting_area_without_removing_region():
 
 def test_six_views_read_province_only_from_the_governed_gold_key():
     analytics = sql(ANALYTICS)
-    # d-56 keeps exactly six views. the first province views are retired, not rebuilt
+    # d-56 keeps one view per insight. the first province views are retired, not rebuilt
     for view in [
         "analytics_reporting_area_investment",
         "analytics_reporting_area_category",

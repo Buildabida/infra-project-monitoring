@@ -1,18 +1,18 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) and Genie (#21) read. The Analytics layer has **exactly six views**, one per capstone insight ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
+This folder builds the views that the dashboard (#20) reads. The Analytics layer has **one view per capstone insight** ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
 
-The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired: six business-question views (D-50, D-51), five exploratory monitoring views (D-54), a proposed regional progress view (D-55) in a second notebook, and five `analytics_reporting_area_*` views first built for D-57. The notebook now drops those views, and `10_validation_analytics` stops the run if any of them remains.
+The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired. They include six business-question views (D-50, D-51), five exploratory monitoring views (D-54), and a proposed regional progress view (D-55). Five `analytics_reporting_area_*` views first built for D-57 are also retired. The notebook now drops those views. `10_validation_analytics` stops the run if any remains.
 
 ## Run order
 
 1. `04_validation/09_validation_gold.ipynb` and `04_validation/09a_validation_gold_province_reporting.ipynb` must pass first.
-2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the six views with `CREATE OR REPLACE VIEW`.
-3. Run `04_validation/10_validation_analytics.ipynb`. It checks the snapshot and both Gold validations again, proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, and saves its checks to `04-validation.analytics_dq_results` before its STOP gate. See [analytics validation](../../docs/validation.md#analytics-validation).
+2. Run `01_business_questions.ipynb`. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates `05-analytics` if it does not exist, drops the retired views, and builds the Analytics views with `CREATE OR REPLACE VIEW`.
+3. Run `04_validation/10_validation_analytics.ipynb`. It rechecks the snapshot and both Gold validations. It proves that `05-analytics` holds exactly the Analytics views. It rebuilds every view from Gold. Before its STOP gate, it saves checks to `04-validation.analytics_dq_results`. See [analytics validation](../../docs/validation/validation.md#analytics-validation).
 
 A rerun replaces the view definitions and updates the same validation rows, so it is safe to run twice. The [pipeline job](../../resources/buildabida_full_pipeline.job.yml) runs them after both Gold validators, then refreshes the dashboard. `run_all.py` coordinates Bronze only.
 
-## The six views
+## The Analytics views
 
 | # | Insight | View | One row per | Gold tables read |
 | --- | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ A rerun replaces the view definitions and updates the same validation rows, so i
 | 5 | Are we seeing projects or a connected infrastructure network? | `analytics_infrastructure_network` | Current DPWH project | `fact_project_snapshot`, `dim_project`, `dim_region`, `dim_province_reporting_area`, `dim_project_status`, `dim_flood_susceptibility`, `fact_region_population`, `fact_province_reporting_area_population` |
 | 6 | What can we see only after connecting the datasets? | `analytics_integration_coverage` | Integration link, link outcome, and region key | `fact_project_snapshot`, `dim_project`, `dim_project_status`, `dim_region`, `dim_province_reporting_area`, `fact_region_population`, `fact_province_reporting_area_population` |
 
-Every view and column has a comment, so Genie can read what each one means. The dashboard build is in the [dashboard specification](../../dashboard/dashboard_spec.md).
+Every view and column has a comment that says what it means. The dashboard build is in the [dashboard specification](../../dashboard/dashboard_spec.md).
 
 ## Rules every view follows
 
@@ -38,7 +38,7 @@ Every view and column has a comment, so Genie can read what each one means. The 
 ## Geography and time
 
 - **Two levels.** Region comes from `fact_project_snapshot.region_key` (D-31). The province reporting area comes from `fact_project_snapshot.reporting_area_key` (D-57): an official PSGC province, a city with no province parent (`INDEPENDENT_CITY`), or NCR as one area. Silver assigns it once, mostly by the project point inside one province boundary. The DPWH `location.province` field can hold a District Engineering Office name, so it never decides a province.
-- **Never add the two levels together, and never derive region totals from provinces.** The levels come from different evidence. About a quarter of projects have a region but no reporting area, and the parent region of a reporting area can differ from the project region. View 5 and view 6 show those conflicts.
+- **Never add the two levels together. Never derive region totals from provinces.** The levels come from different evidence. About a quarter of projects have a region but no reporting area. A reporting area's parent region can differ from the project region. Views 5 and 6 show those conflicts.
 - **Boundary gaps.** Independent cities and a few provinces, such as those of the Negros Island Region, have no compatible boundary in the selected boundary file. They cannot receive projects by coordinates, so their zero is a coverage gap. `boundary_status` shows it.
 - **Cohorts, not history.** Gold holds one DPWH snapshot. `infra_year` is a project cohort attribute in that snapshot. Write "the 2018 infrastructure-year cohort in the current snapshot", never "DPWH investment in 2018". A newer cohort can hold more active projects simply because its projects started later.
 
@@ -53,7 +53,7 @@ Every view and column has a comment, so Genie can read what each one means. The 
 - **Dashboard visual:** a region or province bubble map, a ranking bar chart, a regional rollup table, and a concentration KPI.
 - **Interpretation:** the running share at rank 3 reads "the top three hold this percent". It describes where reported budget sits, not need or fairness.
 - **Limitations:** key `0` is not in the shares. A `cohort_*` figure is valid only when one level and one cohort are selected. Read `geography_*` columns with `MAX`, never `SUM`. The regional rollup is the `REGION` level, not a sum of reporting areas.
-- **Validation:** one row per level, member, and cohort, no key `0`, every count, budget, share, rank, and running share equal to a rebuild from each Gold key, shares adding up to 100 within each level, member columns the same on every cohort row, and each level plus its key `0` adding up to every current project and budget.
+- **Validation:** one row per level, member, and cohort, with no key `0`. Every measure equals a rebuild from each Gold key. Shares add up to 100 within each level. Member columns stay the same on every cohort row. Each level plus key `0` accounts for every current project and budget.
 
 ### 2. `analytics_population_equity`
 
@@ -64,29 +64,29 @@ Every view and column has a comment, so Genie can read what each one means. The 
 - **Dashboard visual:** scatterplot of population against reported budget, sized by investment per capita, a diverging bar of the share gap, and a per-capita ranking.
 - **Interpretation:** a **screening indicator, not a verdict on fairness**. A gap can reflect geography, existing infrastructure gaps, construction costs, who benefits from a project, project type mix, or source coverage.
 - **Limitations:** the comparison covers projects with a reporting area only. The view has no "substantially different" flag, because no threshold is approved. Population is the Census Table C barangay population rolled up to reporting areas. Accepted rows that resolve to no area stay on key `0`, outside the view. BARMM provinces stay visible but outside the comparison.
-- **Validation:** one row per area, no key `0`, population equal to the newest Gold primary reporting-area population and adding up to it, every share, gap, ratio, and per-capita value equal to Gold, the three share sets adding up to 100, and no ratio on an excluded area.
+- **Validation:** one row per area, with no key `0`. Population equals the newest Gold primary reporting-area population and adds up to it. Every share, gap, ratio, and per-capita value equals Gold. The three share sets add up to 100. Excluded areas have no ratio.
 
 ### 3. `analytics_flood_alignment`
 
 - **Business question:** where are flood-control investments located relative to mapped MGB flood susceptibility?
 - **Grain:** one row per official region and flood point class. The classes are the four MGB levels plus `AMBIGUOUS`, `OUTSIDE_MAPPED_ZONES`, `NO_USABLE_POINT`, and `INVALID_SOURCE`. Every region has every class.
-- **Measures:** all projects and budget, broad flood-control (`is_dpwh_flood_related`, D-39), strict single-sector flood-control, official flood-list projects, other and uncategorized counts, flood-control shares within the region, and the area and area share of each MGB level with `exposure_area_status`.
+- **Measures:** all projects and budget, broad flood-control (`is_dpwh_flood_related`, D-39), strict single-sector flood-control, and official flood-list projects. Measures also include other and uncategorized counts, regional flood-control shares, and each MGB level's area and area share with `exposure_area_status`.
 - **Filters:** region, flood point class.
-- **Dashboard visual:** a layered map that combines the region bubbles with the project points of view 5, stacked bars of flood-control projects and budget by class, and a regional exposure table.
+- **Dashboard visual:** a layered map combining region bubbles with the project points from view 5. It also has stacked bars by class and a regional exposure table.
 - **Interpretation:** overlap does not prove that a project protects an area or a whole region. A point outside mapped MGB polygons is not low risk.
 - **Limitations:** project classes come from one point per project. Level areas may be added within a region only when `exposure_area_status` is `ADDITIVE_WITHIN_TOLERANCE`. Some regions have no safe boundary, so they have no area figures.
-- **Validation:** one row per region and class, every project outside key `0` in a published class, flood-control, other, and uncategorized adding up to the row, each region adding up to view 1, areas equal to the newest Gold run and only on level rows, and `NULL` project figures for a region with no mapped project.
+- **Validation:** one row per region and class. Every project outside key `0` has a published class. Flood-control, other, and uncategorized projects add up to the row. Each region adds up to view 1. Areas equal the newest Gold run and appear only on level rows. A region without mapped projects has `NULL` project figures.
 
 ### 4. `analytics_implementation_monitoring`
 
 - **Business question:** which recorded projects warrant further verification or follow-up?
 - **Grain:** one row per current DPWH project, including key `0`.
-- **Measures and fields:** region and province reporting area with its match status, status, standardized status, status group, status reason, `is_for_procurement`, start and completion dates, snapshot date, `physical_progress_pct`, `progress_reporting_status`, `zero_progress_flag`, `long_running_flag`, budget, and five review indicators with `review_reason_count` and `needs_review`.
+- **Measures and fields:** region and province reporting area with its match status. Fields include status, standardized status, status group, status reason, and `is_for_procurement`. Dates cover start, completion, and snapshot. Measures include `physical_progress_pct`, reporting and progress flags, budget, and five review indicators. The view also includes `review_reason_count` and `needs_review`.
 - **Filters:** `infra_year`, region, province reporting area, sector, implementing office, status group.
 - **Dashboard visual:** status distribution, region monitoring bars, drilldown by sector, office, and status, and a project exception table filtered on `needs_review`.
 - **Interpretation:** a raised indicator means "verify this record". It never means stalled, delayed, or overdue. Zero reported progress, progress that is not published, `For Procurement`, inactive, and long-running stay separate.
 - **Limitations:** **overdue is not built**, because the repo has no trustworthy target completion date and no approved rule (D-40). "Low reported accomplishment" is not a flag, because no threshold is approved. Show `physical_progress_pct` instead. Gold does not say why progress is not published.
-- **Validation:** one row per current project, every field and indicator equal to a separate rebuild from Gold, rows and budget equal to Gold, and no `For Procurement` project raising a progress indicator.
+- **Validation:** one row per current project. Every field and indicator equals a separate rebuild from Gold. Rows and budget equal Gold. No `For Procurement` project raises a progress indicator.
 
 ### 5. `analytics_infrastructure_network`
 
@@ -97,7 +97,7 @@ Every view and column has a comment, so Genie can read what each one means. The 
 - **Dashboard visual:** an interactive project point map, with a density map on the display cell when there are too many points to draw.
 - **Interpretation:** use spatial cluster, corridor pattern, concentration, or gap. Gold has no road or transport topology, so the map **cannot show network connectivity**.
 - **Limitations:** about one in five DPWH projects has no map point. A gap on the map can be a project without a point. Region population repeats on every project of a region, so never add it up.
-- **Validation:** one row per current project, points equal to Gold, only valid pairs mappable, each mappable point inside its own cell, flood class and population equal to Gold, and rows and budget equal to Gold.
+- **Validation:** one row per current project. Points equal Gold, and only valid pairs are mappable. Each mappable point is inside its own cell. Flood class, population, rows, and budget equal Gold.
 
 ### 6. `analytics_integration_coverage`
 
@@ -109,7 +109,7 @@ Every view and column has a comment, so Genie can read what each one means. The 
 - **Dashboard visual:** integration KPI cards, an unmatched-record breakdown by outcome, matched against unmatched reported budget, and coverage by region.
 - **Interpretation:** this view shows what the pipeline adds: matching, standardization, lineage, and visible data quality. "Not linked" means the governed rules could not connect the record. It does not mean the project is wrong.
 - **Limitations:** `OFFICIAL_FLOOD_LIST` is membership, not a quality gap. Most DPWH projects are not flood control.
-- **Validation:** one row per link, outcome, and region, exactly eleven links, every link adding up to every current project and budget, region-linked and reporting-area-linked projects equal to Gold, shares equal to Gold and adding up to 100.
+- **Validation:** one row per link, outcome, and region, with exactly eleven links. Every link accounts for every current project and budget. Region-linked and reporting-area-linked projects equal Gold. Shares equal Gold and add up to 100.
 
 ## Requests the governed data cannot support
 
@@ -125,4 +125,4 @@ Every view and column has a comment, so Genie can read what each one means. The 
 
 ## Evidence
 
-The six-view design first ran on Databricks on October 16, 2026: 84 STOP checks passed, 26 FLAG checks reported findings, and every view matched its rebuild from Gold. A second run of the validator on the same Gold data compared 111 saved checks and found none changed. See the [six Analytics views evidence](../../docs/evidence/six-analytics-views/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.
+The Analytics design first ran on Databricks on October 16, 2026. All 84 STOP checks passed. Twenty-six FLAG checks reported findings. Every view matched its rebuild from Gold. A second validator run used the same Gold data. It compared 111 saved checks and found no changes. See the [Analytics evidence](../../docs/evidence/analytics-2026-10-16/README.md). The [retired evidence](../../docs/evidence/analytics-views/README.md) of the eleven-view design stays as history.

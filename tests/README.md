@@ -41,6 +41,30 @@ a notebook drops one of these:
 These tests cannot prove that the SQL runs or that the data is right. The Gold
 validator checks the tables after a run.
 
+## `test_quality_gate.py`
+
+Runs the real end-to-end gate notebook on local Spark with Delta, against small
+synthetic tables, through `spark_harness.py`. The harness renames the hyphenated
+schemas because open-source Spark rejects them. It also skips `USE CATALOG`.
+Coverage includes every validator passing, a failed STOP check, an `ERROR`, and
+FLAG findings. It also covers missing evidence, a missing table, stale evidence,
+and evidence from another snapshot or older fact run. Other cases cover repeated
+evaluation, recovery, and count and budget reconciliation.
+
+These tests need `pyspark` and `delta-spark`. Without them the scenario tests skip,
+and the contract tests still run. CI runs them in the `Quality gate (Spark)` job:
+
+```bash
+python -m pip install -r tests/requirements-spark.txt
+python -m pytest -q tests/test_quality_gate.py
+```
+
+## `test_pipeline_job_and_dashboard.py` and `test_repository_structure.py`
+
+These check the job graph, bundle targets, failure email, and dashboard
+dependencies. They also check required files, notebook headers, CODEOWNERS paths,
+and that no token or private key is committed.
+
 ## Boundary between tests and data quality
 
 Unit tests verify deterministic helper behavior. Layer validators evaluate Delta

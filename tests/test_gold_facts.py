@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLD = ROOT / "notebooks/03_gold"
-GOLD_MODEL = ROOT / "docs/gold_model.md"
+GOLD_MODEL = ROOT / "docs/model/gold_model.md"
 DECISIONS = ROOT / "docs/decisions.md"
 
 NOTEBOOK_TABLES = {

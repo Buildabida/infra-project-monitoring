@@ -685,7 +685,7 @@ run `c0d36ec4…`, and flood exposure run `5e09d886…`. The full IDs are in the
 | Table C rows behind the 4,789-person gap to the 2024 census total: San Rafael 637, Sawata 4,152 | 2 | 43,750 |
 
 Boundary shapes marked not valid found nothing. Every FLAG count equals the
-October 12 run for #116 and #119 in [`docs/gold_model.md`](../../gold_model.md).
+October 12 run for #116 and #119 in [`docs/gold_model.md`](../../model/gold_model.md).
 
 ### What this run does not prove (Gold rerun)
 
@@ -756,7 +756,7 @@ difference of 0.
 ### Non-blocking follow-up
 
 The five `UNRESOLVED_HEADING_LIKE` rows may use the read-only profiling query in
-[`docs/silver_geography_population.md`](../../silver_geography_population.md).
+[`docs/silver_geography_population.md`](../../silver/silver_geography_population.md).
 No exception may be approved from the aggregate counts alone. Human review must
 confirm the exact source file, sheet, and raw standardized name.
 

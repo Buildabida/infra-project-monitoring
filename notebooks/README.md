@@ -21,6 +21,11 @@ Governed mappings remain separate from geography and population transformations.
 
 ## Documented sequence
 
+This table explains the Bronze batch and the first Silver milestones, steps 1 to 28.
+For the complete current run order from setup to the dashboard, use the
+[full production run order](#d-57-production-rerun-order) below, or simply run the
+[pipeline job](../resources/README.md).
+
 | Step | Notebook | Responsibility |
 | --- | --- | --- |
 | 1 | `00_setup/00_setup_workspace` | Define missing schemas and verify the existing R2-backed volume without destructive setup. |
@@ -47,11 +52,11 @@ Governed mappings remain separate from geography and population transformations.
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
 | 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
-| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`; skip the parse when the snapshot and parse rule are unchanged. |
+| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`. Skip the parse when the snapshot and parse rule are unchanged. |
 | 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
 | 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
 | 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
-| Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. |
+| Bronze coordinator | `run_all.py` | Enforce order, require six safe results, and validate only after the complete Bronze batch. Bronze only. The pipeline job is the orchestrator for every layer. |
 
 ## Load Bronze
 
@@ -171,7 +176,7 @@ The validator saves evidence in `04-validation.silver_config_dq_results`.
 Run both notebooks in Databricks.
 Local tests verify notebook structure but cannot create Unity Catalog tables.
 
-See [Silver configuration mappings](../docs/silver_config_mappings.md) for table
+See [Silver configuration mappings](../docs/silver/silver_config_mappings.md) for table
 grains, approval rules, and cost controls.
 
 ### Geography and population
@@ -193,7 +198,7 @@ gate. Review every `FLAG`, especially ambiguous and unmatched rows, without dele
 These notebooks use only current Bronze PSGC, current Bronze Table C, approved place
 aliases, and compact audit evidence. They do not scan project, boundary, or MGB data.
 
-See [Silver geography and population](../docs/silver_geography_population.md) for grains,
+See [Silver geography and population](../docs/silver/silver_geography_population.md) for grains,
 matching rules, population authority, lineage, and known limitations.
 
 ### Project foundation
@@ -245,7 +250,7 @@ Run all notebooks in Databricks.
 
 Local tests verify notebook structure and contracts but do not create Unity Catalog tables.
 
-See [Silver project foundation](../docs/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
+See [Silver project foundation](../docs/silver/silver_project_cleaning.md) for project-table contracts, consolidation rules, and known limitations.
 
 ### Flood-control source reconciliation
 
@@ -266,7 +271,7 @@ and ambiguous targets without changing either source table.
 Run all three notebooks in Databricks. Local tests verify structure and contracts but
 do not create Unity Catalog tables.
 
-See [Silver source reconciliation](../docs/silver_source_reconciliation.md) for table
+See [Silver source reconciliation](../docs/silver/silver_source_reconciliation.md) for table
 grains, source roles, matching rules, cost protection, lineage, and limitations.
 
 ### Project-region mapping
@@ -304,7 +309,7 @@ The validator writes all seven quality attributes to
 coverage, unmatched and ambiguous projects, coordinate conflicts, boundary
 version differences, and optional publisher-version gaps.
 
-See [Silver project-to-region mapping](../docs/silver_project_region_mapping.md)
+See [Silver project-to-region mapping](../docs/silver/silver_project_region_mapping.md)
 for the Table 13 grain, D-03 resolution, methods, statuses, lineage, spatial cost
 controls, and Gold handoff.
 
@@ -317,17 +322,17 @@ current Silver project, PSGC, boundary, and project-region checks pass:
 1. `02_silver/08b_profile_project_province_readiness.ipynb`
 
 The notebook creates temporary views only. It extracts DPWH
-`location.province` as source evidence, compares it with official PSGC province
-names by normalized exact equality, and performs one longitude-first
-`ST_COVERS` join against selected province boundaries. Candidate fan-out is
+`location.province` as source evidence. It compares the values with official
+PSGC province names by normalized exact equality. It also performs one
+longitude-first `ST_COVERS` join against selected province boundaries. Candidate fan-out is
 collapsed immediately to one row per canonical project.
 
 Export every result set before the team chooses strict provinces or governed
 province reporting areas. The notebook asserts that project count and reported
-budget do not change, but it does not publish a mapping table or claim that a
+budget do not change. It does not publish a mapping table or claim that a
 candidate is approved.
 
-See [province reporting readiness](../docs/province_reporting_readiness.md) for
+See [province reporting readiness](../docs/silver/province_reporting_readiness.md) for
 the options, proposed D-57 text, required evidence, blockers, and execution
 checklist.
 
@@ -368,7 +373,7 @@ The validator writes all seven quality attributes to
 and unrated MGB rows, unusable geometry, no-data regions, boundary version and
 territory differences, and overlap findings.
 
-See [Silver regional flood exposure](../docs/silver_region_flood_exposure.md)
+See [Silver regional flood exposure](../docs/silver/silver_region_flood_exposure.md)
 for the Table 14 grain, CRS, boundary strategy, overlap rules, lineage, and Gold
 handoff.
 
@@ -412,13 +417,13 @@ coverage against both denominators, projects without usable coordinates, usable
 points without an approved polygon, ambiguous projects, and unmapped or unusable
 MGB rows.
 
-See [Silver project flood mapping](../docs/silver_project_flood_mapping.md) for
+See [Silver project flood mapping](../docs/silver/silver_project_flood_mapping.md) for
 the Table 15 grain, classification rule, lineage, cost controls, and Gold
 handoff.
 
 ## Load Gold
 
-Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/gold_model.md).
+Gold notebooks live in `03_gold`. They build the dimensions and facts in [Gold model](../docs/model/gold_model.md).
 Each notebook first checks that its Silver inputs passed Silver validation. Then it loads rows with `MERGE` on deterministic keys, so a rerun changes nothing.
 
 After every Silver validator passes, run the dimensions in this order:
@@ -435,7 +440,7 @@ Then run the facts, which need every dimension key:
 2. `03_gold/06_gold_fact_region_flood_exposure.ipynb`
 3. `03_gold/07_gold_fact_project_snapshot.ipynb`
 
-Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation.md#gold-validation).
+Then run `04_validation/09_validation_gold.ipynb`. It checks the grain, keys, values, and lineage of every Gold table, and it compares the totals with Silver. It saves its results to `04-validation.gold_dq_results` before its STOP gate, so a failed check stays visible. Review the FLAG rows for projects without a region, a flood level, or a status. See [Gold validation](../docs/validation/validation.md#gold-validation).
 
 Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01-bronze.boundaries` for map storage only (D-35). It needs Databricks Runtime 17.1 or later to parse them.
 
@@ -443,12 +448,12 @@ Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01
 
 Analytics lives in one notebook, `05_analytics/01_business_questions.ipynb`. After `09_validation_gold` passes, run:
 
-1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, drops the retired views, and builds six persisted views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
-2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. It also stops unless the latest province Gold validation passed. Then it proves that `05-analytics` holds exactly the six views, rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. It creates the `05-analytics` schema when needed and drops the retired views. It then builds the persisted Analytics views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data. A rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` requires the latest Gold validation to pass. That validation must cover the current project, population, and exposure facts. The latest province Gold validation must also pass. The notebook proves that `05-analytics` holds exactly the Analytics views. It rebuilds every view from Gold and compares them row by row. Before its STOP gate, it saves results to `04-validation.analytics_dq_results`.
 
 The retired regional progress notebooks (`02_regional_project_progress` and `11_validation_regional_project_progress`, D-55) are removed. Their one-snapshot run stays as [retired evidence](../docs/evidence/regional-project-progress/README.md).
 
-The dashboard and Genie read only these six views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
+The dashboard reads only these Analytics views. See [Analytics views](05_analytics/README.md) and the [dashboard build specification](../dashboard/dashboard_spec.md).
 
 ## Validation connection
 
@@ -466,17 +471,16 @@ in separate result tables: `dq_results` for Bronze, `silver_config_dq_results` a
 for the analytics views.
 Promotion requires the current layer to pass its blocking checks.
 
+The [end-to-end quality gate](06_data_quality/README.md) reads all of these result
+tables at the end of the run. It confirms that every validator ran for this pipeline
+run and passed, and that the layers agree on snapshot, project count, and budget.
+Then it saves `04-validation.quality_gate_results` and lets the dashboard refresh.
+
 ## Future layer organization
 
-Do not add Silver or Gold orchestration to `run_all.py`. When those layers are
-implemented, use explicit layer runners and one top-level pipeline coordinator:
-
-```text
-notebooks/run_bronze.py
-notebooks/run_silver.sql
-notebooks/run_gold.sql
-notebooks/run_pipeline.py
-```
+Do not add Silver or Gold orchestration to `run_all.py`. It stays a manual
+Bronze-only helper. The [pipeline job](../resources/README.md) already orchestrates
+every layer with Databricks task dependencies, so no second coordinator is needed.
 
 Keep validation notebooks separate too:
 
@@ -494,6 +498,9 @@ Keep validation notebooks separate too:
 ├── 09_validation_gold.ipynb
 ├── 10_validation_analytics.ipynb
 └── 11_publish_acceptance_evidence.sql
+
+06_data_quality/
+└── 01_end_to_end_quality_gate.py
 ```
 
 Shared result-writing helpers can move to `src/validation.py` when Python-based
@@ -544,11 +551,12 @@ copying ingestion logic or introducing an enterprise framework.
 ## D-57 production rerun order
 
 The [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs these
-files as 49 dependent tasks, and its last task refreshes the dashboard. `databricks.yml` does not
-include the job, so a bundle deploy does not create a second copy. To run the
+files as 50 dependent tasks, and its last task refreshes the dashboard after the
+end-to-end quality gate passes. `databricks.yml` includes the job, so
+`databricks bundle deploy` keeps it in step with this repository. To run the
 files by hand, use this dependency order. Stop immediately after any
-failed STOP gate; no Gold reporting-area task may bypass Silver validation, and
-no reporting-area Analytics task may bypass Gold validation.
+failed STOP gate. No Gold reporting-area task may bypass Silver validation.
+No reporting-area Analytics task may bypass Gold validation.
 
 1. `00_setup/00_setup_workspace.sql`
 2. `00_setup/01_check_sources.py`
@@ -595,12 +603,14 @@ no reporting-area Analytics task may bypass Gold validation.
 42. `05_analytics/01_business_questions.ipynb`
 43. `04_validation/10_validation_analytics.ipynb`
 44. `04_validation/11_publish_acceptance_evidence.sql`
+45. `06_data_quality/01_end_to_end_quality_gate.py`, which must pass before the
+    dashboard refreshes. See the [quality gate guide](06_data_quality/README.md).
 
 Step 44 is the compact PR evidence publisher. It materializes the latest D-57
-Silver, Gold, and Analytics checks, project and reported-budget coverage,
-mapping-method totals, separate NCR, independent-city, and BARMM totals,
-population coverage and exclusions, selected versions, and a mapping-identity
-checksum. Its outputs do not reinterpret or remap any project.
+Silver, Gold, and Analytics checks. It includes project and reported-budget
+coverage, mapping-method totals, and separate NCR, independent-city, and BARMM
+totals. It also records population coverage, exclusions, selected versions, and
+a mapping-identity checksum. Its outputs do not reinterpret or remap any project.
 
 For exact-rerun evidence, run step 44 once, rerun steps 22 and 23 with unchanged
 inputs, and then run step 44 again. The final `exact_rerun_status` must be
@@ -611,23 +621,23 @@ separate Databricks feasibility run proves that the reporting-area boundary and
 MGB intersection is safe and affordable. Regional flood tasks remain required
 for the unchanged regional model and existing Analytics.
 
-Expected D-57 outcomes are persisted PASS rows for every STOP check, with FLAG
-rows allowed for real coverage limitations. Capture mapped and unmapped project
-and budget coverage, mappings by method, conflicts, ambiguity, missing
-coordinates, NCR, independent-city, BARMM, population coverage, excluded
-population, selected versions, and exact-rerun identities. Do not claim runtime
+Expected D-57 outcomes are persisted PASS rows for every STOP check. FLAG rows
+are allowed for real coverage limitations. Capture mapped and unmapped project
+and budget coverage. Also capture mappings by method, conflicts, ambiguity,
+missing coordinates, NCR, independent-city, BARMM, and population coverage.
+Record excluded population, selected versions, and exact-rerun identities. Do not claim runtime
 approval until `03b`, `09a`, and `10_validation_analytics` have executed and their saved evidence
 passes. The evidence publisher must also show no blocking failures. A claim of
 exact-rerun stability requires two captures with the same project-map run ID
 and mapping-identity checksum.
 
-The October 15, 2026 run satisfied those conditions: 43 checks passed,
-five non-blocking Silver coverage flags remained visible, and two captures
+The October 15, 2026 run satisfied those conditions. Forty-three checks passed,
+and five non-blocking Silver coverage flags remained visible. Two captures
 retained one project-map run ID and one mapping checksum. See the
 [province-reporting runtime evidence](../docs/evidence/province-reporting/README.md).
 
-The October 16, 2026 run of the full order, with the v2 province validators and
-the six Analytics views, also satisfied them: 159 checks were published with no
-failed STOP check, and the exact rerun passed against the October 15 capture.
+The October 16, 2026 full run used the v2 province validators and Analytics
+views. It published 159 checks with no failed STOP check. The exact rerun passed
+against the October 15 capture.
 That run found four Databricks SQL errors, fixed in steps 8, 22, 32, and 39. See
-the [six Analytics views evidence](../docs/evidence/six-analytics-views/README.md).
+the [Analytics evidence](../docs/evidence/analytics-2026-10-16/README.md).

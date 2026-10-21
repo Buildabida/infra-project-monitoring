@@ -341,7 +341,7 @@ def test_source_cost_conflicts_remain_unresolved():
 
 def test_decision_d04_is_not_claimed_as_resolved():
     match_text = notebook_text(MATCH)
-    docs = ROOT / "docs/silver_source_reconciliation.md"
+    docs = ROOT / "docs/silver/silver_source_reconciliation.md"
     assert "D-04 remains open" in match_text
     if docs.exists():
         assert "D-04 remains open" in docs.read_text(encoding="utf-8")

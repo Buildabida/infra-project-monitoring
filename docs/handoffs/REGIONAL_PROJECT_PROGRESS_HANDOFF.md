@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > **Retired.** D-55 was withdrawn by D-56 (proposed) before team approval. The notebooks, tests, and view this handoff describes are removed.
-> Do not run the steps below. The current Analytics contract is in the [Analytics views guide](notebooks/05_analytics/README.md).
+> Do not run the steps below. The current Analytics contract is in the [Analytics views guide](../../notebooks/05_analytics/README.md).
 
 ## Recommendation
 
@@ -111,4 +111,4 @@ Gold. Current status measures are ready to use. Historical measures remain
 `NULL` until a second distinct DPWH snapshot reaches Gold.
 
 See the
-[dated evidence](docs/evidence/regional-project-progress/README.md).
+[dated evidence](../evidence/regional-project-progress/README.md).

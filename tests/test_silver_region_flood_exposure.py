@@ -621,9 +621,9 @@ def test_58_validation_reads_tolerance_from_published_rule_version():
 
 
 def test_59_docs_mark_table_14_implemented():
-    data_model = (ROOT / "docs/data-model.md").read_text(encoding="utf-8")
+    data_model = (ROOT / "docs/model/data-model.md").read_text(encoding="utf-8")
     assert "`02-silver.silver_region_flood_exposure`" in data_model
-    contract = (ROOT / "docs/silver_region_flood_exposure.md").read_text(
+    contract = (ROOT / "docs/silver/silver_region_flood_exposure.md").read_text(
         encoding="utf-8"
     )
     for phrase in [

@@ -445,4 +445,4 @@ Each test left two `load_log` rows under a `_scratch_test` source name, which no
 Issue #105 asked whether Spark's default escape character leaves doubled quotes in Bronze.
 A query of the current tables found 0 values with `""` in `dpwh_projects.source_record_json`, `dpwh_projects.description`, and `boundaries.geometry_json`.
 The loader keeps Spark's default quote and escape settings.
-See [CSV quoting](../../bronze_r2_architecture.md#csv-quoting).
+See [CSV quoting](../../bronze/bronze_r2_architecture.md#csv-quoting).
