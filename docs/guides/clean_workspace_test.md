@@ -1,6 +1,7 @@
 # Clean-workspace test
 
-Issue #23 asks that someone who did not build the pipeline follows our steps in a new workspace, from start to finish, and that every step works as written. Use this checklist for that run, and record the results at the bottom.
+Issue #23 asks a non-builder to follow these steps in a new workspace. Every
+step must work as written. Use this checklist and record the results below.
 
 > [!IMPORTANT]
 > **Cross-workspace reproduction completed.** The team confirms that the
@@ -15,7 +16,7 @@ Issue #23 asks that someone who did not build the pipeline follows our steps in 
 >
 > This evidence confirms cross-workspace and development-bundle
 > reproducibility. Production binding and deployment remain post-merge
-> operations; a successful `dev` run does not prove a `prod` deploy.
+> operations. A successful `dev` run does not prove a `prod` deploy.
 
 ## Before you start
 
@@ -23,7 +24,7 @@ Issue #23 asks that someone who did not build the pipeline follows our steps in 
 - One of these bundle deployment paths:
   - VS Code with the Databricks and Python extensions, plus the
     [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install)
-    0.278.0 or later; or
+    0.278.0 or later
   - a Databricks Git folder with the **Deployments** pane enabled.
 - The six source CSVs listed in the [notebooks guide](../../notebooks/README.md#before-running).
 
@@ -48,18 +49,18 @@ Write the result of each step, and the exact error if one fails.
 | # | Step | Expected result | Result |
 | --- | --- | --- | --- |
 | 1 | Clone locally or create a Databricks Git folder from the repository | The repository opens at the intended branch | Passed through a separate-workspace Git folder |
-| 2 | Select the `dev` target. With the CLI, authenticate to the new workspace. In Databricks, use the current workspace target | The deployment uses the new workspace | Passed; job prefix is `[dev fnpc_work]` |
-| 3 | Make the volume and upload the six CSVs, as above | `SHOW VOLUMES IN` `` `buildabida-capstone`.`00-source` `` lists `cloudflare-r2` | Passed; all source and Bronze tasks completed |
+| 2 | Select the `dev` target. With the CLI, authenticate to the new workspace. In Databricks, use the current workspace target | The deployment uses the new workspace | Passed. Job prefix: `[dev fnpc_work]` |
+| 3 | Make the volume and upload the six CSVs, as above | `SHOW VOLUMES IN` `` `buildabida-capstone`.`00-source` `` lists `cloudflare-r2` | Passed. All source and Bronze tasks completed |
 | 4 | Run `notebooks/00_setup/00_setup_workspace.sql` through the job | The schemas and volume exist | Passed in both runs |
 | 5 | Run `notebooks/00_setup/01_check_sources.py` through the job | Six sources have status `OK` | Passed in both runs |
-| 6 | Make a SQL warehouse, import the dashboard, and note both IDs | The dashboard opens and can be refreshed | Passed; the dashboard task succeeded |
+| 6 | Make a SQL warehouse, import the dashboard, and note both IDs | The dashboard opens and can be refreshed | Passed. The dashboard task succeeded |
 | 7 | Validate `dev` with the selected warehouse and dashboard variables, using the CLI or Deployments pane | The bundle configuration validates | Passed as part of the successful UI deployment |
-| 8 | Deploy `dev` with the CLI or **Deploy** in the Deployments pane | A job named `[dev <you>] buildabida-full-pipeline` appears | Passed; job ID `525182773840716` |
-| 9 | Run the bundle job from the CLI or with **Run now** | All 50 tasks succeed | Passed; run `702857652434494` |
-| 10 | Query `` `04-validation`.quality_gate_summary `` | `ALL` is `PASS` or `FLAG`, with no failed STOP checks | Passed; 0 failed STOP and 0 missing |
-| 11 | Compare the gate with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | The check contract agrees, unless approved source changes explain a difference | Passed; 566 pass and 109 flag |
-| 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | Passed; run `937376856057683` |
-| 13 | Open the dashboard | Overview, three question pages, and Read Me show data | Passed; the dashboard task succeeded |
+| 8 | Deploy `dev` with the CLI or **Deploy** in the Deployments pane | A job named `[dev <you>] buildabida-full-pipeline` appears | Passed. Job ID: `525182773840716` |
+| 9 | Run the bundle job from the CLI or with **Run now** | All 50 tasks succeed | Passed. Run: `702857652434494` |
+| 10 | Query `` `04-validation`.quality_gate_summary `` | `ALL` is `PASS` or `FLAG`, with no failed STOP checks | Passed with 0 failed STOP and 0 missing |
+| 11 | Compare the gate with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | The check contract agrees, unless approved source changes explain a difference | Passed with 566 passed checks and 109 flags |
+| 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | Passed. Run: `937376856057683` |
+| 13 | Open the dashboard | Overview, three question pages, and Read Me show data | Passed. The dashboard task succeeded |
 | 14 | Run the repository link check | Every repository link opens | Passed in PR #138 `Links` CI job |
 
 Steps 6 to 13 were completed by the October 21 dev-bundle run. Step 14 is also
@@ -73,11 +74,11 @@ affected step.
 | --- | --- |
 | Tester (not one of the builders) | Team member using an independently configured workspace |
 | Date | October 21, 2026 |
-| Commit | Branch `feat/productionize-governance`; exact deployed commit was not captured in the screenshots |
+| Commit | Branch `feat/productionize-governance`. Exact deployed commit was not captured in the screenshots |
 | Workspace | Separate Databricks Free Edition workspace |
 | Job | `[dev fnpc_work] buildabida-full-pipeline`, ID `525182773840716` |
-| Job run IDs (first and second run) | `702857652434494`; `937376856057683` |
-| Total time | 1h 11m 21s; 1h 19m 18s |
+| Job run IDs (first and second run) | `702857652434494` and `937376856057683` |
+| Total time | 1h 11m 21s and 1h 19m 18s |
 | Quality gate | Both `ALL` rows: FLAG, 566 pass, 109 flag, 0 failed STOP, 0 missing |
 | Steps that failed, and the fix pull request | None in the two recorded complete runs |
 
