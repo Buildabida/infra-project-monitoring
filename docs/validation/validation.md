@@ -952,7 +952,7 @@ nothing. Every FLAG count equals the run above. The rows are in
 ## Analytics validation
 
 `notebooks/04_validation/10_validation_analytics.ipynb` checks the Analytics views
-in `05-analytics`. The dashboard reads these views (D-56, proposed). They include
+in `05-analytics`. The dashboard reads these views (D-56). They include
 the D-57 province reporting area in views 1, 2, 4, 5, and 6. The validator
 only reads Gold, the views, `information_schema.views`, and the validation
 results. It writes only `04-validation.analytics_dq_results`.

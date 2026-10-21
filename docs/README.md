@@ -5,7 +5,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | If you need to | Read |
 | --- | --- |
 | Set up Databricks and run the first notebooks | [Quickstart](../README.md#quickstart) |
-| Know what each table holds and its key | [Data model](model/data-model.md) |
+| Know what each table holds and its key, and see the Gold diagram | [Data model](model/data-model.md) |
 | Know what the Bronze, Silver, Gold, and Analytics checks do | [Data-quality checks](validation/validation.md) |
 | Review Silver mapping tables and approval rules | [Silver configuration mappings](silver/silver_config_mappings.md) |
 | Review PSGC, Table C reconciliation, and region population | [Silver geography and population](silver/silver_geography_population.md) |
@@ -27,6 +27,7 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Monitor a run, get failure emails, recover with Repair run, and set up GitHub | [Operations guide](guides/operations.md) |
 | Know what the end-to-end quality gate checks and how to read its result | [Quality gate](../notebooks/06_data_quality/README.md) |
 | Know what each Gold fact and dimension holds, its grain, and its keys | [Gold model](model/gold_model.md) |
+| Get the source data, or read-only access for grading | [Get the source data](guides/data_access.md) |
 | Test the README from a new workspace | [Clean-workspace test](guides/clean_workspace_test.md) |
 | See how the pipeline handles a new source pull or changed columns | [Update resilience](guides/update_resilience.md) |
 | Read old change manifests, review summaries, and handoffs | [Change history](change-history/README.md) and [handoffs](handoffs/README.md) |

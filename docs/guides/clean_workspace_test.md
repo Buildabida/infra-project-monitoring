@@ -30,7 +30,7 @@ step must work as written. Use this checklist and record the results below.
 
 ### Getting the source files
 
-The team workspace reads the CSVs from Cloudflare R2 through the `cloudflare-r2` volume. A new workspace has no access to that bucket, and `00_setup_workspace` only checks the volume. It never creates it. So the tester needs a copy of the six files **from the team**. Ask Nadine. The repository does not store data files (see [keep it safe](../../CONTRIBUTING.md#keep-it-safe)).
+The team workspace reads the CSVs from Cloudflare R2 through the `cloudflare-r2` volume. A new workspace has no access to that bucket, and `00_setup_workspace` only checks the volume. It never creates it. So the tester needs a copy of the six files **from the team**. Ask Nadine. To grade without copying files, use read-only access to the team workspace instead. See [get the source data](data_access.md). The repository does not store data files (see [keep it safe](../../CONTRIBUTING.md#keep-it-safe)).
 
 Then make a managed volume with the same name, so every path in `src/config.py` stays the same:
 
@@ -74,7 +74,7 @@ affected step.
 | --- | --- |
 | Tester (not one of the builders) | Team member using an independently configured workspace |
 | Date | October 21, 2026 |
-| Commit | Branch `feat/productionize-governance`. Exact deployed commit was not captured in the screenshots |
+| Commit | Branch `feat/productionize-governance`. Most likely `b6abb91` with the deploy settings of `f79b9d6`, inferred from git history. See [deployed commit](../evidence/dev-bundle-2026-10-21/README.md#deployed-commit) |
 | Workspace | Separate Databricks Free Edition workspace |
 | Job | `[dev fnpc_work] buildabida-full-pipeline`, ID `525182773840716` |
 | Job run IDs (first and second run) | `702857652434494` and `937376856057683` |

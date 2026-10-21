@@ -63,7 +63,9 @@ def model_columns(table):
     text = GOLD_MODEL.read_text(encoding="utf-8")
     section = text.split(f"#### `{table}`\n", 1)[1].split("\n#", 1)[0]
     rows = re.findall(
-        r"^\| (?:PK|FK|None) \| `(\w+)` \| ([^|]+?) \|$", section, re.MULTILINE
+        r"^\| (?:PK|FK|None) \| `(\w+)` \| ([^|]+?) \|(?: [^|]* \|)?$",
+        section,
+        re.MULTILINE,
     )
     assert rows, table
     return rows
@@ -377,3 +379,29 @@ def test_19_flood_dimension_stops_on_an_empty_mgb_load_time():
         "'STOP: silver_project_flood_map must carry exactly one MGB load time on every row' ) "
         "FROM `02-silver`.silver_project_flood_map;"
     ) in text
+
+
+def test_20_gold_model_meanings_match_the_notebook_column_comments():
+    # every gold table, the d-57 province tables included
+    text = GOLD_MODEL.read_text(encoding="utf-8")
+    checked = 0
+    for path in sorted(GOLD.glob("*.ipynb")):
+        code = sql(path)
+        for table in re.findall(
+            r"CREATE TABLE IF NOT EXISTS `03-gold`\.(\w+) \(", code
+        ):
+            body = code.split(f"CREATE TABLE IF NOT EXISTS `03-gold`.{table} (", 1)[1]
+            body = body.split("\n)", 1)[0]
+            comments = re.findall(
+                r"^\s+(\w+) \S+(?: NOT NULL)? COMMENT '([^']+)',?$", body, re.MULTILINE
+            )
+            section = text.split(f"#### `{table}`\n", 1)[1].split("\n#", 1)[0]
+            meanings = re.findall(
+                r"^\| (?:PK|FK|None) \| `(\w+)` \| [^|]+ \| ([^|]+?) \|$",
+                section,
+                re.MULTILINE,
+            )
+            assert comments, table
+            assert meanings == comments, table
+            checked += 1
+    assert checked == 12

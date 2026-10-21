@@ -108,13 +108,11 @@ Gold is a star schema with four facts that share dimensions. They share region, 
 
 The dimensions are `dim_project`, `dim_project_status`, `dim_date` (used for three roles), `dim_region`, `dim_province_reporting_area`, `dim_flood_susceptibility`, and two boundary tables.
 
-![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](docs/images/gold-constellation-schema-2026-10-21.png)
-
 - Keys are deterministic, so a rerun never changes them (D-33).
 - Key `0` holds Central Office, unmatched, and unresolved records, so nothing is dropped.
 - Every fact keeps `source_snapshot_id` and `run_id` (D-29).
 
-The full columns, keys, and relationships are in the [Gold model](docs/model/gold_model.md). The [data model](docs/model/data-model.md) covers every layer.
+The full columns, keys, relationships, and what each column means are in the [Gold model](docs/model/gold_model.md). The diagram of all twelve Gold tables is in the [data model](docs/model/data-model.md#gold-diagram).
 
 ## Quickstart
 
@@ -127,6 +125,8 @@ We write code in VS Code and run it in the shared [Databricks Free Edition](http
 5. Run `notebooks/00_setup/01_check_sources.py` the same way. All six sources should be `OK`.
 
 Full steps: [set up VS Code](docs/guides/vscode-setup.md). Testing from a brand-new workspace: [clean-workspace test](docs/guides/clean_workspace_test.md).
+
+**Graders and reviewers:** you don't need to copy any data. Ask Nadine for read-only access to the team workspace, where the source files, every table, the job runs, and the dashboard already live. See [get the source data](docs/guides/data_access.md) for this and the other options.
 
 ## Run the pipeline
 
@@ -159,7 +159,7 @@ The `ALL` row must be `PASS` or `FLAG`. `FLAG` means known data limits, listed b
 
 Every layer is implemented. Bronze loads all six sources, and Silver cleans, maps, and matches them. The six Gold dimensions are implemented, plus the two province reporting-area dimensions from D-57 and all four facts. The Analytics views and the dashboard read them.
 
-On October 16, 2026, the full 49-task job ran in Databricks job run `1077732256280159`. Every task succeeded after a repair:
+On October 16, 2026, the full job ran in Databricks job run `1077732256280159`. It had 49 tasks then. The 50-task job described next adds the end-to-end gate. Every task succeeded after a repair:
 
 - 159 province and Analytics checks were saved, with no failed STOP check.
 - 75.3267 percent of projects and 83.6904 percent of reported budget are mapped to a province reporting area.
@@ -175,6 +175,18 @@ a separate Free Edition workspace. Its two complete job runs,
 dashboard. They used the same source snapshot and produced the same gate
 counts: 566 pass, 109 flag, 0 failed STOP, and 0 missing. See the
 [dev-bundle and clean-workspace evidence](docs/evidence/dev-bundle-2026-10-21/README.md).
+
+## Assumptions
+
+These choices shape every number we show. Each one links to the decision behind it.
+
+- **Reported budget stands for investment.** We measure investment as the reported project or contract budget, because the source has no payment data ([D-28](docs/decisions.md)).
+- **DPWH is the budget authority.** The flood-control list only marks membership, by exact Contract ID. Its costs are never added to the DPWH budget ([D-04](docs/decisions.md)).
+- **Census Table C is the population.** PSGC population is only a cross-check ([D-18](docs/decisions.md)).
+- **Population and flood risk stand for need.** The brief asks about "infrastructure needs." We use population and MGB flood susceptibility as the measurable signs of need.
+- **The map point is the best location evidence.** A project's reporting area comes mostly from its map point inside an official boundary. The DPWH `location.province` text is only supporting evidence ([D-57](docs/decisions.md)).
+- **One snapshot is the current picture.** Gold compares places within one DPWH snapshot. `infra_year` groups projects by program year. It is not a year of spending.
+- **The approved snapshots match their publishers.** We trust that each exported CSV kept the publisher's values. We can't prove that every export was lossless (see Known limits).
 
 ## Known limits
 

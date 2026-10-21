@@ -65,7 +65,9 @@ def model_columns(table):
     text = GOLD_MODEL.read_text(encoding="utf-8")
     section = text.split(f"#### `{table}`\n", 1)[1].split("\n#", 1)[0]
     rows = re.findall(
-        r"^\| (?:PK|FK|None) \| `(\w+)` \| ([^|]+?) \|$", section, re.MULTILINE
+        r"^\| (?:PK|FK|None) \| `(\w+)` \| ([^|]+?) \|(?: [^|]* \|)?$",
+        section,
+        re.MULTILINE,
     )
     assert rows, table
     return rows

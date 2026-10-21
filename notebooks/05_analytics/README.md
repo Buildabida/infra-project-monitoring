@@ -1,6 +1,6 @@
 # Analytics views
 
-This folder builds the views that the dashboard (#20) reads. The Analytics layer has **one view per capstone insight** ([D-56](../../docs/decisions.md), proposed). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
+This folder builds the views that the dashboard (#20) reads. The Analytics layer has **one view per capstone insight** ([D-56](../../docs/decisions.md)). One notebook in this folder builds them all, after `09_validation_gold` passes. The views live in `05-analytics`, read governed Gold only, and hold no data of their own.
 
 The views report two governed geographic levels: the official PSGC region and the D-57 province reporting area. The earlier designs are retired. They include six business-question views (D-50, D-51), five exploratory monitoring views (D-54), and a proposed regional progress view (D-55). Five `analytics_reporting_area_*` views first built for D-57 are also retired. The notebook now drops those views. `10_validation_analytics` stops the run if any remains.
 
