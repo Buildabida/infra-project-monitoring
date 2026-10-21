@@ -18,15 +18,16 @@ job.
 | Second run window | October 21, 2026, 11:37 AM to 12:57 PM, Asia/Manila |
 | Source snapshot | `metadata-6321c7aa6f2a14e12f4c` |
 | Repository branch | `feat/productionize-governance` |
-| Deployed commit | Most likely `b6abb91` plus the local bundle edits later committed as `f79b9d6`. Inferred from git history, not read from Databricks. See [deployed commit](#deployed-commit) |
+| Deployed commit | `b6abb91` with the bundle edits later committed as `f79b9d6`. Confirmed by the tester. See [deployed commit](#deployed-commit) |
 
 Both runs finished with status **Succeeded**. The second run used the same
 source snapshot and repeated the same quality-gate counts.
 
 ## Deployed commit
 
-The screenshots don't show the commit, so it was reconstructed from the branch
-history. Times are Asia/Manila, from the commit timestamps.
+The screenshots don't show the commit. The team reconstructed it from the
+branch history, and the tester confirmed it. Times are Asia/Manila, from the
+commit timestamps.
 
 | Commit | Time | What it shows |
 | --- | --- | --- |
@@ -34,13 +35,14 @@ history. Times are Asia/Manila, from the commit timestamps.
 | `f79b9d6` | Oct 21, 11:37 AM | Committed by the tester the same minute the second run started. It changes only deploy settings: it removes the team workspace host from the `dev` target and replaces the `dashboard_id` variable with a fixed dashboard ID that differs from the team default. These are the edits a deploy to a separate workspace needs |
 | `f2585ab` | Oct 21, 1:30 PM | Puts the dashboard ID back to the `dashboard_id` variable, so the repository stays workspace-neutral |
 
-So the pipeline code that ran is most likely `b6abb91`, with the two deploy
-settings from `f79b9d6`. Between `b6abb91` and `f79b9d6`, no notebook, `src`,
+The deployed code was `b6abb91` with the edits from `f79b9d6`. The tester
+confirmed this. Between `b6abb91` and `f79b9d6`, no notebook, `src`,
 or job task changed except one added dependency in `f79b9d6`:
 `gold_fact_region_population` now waits for `gold_dim_flood_susceptibility`.
 
-This is an inference, not proof. To confirm it, open the deployment metadata
-that the bundle writes in the tester's workspace:
+The confirmation came from the tester, not from Databricks metadata. To check it
+again, open the deployment metadata that the bundle writes in the tester's
+workspace:
 
 ```text
 /Workspace/Users/<tester>/.bundle/infra-project-monitoring/dev/state/metadata.json

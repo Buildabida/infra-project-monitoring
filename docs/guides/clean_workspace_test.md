@@ -74,7 +74,7 @@ affected step.
 | --- | --- |
 | Tester (not one of the builders) | Team member using an independently configured workspace |
 | Date | October 21, 2026 |
-| Commit | Branch `feat/productionize-governance`. Most likely `b6abb91` with the deploy settings of `f79b9d6`, inferred from git history. See [deployed commit](../evidence/dev-bundle-2026-10-21/README.md#deployed-commit) |
+| Commit | Branch `feat/productionize-governance`. `b6abb91` with the edits from `f79b9d6`, confirmed by the tester. See [deployed commit](../evidence/dev-bundle-2026-10-21/README.md#deployed-commit) |
 | Workspace | Separate Databricks Free Edition workspace |
 | Job | `[dev fnpc_work] buildabida-full-pipeline`, ID `525182773840716` |
 | Job run IDs (first and second run) | `702857652434494` and `937376856057683` |
