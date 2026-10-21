@@ -304,6 +304,8 @@ and deterministic Silver run. Population is the sum of reconciled Table C
 
 Every relationship is one-to-many, from a dimension to a fact or to another dimension.
 
+![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/constellation-schema.png)
+
 | Parent (one) | Child (many) | Join columns |
 | --- | --- | --- |
 | `dim_project.project_key` | `fact_project_snapshot` | `project_key` |

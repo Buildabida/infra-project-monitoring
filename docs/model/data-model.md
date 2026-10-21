@@ -252,6 +252,15 @@ boundary keeps `NULL` measures with `NO_SAFE_REGION_BOUNDARY`. Blank and
 See [Silver regional flood exposure](../silver/silver_region_flood_exposure.md) for the
 complete CRS, boundary, overlap, lineage, validation, and Gold handoff contracts.
 
+## Gold constellation schema
+
+Gold has four facts and eight dimensions. The facts share region, reporting
+area, flood level, and date, so they form a constellation. The
+[Gold model](gold_model.md#relationships) lists every column and relationship
+in the diagram.
+
+![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/constellation-schema.png)
+
 ## Gold fact tables (implemented)
 
 Three notebooks in `notebooks/03_gold` build these fact tables. The exact columns and types are in the [Gold model](gold_model.md).
