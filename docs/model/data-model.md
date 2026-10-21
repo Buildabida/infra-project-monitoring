@@ -140,11 +140,14 @@ erDiagram
     }
 ```
 
-GitHub draws the diagram above. For slides, use the same diagram as an image:
-[gold-model-erd.png](../images/gold-model-erd.png).
-The earlier [constellation-schema.png](../images/constellation-schema.png) shows
-only the regional model, before the D-57 province reporting-area tables. Keep it
-as history.
+GitHub draws the diagram above with keys and main measures only. The team's
+full diagram shows every column of all twelve tables:
+
+![Gold constellation schema with all twelve tables and every column](../images/gold-constellation-schema-2026-10-21.png)
+
+For slides, use [gold-constellation-schema-2026-10-21.png](../images/gold-constellation-schema-2026-10-21.png).
+[gold-model-erd.png](../images/gold-model-erd.png) is the smaller diagram above,
+saved as an image.
 
 ## Bronze source contracts (implemented)
 
