@@ -541,8 +541,10 @@ def test_25_docs_describe_the_six_views():
     assert "02_regional_project_progress" not in readme
     decisions = DECISIONS.read_text(encoding="utf-8")
     assert "| D-56 |" in decisions
-    # d-56 waits for team approval, so it is proposed and not recorded as made
+    # the team approved d-56, so it is recorded as made and no longer proposed
     made = decisions.split("## Made", 1)[1].split("## Resolved questions", 1)[0]
-    assert "| D-56 |" not in made
+    assert "| D-56 |" in made
+    proposed = decisions.split("## Proposed decisions", 1)[1]
+    assert "| D-56 |" not in proposed.split("## Withdrawn", 1)[0]
     # d-55 is withdrawn, not silently deleted
     assert "| D-55 |" in decisions.split("## Withdrawn proposals", 1)[1]

@@ -12,13 +12,139 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Implemented | All governed Silver transformations and validators are implemented. Empty exception tables remain valid until a reviewer approves an exception. |
 | Gold | Implemented | Ten notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the reporting-area extension. The [Gold model](gold_model.md) holds the exact table definitions and runtime evidence. |
-| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026. Awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
+| Analytics | Implemented. Runtime-validated on Databricks on October 16, 2026, and again in the October 21, 2026 clean-workspace bundle runs | Governed Analytics views in `05-analytics`, one per capstone insight (D-56). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
                       ↓                    ↓                         ↓                       ↓
                  04-validation shared results for Bronze, Silver, Gold, and Analytics
 ```
+
+## Gold diagram
+
+Gold is a constellation schema. Four facts share the region, reporting-area,
+flood-level, and date dimensions. The diagram shows every Gold table with its
+keys and main measures. The [Gold model](gold_model.md) lists every column and
+what it means. The lines follow its [relationships](gold_model.md#relationships)
+table.
+
+```mermaid
+erDiagram
+    dim_project ||--o{ fact_project_snapshot : "project_key"
+    dim_project_status ||--o{ fact_project_snapshot : "status_key"
+    dim_date ||--o{ fact_project_snapshot : "snapshot_date_key"
+    dim_date ||--o{ fact_project_snapshot : "start_date_key"
+    dim_date ||--o{ fact_project_snapshot : "source_completion_date_key"
+    dim_flood_susceptibility ||--o{ fact_project_snapshot : "flood_susceptibility_key"
+    dim_flood_susceptibility ||--o{ fact_region_flood_exposure : "flood_susceptibility_key"
+    dim_region ||--o{ fact_project_snapshot : "region_key"
+    dim_region ||--o{ dim_province_reporting_area : "region_key"
+    dim_region ||--o{ fact_region_flood_exposure : "region_key"
+    dim_region ||--o{ fact_region_population : "region_key"
+    dim_region ||--o{ dim_region_boundary : "region_key"
+    dim_province_reporting_area ||--o{ fact_project_snapshot : "reporting_area_key"
+    dim_province_reporting_area ||--o{ fact_province_reporting_area_population : "reporting_area_key"
+    dim_province_reporting_area ||--o{ dim_province_reporting_area_boundary : "reporting_area_key"
+    dim_project {
+        BIGINT project_key PK
+        STRING contract_id
+        STRING standardized_sector
+        BOOLEAN is_dpwh_flood_related
+        BOOLEAN is_in_official_flood_list
+        INT infra_year
+    }
+    dim_date {
+        INT date_key PK
+        DATE calendar_date
+        INT calendar_year
+        INT calendar_quarter
+    }
+    dim_project_status {
+        INT status_key PK
+        STRING source_status
+        STRING standardized_status
+        STRING status_group
+    }
+    dim_flood_susceptibility {
+        INT flood_susceptibility_key PK
+        STRING flood_susceptibility_level
+        INT severity_rank
+    }
+    dim_region {
+        BIGINT region_key PK
+        STRING psgc_region_code
+        STRING region_name
+        BOOLEAN is_barmm
+    }
+    dim_region_boundary {
+        BIGINT boundary_key PK
+        BIGINT region_key FK
+        GEOMETRY boundary_geometry
+        STRING boundary_version
+        STRING psgc_match_status
+    }
+    dim_province_reporting_area {
+        BIGINT reporting_area_key PK
+        STRING psgc_reporting_area_code
+        STRING reporting_area_name
+        STRING reporting_area_type
+        BIGINT region_key FK
+    }
+    dim_province_reporting_area_boundary {
+        BIGINT boundary_key PK
+        BIGINT reporting_area_key FK
+        GEOMETRY boundary_geometry
+        STRING boundary_version
+        STRING boundary_status
+    }
+    fact_project_snapshot {
+        BIGINT project_snapshot_key PK
+        BIGINT project_key FK
+        BIGINT region_key FK
+        BIGINT reporting_area_key FK
+        INT status_key FK
+        INT flood_susceptibility_key FK
+        INT snapshot_date_key FK
+        INT start_date_key FK
+        INT source_completion_date_key FK
+        DECIMAL reported_budget_pesos
+        DECIMAL physical_progress_pct
+        BOOLEAN long_running_flag
+        BOOLEAN zero_progress_flag
+        BOOLEAN is_current_snapshot
+        STRING source_snapshot_id
+    }
+    fact_region_flood_exposure {
+        BIGINT region_flood_exposure_key PK
+        BIGINT region_key FK
+        INT flood_susceptibility_key FK
+        DECIMAL susceptible_area_sqkm
+        DECIMAL share_of_region_area_pct
+        STRING level_area_additivity_status
+        STRING mgb_source_snapshot_id
+    }
+    fact_region_population {
+        BIGINT region_population_fact_key PK
+        BIGINT region_key FK
+        INT reference_year
+        BIGINT population_count
+        BOOLEAN is_primary_source
+    }
+    fact_province_reporting_area_population {
+        BIGINT reporting_area_population_fact_key PK
+        BIGINT reporting_area_key FK
+        INT reference_year
+        BIGINT population_count
+        BOOLEAN is_primary_source
+        STRING source_snapshot_id
+    }
+```
+
+GitHub draws the diagram above. For slides, use the same diagram as an image:
+[gold-model-erd.png](../images/gold-model-erd.png).
+The earlier [constellation-schema.png](../images/constellation-schema.png) shows
+only the regional model, before the D-57 province reporting-area tables. Keep it
+as history.
 
 ## Bronze source contracts (implemented)
 
@@ -251,15 +377,6 @@ boundary keeps `NULL` measures with `NO_SAFE_REGION_BOUNDARY`. Blank and
 
 See [Silver regional flood exposure](../silver/silver_region_flood_exposure.md) for the
 complete CRS, boundary, overlap, lineage, validation, and Gold handoff contracts.
-
-## Gold constellation schema
-
-Gold has four facts and eight dimensions. The facts share region, reporting
-area, flood level, and date, so they form a constellation. The
-[Gold model](gold_model.md#relationships) lists every column and relationship
-in the diagram.
-
-![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/gold-constellation-schema-2026-10-21.png)
 
 ## Gold fact tables (implemented)
 

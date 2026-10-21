@@ -21,7 +21,9 @@ Follow the [style guide](../style-guide.md) for all Gold work. These points matt
 
 ## Table definitions
 
-Each table lists its key type, column, and data type in the order the column appears in the table. `PK` means primary key. `FK` means foreign key.
+Each table lists its key type, column, data type, and meaning in the order the column appears in the table. `PK` means primary key. `FK` means foreign key.
+
+Each meaning is copied from the column comment in the notebook's `CREATE TABLE` statement. If you change a comment in a notebook, change it here in the same pull request. The diagram of these tables is in the [data model](data-model.md#gold-diagram).
 
 ### Dimensions
 
@@ -30,115 +32,115 @@ Each table lists its key type, column, and data type in the order the column app
 Grain: one unique contract per source system.
 Uniqueness: `source_system`, `contract_id`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `project_key` | BIGINT |
-| None | `contract_id` | STRING |
-| None | `source_system` | STRING |
-| None | `project_description` | STRING |
-| None | `raw_category` | STRING |
-| None | `source_infra_type` | STRING |
-| None | `standardized_sector` | STRING |
-| None | `infra_type_mapping_status` | STRING |
-| None | `taxonomy_version` | STRING |
-| None | `is_dpwh_flood_related` | BOOLEAN |
-| None | `is_in_official_flood_list` | BOOLEAN |
-| None | `flood_list_match_status` | STRING |
-| None | `flood_list_version` | STRING |
-| None | `funding_source` | STRING |
-| None | `implementing_office` | STRING |
-| None | `contractor_name` | STRING |
-| None | `infra_year` | INT |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `project_key` | BIGINT | Surrogate key. XXHASH64 of the label PROJECT, the source system, and the Contract ID. |
+| None | `contract_id` | STRING | DPWH Contract ID exactly as published. |
+| None | `source_system` | STRING | Source system of the project. Always DPWH. |
+| None | `project_description` | STRING | Project description. NULL when the source rows disagree. |
+| None | `raw_category` | STRING | DPWH category exactly as published. It mixes work categories and funding codes, such as GAA 2025 SSP. |
+| None | `source_infra_type` | STRING | DPWH componentCategories values from Silver, sorted and joined by commas. NULL when the project has none. |
+| None | `standardized_sector` | STRING | Approved sector from the Silver taxonomy (D-39). Multi-sector when a project has more than one approved category. NULL when unmapped. |
+| None | `infra_type_mapping_status` | STRING | Silver category_classification_status: MAPPED_SINGLE, MAPPED_MULTI, MISSING_SOURCE_CATEGORY, or UNAPPROVED_SOURCE_CATEGORY. It says why a sector is NULL. |
+| None | `taxonomy_version` | STRING | Approved category taxonomy version. NO_APPROVED_TAXONOMY when none applies. |
+| None | `is_dpwh_flood_related` | BOOLEAN | True when an approved component is Flood Control and Drainage (D-39). False when every category is approved and not flood. NULL when unmapped. Separate from is_in_official_flood_list. |
+| None | `is_in_official_flood_list` | BOOLEAN | True when the Contract ID exactly matches the official flood-control list. Membership only. Flood-list cost is never added to the budget. |
+| None | `flood_list_match_status` | STRING | MATCHED_EXACT_CONTRACT_ID or NOT_IN_FLOOD_LIST. |
+| None | `flood_list_version` | STRING | Version of the flood-control list that was searched. The snapshot ID when no publisher version exists. |
+| None | `funding_source` | STRING | Source of funds as published. NULL when the source rows disagree. |
+| None | `implementing_office` | STRING | Implementing District Engineering Office from the DPWH deo field, resolved by Silver. NULL when a project has no single office. |
+| None | `contractor_name` | STRING | Contractor as published. NULL when the source rows disagree. |
+| None | `infra_year` | INT | Infrastructure program year from Silver infra_year_parsed. NULL when the source value is not a whole year. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver project run, the source-match run, and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Latest Bronze load time of the DPWH snapshot and the flood-control list behind this row. |
 
 #### `dim_date`
 
 Grain: one row per calendar date.
 Uniqueness: `calendar_date`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `date_key` | INT |
-| None | `calendar_date` | DATE |
-| None | `calendar_year` | INT |
-| None | `calendar_quarter` | INT |
-| None | `month_number` | INT |
-| None | `month_name` | STRING |
-| None | `day_of_month` | INT |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `date_key` | INT | Surrogate key in yyyymmdd form, such as 20261004. Key 0 is the unknown date. |
+| None | `calendar_date` | DATE | Calendar date. NULL only for the unknown member, key 0. |
+| None | `calendar_year` | INT | Four-digit calendar year. |
+| None | `calendar_quarter` | INT | Calendar quarter from 1 to 4. |
+| None | `month_number` | INT | Calendar month from 1 (January) to 12 (December). |
+| None | `month_name` | STRING | Full English month name, such as October. Unknown for key 0. |
+| None | `day_of_month` | INT | Day of the month from 1 to 31. |
 
 #### `dim_project_status`
 
 Grain: one source status mapping per mapping version.
 Uniqueness: `source_system`, `source_status`, `status_mapping_version`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `status_key` | INT |
-| None | `source_status` | STRING |
-| None | `standardized_status` | STRING |
-| None | `status_group` | STRING |
-| None | `status_mapping_version` | STRING |
-| None | `source_system` | STRING |
-| None | `is_active` | BOOLEAN |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `status_key` | INT | Surrogate key. HASH of the label PROJECT_STATUS, the source system, source status, and mapping version. Key 0 is a missing or conflicting status. |
+| None | `source_status` | STRING | DPWH status exactly as published, such as Completed or On-Going. |
+| None | `standardized_status` | STRING | Team-approved standardized status. NULL until a status mapping is approved. |
+| None | `status_group` | STRING | Team-approved status group. NULL until a status mapping is approved. |
+| None | `status_mapping_version` | STRING | Approved status mapping version. NO_APPROVED_STATUS_MAPPING when none exists. |
+| None | `source_system` | STRING | Source system of the status. Always DPWH. |
+| None | `is_active` | BOOLEAN | True for rows of the current mapping version. Older versions stay for history. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver project run, the mapping version, and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Bronze load time of the DPWH snapshot behind these statuses. |
 
 #### `dim_flood_susceptibility`
 
 Grain: one susceptibility classification per source version.
 Uniqueness: `source_system`, `flood_susceptibility_level`, `source_version`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `flood_susceptibility_key` | INT |
-| None | `flood_susceptibility_level` | STRING |
-| None | `severity_rank` | INT |
-| None | `source_system` | STRING |
-| None | `source_version` | STRING |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `flood_susceptibility_key` | INT | Surrogate key. HASH of the label FLOOD_SUSCEPTIBILITY, the source system, level, and source version. Key 0 is Unknown: no single approved level. It never means low or zero risk. |
+| None | `flood_susceptibility_level` | STRING | Approved MGB level: Low, Moderate, High, or Very High. Unknown for key 0. |
+| None | `severity_rank` | INT | Approved severity rank from 1 (Low) to 4 (Very High). 0 for Unknown. Use it to sort, not to add. |
+| None | `source_system` | STRING | Source system of the susceptibility codes. |
+| None | `source_version` | STRING | Source contract of the approved code-to-level mapping. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the mapping version, source version, and Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Bronze load time of the MGB snapshot these levels classify. |
 
 #### `dim_region`
 
 Grain: one official PSGC region per PSGC version, plus key `0`.
 Uniqueness: `psgc_region_code`, `psgc_version`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `region_key` | BIGINT |
-| None | `psgc_region_code` | STRING |
-| None | `region_name` | STRING |
-| None | `region_short_name` | STRING |
-| None | `psgc_version` | STRING |
-| None | `is_barmm` | BOOLEAN |
-| None | `is_geographic_region` | BOOLEAN |
-| None | `centroid_latitude` | DOUBLE |
-| None | `centroid_longitude` | DOUBLE |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `psgc_run_id` | STRING |
-| None | `exposure_run_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `region_key` | BIGINT | Surrogate key. XXHASH64 of the label PSGC_REGION, the PSGC region code, and the PSGC version. Key 0 is unknown or non-geographic. |
+| None | `psgc_region_code` | STRING | Official 10-digit PSGC region code. NULL for key 0. |
+| None | `region_name` | STRING | Official PSGC region name, such as Region I (Ilocos Region). |
+| None | `region_short_name` | STRING | Short label from the trailing parentheses of the official name, such as NCR. The full name when there are no parentheses. |
+| None | `psgc_version` | STRING | PSGC publisher version of the official region list. |
+| None | `is_barmm` | BOOLEAN | True for the Bangsamoro Autonomous Region in Muslim Mindanao. Source coverage there is limited. |
+| None | `is_geographic_region` | BOOLEAN | True for an official region. False for key 0, which also holds Central Office. |
+| None | `centroid_latitude` | DOUBLE | Latitude of the boundary centroid in EPSG:4326. NULL when Table 14 found no safe boundary. |
+| None | `centroid_longitude` | DOUBLE | Longitude of the boundary centroid in EPSG:4326. NULL when Table 14 found no safe boundary. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver PSGC run, the Table 14 run, and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Bronze load time of the PSGC snapshot behind this row. |
+| None | `psgc_run_id` | STRING | Silver run ID of the PSGC region list behind this row. Joins to silver_psgc_place.run_id. |
+| None | `exposure_run_id` | STRING | Silver run ID of Table 14 behind the centroid. Joins to silver_region_flood_exposure.run_id. |
 
 #### `dim_region_boundary`
 
 Grain: one boundary version per official region.
 Uniqueness: `region_key`, `boundary_version`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `boundary_key` | BIGINT |
-| FK | `region_key` | BIGINT |
-| None | `boundary_geometry` | GEOMETRY(4326) |
-| None | `boundary_version` | STRING |
-| None | `coordinate_reference_system` | STRING |
-| None | `geometry_valid_flag` | BOOLEAN |
-| None | `psgc_match_status` | STRING |
-| None | `source_system` | STRING |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `psgc_run_id` | STRING |
-| None | `exposure_run_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `boundary_key` | BIGINT | Surrogate key. XXHASH64 of the label REGION_BOUNDARY, the region key, and the boundary version. |
+| FK | `region_key` | BIGINT | Region this boundary belongs to. Joins to dim_region.region_key. |
+| None | `boundary_geometry` | GEOMETRY(4326) | Region polygon or multipolygon in EPSG:4326, parsed with the Table 13 rule. For maps only, not for area. |
+| None | `boundary_version` | STRING | Publisher version of the boundary dataset. |
+| None | `coordinate_reference_system` | STRING | Coordinate reference system of boundary_geometry. Always EPSG:4326. |
+| None | `geometry_valid_flag` | BOOLEAN | True when the parsed shape is a valid geometry. False when it is invalid or did not parse. |
+| None | `psgc_match_status` | STRING | Boundary safety from Silver Table 14. VALID_REGION_BOUNDARY is safe. BOUNDARY_TERRITORY_MISMATCH means the shape predates the current PSGC territory. |
+| None | `source_system` | STRING | Source system of the boundary snapshot. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the PSGC run, the Table 14 run, the boundary snapshot, and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Bronze load time of the boundary snapshot. |
+| None | `psgc_run_id` | STRING | Silver run ID of the PSGC region list behind region_key. Joins to silver_psgc_place.run_id. |
+| None | `exposure_run_id` | STRING | Silver run ID of Table 14 behind psgc_match_status. Joins to silver_region_flood_exposure.run_id. |
 
 `psgc_run_id` is the run of `02-silver.silver_psgc_place` and `exposure_run_id` is the run of `02-silver.silver_region_flood_exposure` (Table 14) behind each row in `dim_region` and `dim_region_boundary`. They make a row traceable to its Silver runs without recomputing the `run_id` hash (issue #93). `run_id` and every key keep their recipe. `CREATE TABLE IF NOT EXISTS` does not add columns to an existing table, so `01_gold_dim_region` adds the two columns once with `ALTER TABLE ... ADD COLUMNS` when `information_schema.columns` does not list them. A STOP check blocks a row without either value.
 
@@ -147,22 +149,22 @@ Uniqueness: `region_key`, `boundary_version`.
 Grain: one governed reporting area per selected PSGC version, plus one Unknown.
 Uniqueness: `reporting_area_key`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `reporting_area_key` | BIGINT |
-| None | `psgc_reporting_area_code` | STRING |
-| None | `reporting_area_name` | STRING |
-| None | `reporting_area_short_name` | STRING |
-| None | `reporting_area_type` | STRING |
-| FK | `region_key` | BIGINT |
-| None | `psgc_version` | STRING |
-| None | `is_geographic_area` | BOOLEAN |
-| None | `centroid_latitude` | DOUBLE |
-| None | `centroid_longitude` | DOUBLE |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `psgc_run_id` | STRING |
-| None | `boundary_run_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `reporting_area_key` | BIGINT | Deterministic D-33 key. Key 0 is Unknown or Unmapped. |
+| None | `psgc_reporting_area_code` | STRING | Official PSGC province, independent-city, or NCR code. NULL for key 0. |
+| None | `reporting_area_name` | STRING | Official reporting-area name or Unknown or unmapped. |
+| None | `reporting_area_short_name` | STRING | Display label for the reporting area. |
+| None | `reporting_area_type` | STRING | PROVINCE, INDEPENDENT_CITY, NCR, or UNKNOWN. |
+| FK | `region_key` | BIGINT | Parent region key. Key 0 for Unknown. |
+| None | `psgc_version` | STRING | Selected PSGC publisher version. |
+| None | `is_geographic_area` | BOOLEAN | False only for the Unknown member. |
+| None | `centroid_latitude` | DOUBLE | Latitude of the valid selected boundary centroid. NULL when unavailable. |
+| None | `centroid_longitude` | DOUBLE | Longitude of the valid selected boundary centroid. NULL when unavailable. |
+| None | `run_id` | STRING | Deterministic Gold dimension run ID. |
+| None | `source_load_ts` | TIMESTAMP | Latest selected PSGC or boundary load time. |
+| None | `psgc_run_id` | STRING | Silver PSGC run behind the reporting area. |
+| None | `boundary_run_id` | STRING | Silver selected boundary ingest run. |
 
 Allowed `reporting_area_type` values are `PROVINCE`, `INDEPENDENT_CITY`, `NCR`,
 and `UNKNOWN`. Key `0` is the one Unknown member. Region is the required parent
@@ -174,19 +176,19 @@ Grain: one selected boundary-status row per reporting area and boundary version.
 Unavailable or unsafe geometry stays `NULL`. Its status is never presented as
 zero area or a valid boundary.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `boundary_key` | BIGINT |
-| FK | `reporting_area_key` | BIGINT |
-| None | `boundary_geometry` | GEOMETRY(4326) |
-| None | `boundary_version` | STRING |
-| None | `coordinate_reference_system` | STRING |
-| None | `geometry_valid_flag` | BOOLEAN |
-| None | `boundary_status` | STRING |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `psgc_run_id` | STRING |
-| None | `boundary_run_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `boundary_key` | BIGINT | Deterministic key for reporting area and boundary version. |
+| FK | `reporting_area_key` | BIGINT | Joins to dim_province_reporting_area. |
+| None | `boundary_geometry` | GEOMETRY(4326) | Selected reporting-area geometry in EPSG:4326. NULL when unavailable or unsafe. |
+| None | `boundary_version` | STRING | Selected boundary publisher version. |
+| None | `coordinate_reference_system` | STRING | EPSG:4326. |
+| None | `geometry_valid_flag` | BOOLEAN | True only for a valid published geometry. |
+| None | `boundary_status` | STRING | VALID_BOUNDARY, MISSING_BOUNDARY, AMBIGUOUS_BOUNDARY, INVALID_BOUNDARY, or NOT_APPLICABLE. |
+| None | `run_id` | STRING | Deterministic Gold boundary run ID. |
+| None | `source_load_ts` | TIMESTAMP | Latest selected boundary load time. |
+| None | `psgc_run_id` | STRING | Silver PSGC run behind the reporting area. |
+| None | `boundary_run_id` | STRING | Silver selected boundary ingest run. |
 
 ### Facts
 
@@ -195,37 +197,37 @@ zero area or a valid boundary.
 Grain: one DPWH project per distinct source snapshot.
 Uniqueness: `project_key`, `source_snapshot_id`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `project_snapshot_key` | BIGINT |
-| FK | `project_key` | BIGINT |
-| FK | `region_key` | BIGINT |
-| FK | `reporting_area_key` | BIGINT |
-| FK | `status_key` | INT |
-| FK | `flood_susceptibility_key` | INT |
-| FK | `snapshot_date_key` | INT |
-| FK | `start_date_key` | INT |
-| FK | `source_completion_date_key` | INT |
-| None | `reported_region_raw` | STRING |
-| None | `reported_budget_pesos` | DECIMAL(20,2) |
-| None | `physical_progress_pct` | DECIMAL(5,2) |
-| None | `latitude` | DOUBLE |
-| None | `longitude` | DOUBLE |
-| None | `coordinate_status` | STRING |
-| None | `region_match_status` | STRING |
-| None | `region_match_method` | STRING |
-| None | `region_match_confidence` | STRING |
-| None | `reporting_area_match_status` | STRING |
-| None | `reporting_area_match_method` | STRING |
-| None | `reporting_area_match_quality` | STRING |
-| None | `flood_match_status` | STRING |
-| None | `long_running_flag` | BOOLEAN |
-| None | `zero_progress_flag` | BOOLEAN |
-| None | `delivery_rule_version` | STRING |
-| None | `run_id` | STRING |
-| None | `is_current_snapshot` | BOOLEAN |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `source_snapshot_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `project_snapshot_key` | BIGINT | Surrogate key. XXHASH64 of the label PROJECT_SNAPSHOT, the project key, and the source snapshot. |
+| FK | `project_key` | BIGINT | Project. Joins to dim_project.project_key. |
+| FK | `region_key` | BIGINT | Matched official region. Joins to dim_region.region_key. 0 for Central Office, unmatched, and ambiguous projects. |
+| FK | `reporting_area_key` | BIGINT | D-57 province reporting area. Joins to dim_province_reporting_area. Key 0 preserves unresolved, ambiguous, and non-geographic projects. |
+| FK | `status_key` | INT | Source status. Joins to dim_project_status.status_key. 0 when the status is missing or conflicting. |
+| FK | `flood_susceptibility_key` | INT | Flood level at the project point. Joins to dim_flood_susceptibility. 0 means no single approved level, never low or zero risk. |
+| FK | `snapshot_date_key` | INT | File date of the DPWH snapshot as yyyymmdd. Joins to dim_date.date_key. |
+| FK | `start_date_key` | INT | Project start date as yyyymmdd. Joins to dim_date.date_key. 0 when missing. |
+| FK | `source_completion_date_key` | INT | Completion date reported by DPWH as yyyymmdd. Joins to dim_date.date_key. 0 when missing. |
+| None | `reported_region_raw` | STRING | Region text exactly as DPWH reported it. Can be Central Office or an office name. |
+| None | `reported_budget_pesos` | DECIMAL(20,2) | Reported project or contract budget in pesos. Not actual payment or disbursement. NULL when missing or invalid. |
+| None | `physical_progress_pct` | DECIMAL(5,2) | Physical progress from 0 to 100, published when Silver progress_quality_status is VALID. NULL when missing, conflicting, or outside 0 to 100. Non-additive. Do not sum it. |
+| None | `latitude` | DOUBLE | Project latitude in EPSG:4326. NULL when the source has no agreed coordinate. |
+| None | `longitude` | DOUBLE | Project longitude in EPSG:4326. NULL when the source has no agreed coordinate. |
+| None | `coordinate_status` | STRING | VALID_PAIR, MISSING_PAIR, PARTIAL_PAIR, or OUT_OF_RANGE. |
+| None | `region_match_status` | STRING | Table 13 result: MATCHED, MATCHED_WITH_CONFLICT, NON_GEOGRAPHIC for Central Office, AMBIGUOUS, UNMATCHED, or INVALID_SOURCE. |
+| None | `region_match_method` | STRING | How Table 13 chose the region, such as EXACT_REGION_NAME or COORDINATE_BOUNDARY. |
+| None | `region_match_confidence` | STRING | Table 13 match quality, such as EXACT, SPATIAL, or UNRESOLVED. |
+| None | `reporting_area_match_status` | STRING | Province-reporting-area result: MATCHED, MATCHED_WITH_CONFLICT, NON_GEOGRAPHIC, AMBIGUOUS, UNMAPPED, or INVALID_SOURCE. |
+| None | `reporting_area_match_method` | STRING | Approved method used by Silver, or NONE. |
+| None | `reporting_area_match_quality` | STRING | Reviewed, spatial, not applicable, or unresolved quality. |
+| None | `flood_match_status` | STRING | Table 15 result: MATCHED, AMBIGUOUS, UNMATCHED, or INVALID_SOURCE. |
+| None | `long_running_flag` | BOOLEAN | True when more than 24 months pass from start to completion, or to the snapshot date when not completed. NULL without a start date. |
+| None | `zero_progress_flag` | BOOLEAN | True when resolved physical progress is exactly zero. NULL when progress is unresolved. |
+| None | `delivery_rule_version` | STRING | Version of the long-running and progress rules. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver project, region map, and flood map runs plus the rule versions. |
+| None | `is_current_snapshot` | BOOLEAN | True for the newest DPWH snapshot. Filter on it to avoid counting a project twice. |
+| None | `source_load_ts` | TIMESTAMP | Latest load time of the project, region, and flood inputs behind this row. |
+| None | `source_snapshot_id` | STRING | DPWH source snapshot of this row. |
 
 #### `fact_region_flood_exposure`
 
@@ -234,41 +236,41 @@ Uniqueness: `region_key`, `flood_susceptibility_key`, `mgb_source_snapshot_id`, 
 
 The MGB publisher version is not available, so `mgb_source_version` is `NULL`. The MGB snapshot ID keeps the grain traceable instead. Never add level areas together for a region unless `level_area_additivity_status` is `ADDITIVE_WITHIN_TOLERANCE`. Flood levels can overlap.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `region_flood_exposure_key` | BIGINT |
-| FK | `region_key` | BIGINT |
-| FK | `flood_susceptibility_key` | INT |
-| None | `susceptible_area_sqkm` | DECIMAL(18,4) |
-| None | `share_of_region_area_pct` | DECIMAL(7,4) |
-| None | `source_polygon_count` | BIGINT |
-| None | `mgb_source_version` | STRING |
-| None | `boundary_version` | STRING |
-| None | `spatial_match_status` | STRING |
-| None | `area_calculation_crs` | STRING |
-| None | `area_rule_version` | STRING |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `level_area_additivity_status` | STRING |
-| None | `mgb_source_snapshot_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `region_flood_exposure_key` | BIGINT | Surrogate key. XXHASH64 of the label REGION_FLOOD_EXPOSURE, the region key, flood level key, MGB snapshot, and boundary version. |
+| FK | `region_key` | BIGINT | Region of this exposure. Joins to dim_region.region_key. |
+| FK | `flood_susceptibility_key` | INT | Approved MGB flood level. Joins to dim_flood_susceptibility.flood_susceptibility_key. |
+| None | `susceptible_area_sqkm` | DECIMAL(18,4) | Region area inside this flood level, in square kilometres from an equal-area CRS. NULL when the region has no safe boundary. Zero is real zero. |
+| None | `share_of_region_area_pct` | DECIMAL(7,4) | Percent of the region area inside this flood level, from 0 to 100. Non-additive. Do not sum it. |
+| None | `source_polygon_count` | BIGINT | Number of MGB source polygons that contributed to this region and level. |
+| None | `mgb_source_version` | STRING | MGB publisher version. NULL because the approved extract has none. See mgb_source_snapshot_id. |
+| None | `boundary_version` | STRING | Publisher version of the region boundaries used for clipping. |
+| None | `spatial_match_status` | STRING | CALCULATED, NO_MAPPED_EXPOSURE for a safe region with zero exposure, or NO_SAFE_REGION_BOUNDARY for no data. |
+| None | `area_calculation_crs` | STRING | Equal-area coordinate reference system used for the area. |
+| None | `area_rule_version` | STRING | Silver area rule version. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver exposure run and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Latest Bronze load time of the MGB and boundary snapshots behind this row. |
+| None | `level_area_additivity_status` | STRING | Add level areas for one region only when this is ADDITIVE_WITHIN_TOLERANCE. Flood levels can overlap. |
+| None | `mgb_source_snapshot_id` | STRING | Selected MGB snapshot. Keeps the grain traceable because the MGB publisher version is NULL. |
 
 #### `fact_region_population`
 
 Grain: one region per population reference year and source.
 Uniqueness: `region_key`, `reference_year`, `source_name`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `region_population_fact_key` | BIGINT |
-| FK | `region_key` | BIGINT |
-| None | `reference_year` | INT |
-| None | `population_count` | BIGINT |
-| None | `source_name` | STRING |
-| None | `is_primary_source` | BOOLEAN |
-| None | `population_match_status` | STRING |
-| None | `source_row_count` | BIGINT |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `region_population_fact_key` | BIGINT | Surrogate key. XXHASH64 of the label REGION_POPULATION, the region key, reference year, and source name. |
+| FK | `region_key` | BIGINT | Region of this population. Joins to dim_region.region_key. |
+| None | `reference_year` | INT | Census reference year. The reference date is July 1 of this year. |
+| None | `population_count` | BIGINT | Authoritative Table C population of the region. NULL when no accepted barangay row exists, never zero. Do not sum across years or sources. |
+| None | `source_name` | STRING | Population source, the PSA 2024 Census Table C. |
+| None | `is_primary_source` | BOOLEAN | True for the authoritative population source. Use only primary rows in ratios. |
+| None | `population_match_status` | STRING | MATCHED_PRIMARY_POPULATION, or MISSING_PRIMARY_POPULATION when the region has no accepted barangay rows. |
+| None | `source_row_count` | BIGINT | Number of accepted Table C barangay rows summed into population_count. |
+| None | `run_id` | STRING | Deterministic Gold run ID. Hash of the Silver population run and the Gold rule version. |
+| None | `source_load_ts` | TIMESTAMP | Bronze load time of the Table C snapshot behind this row. |
 
 As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The 4,789-person gap (0.004 percent) comes from two Table C barangays that Silver leaves `UNMATCHED`. The first is `Sawata` in Sawata, Davao del Norte, with 4,152 people in Region XI. The second is `San Rafael` in the City of Calaca, Batangas, with 637 people in Region IV-A. No PSGC barangay in either place has a close name. They need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](../silver/silver_geography_population.md#known-limitations).
 
@@ -284,30 +286,28 @@ Grain: one reporting area per population reference year, authoritative source,
 and deterministic Silver run. Population is the sum of reconciled Table C
 `ACCEPTED_PRIMARY` barangay rows. Missing population remains `NULL`.
 
-| Key | Column | Type |
-| --- | --- | --- |
-| PK | `reporting_area_population_fact_key` | BIGINT |
-| FK | `reporting_area_key` | BIGINT |
-| None | `reference_year` | INT |
-| None | `population_count` | BIGINT |
-| None | `source_name` | STRING |
-| None | `is_primary_source` | BOOLEAN |
-| None | `population_match_status` | STRING |
-| None | `source_row_count` | BIGINT |
-| None | `source_snapshot_id` | STRING |
-| None | `run_id` | STRING |
-| None | `source_load_ts` | TIMESTAMP |
-| None | `population_reconciliation_run_id` | STRING |
-| None | `reporting_area_population_run_id` | STRING |
+| Key | Column | Type | Meaning |
+| --- | --- | --- | --- |
+| PK | `reporting_area_population_fact_key` | BIGINT | Deterministic key for reporting area, year, and source. |
+| FK | `reporting_area_key` | BIGINT | Joins to dim_province_reporting_area. |
+| None | `reference_year` | INT | Authoritative Table C reference year. |
+| None | `population_count` | BIGINT | Accepted-primary barangay population. NULL when unavailable. |
+| None | `source_name` | STRING | Authoritative population source. |
+| None | `is_primary_source` | BOOLEAN | True for authoritative Table C population. |
+| None | `population_match_status` | STRING | Matched, missing, or unresolved accepted population status. |
+| None | `source_row_count` | BIGINT | Accepted barangay rows contributing to the value. |
+| None | `source_snapshot_id` | STRING | Table C source snapshot. |
+| None | `run_id` | STRING | Deterministic Gold fact run ID. |
+| None | `source_load_ts` | TIMESTAMP | Latest source load time. |
+| None | `population_reconciliation_run_id` | STRING | Silver Table C reconciliation run. |
+| None | `reporting_area_population_run_id` | STRING | Silver reporting-area population run. |
 
 ## Relationships
 
 Every relationship is one-to-many, from a dimension to a fact or to another dimension.
 
-![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/gold-constellation-schema-2026-10-21.png)
-
 | Parent (one) | Child (many) | Join columns |
-| --- | --- | --- |
+| --- | --- | --- | --- |
 | `dim_project.project_key` | `fact_project_snapshot` | `project_key` |
 | `dim_project_status.status_key` | `fact_project_snapshot` | `status_key` |
 | `dim_date.date_key` | `fact_project_snapshot` | `snapshot_date_key`, `start_date_key`, `source_completion_date_key` |
@@ -353,7 +353,7 @@ Silver keys are SHA-256 strings. Gold does not reuse them as keys. `dim_project`
 Key `0` is reserved for unknown, unmapped, or non-geographic records.
 
 | Dimension | Key `0` member | Facts use it when |
-| --- | --- | --- |
+| --- | --- | --- | --- |
 | `dim_date` | `month_name = 'Unknown'` and a `NULL` date | A source date is missing |
 | `dim_region` | `Unknown or non-geographic` | The project is Central Office, unmatched, or ambiguous |
 | `dim_project_status` | `Missing or conflicting status` | The source status is missing or its rows disagree. A Silver status without its own active row stops the fact load instead. |
@@ -405,7 +405,7 @@ Every Gold notebook follows the same steps:
 Gold does not repeat cleaning, matching, or mapping. Each Gold table reads a Silver output.
 
 | Gold table | Notebook | Reads from |
-| --- | --- | --- |
+| --- | --- | --- | --- |
 | `dim_date` | `00_gold_dim_date` | Generated from a date range. No source table. |
 | `dim_region` | `01_gold_dim_region` | `02-silver.silver_psgc_place`, plus boundary safety from `02-silver.silver_region_flood_exposure` |
 | `dim_region_boundary` | `01_gold_dim_region` | `01-bronze.boundaries` region rows, parsed with the Table 13 rule, plus boundary safety from `02-silver.silver_region_flood_exposure`. Allowed by D-35. |
