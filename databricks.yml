@@ -23,7 +23,7 @@ variables:
     default: 0ed5be803b3a683e
   dashboard_id:
     description: AI/BI dashboard that the last job task refreshes.
-    default: 01f1cd460e1f1de0944c99fffaa0e7e3
+    default: 01f1cd53d40c10a59b3c05f0548efcb2
   alert_email:
     description: Who gets an email when a job run fails. Set DATABRICKS_ALERT_EMAIL in GitHub for prod.
 
