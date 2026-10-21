@@ -57,7 +57,7 @@ jobs:
 
       - uses: databricks/setup-cli@a9304a5220bd6c59eadfd229a7c485dc352a5f98 # v0.278.0
         with:
-          version: 0.278.0
+          version: 0.278.1
 
       - name: Validate the dev bundle
         run: databricks bundle validate -t dev --var="alert_email=$ALERT_EMAIL"
