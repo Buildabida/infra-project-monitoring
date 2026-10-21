@@ -18,7 +18,7 @@ Issue #48 asks whether the pipeline survives an update: a newer DPWH pull, new o
 
 1. **A second real DPWH pull.** We hold one DPWH snapshot. The October 10 MGB reload was a different source, so it does not count. #48 needs two full runs on two DPWH pulls, with dates, row counts, and check results.
 2. **The dashboard on the newer pull.** Needs item 1.
-3. **A PSGC code change test on Databricks.** Plan: copy the PSGC CSV, change one province code, load it as a controlled snapshot with the `source_path` widget in a `dev` deploy, and confirm the affected projects move to key `0` and the FLAG counts rise. Don't overwrite the team workspace's tables.
+3. **A PSGC code change test on Databricks.** Copy the PSGC CSV and change one province code. Load it as a controlled snapshot with the `source_path` widget in a `dev` deploy. Confirm that affected projects move to key `0` and FLAG counts rise. Don't overwrite the team workspace's tables.
 4. **An "unknown PSGC code" check and an old-to-new crosswalk.** Neither exists. Adding them is a Silver change that needs a decision first.
 
 ## How to run the second-pull test

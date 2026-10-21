@@ -75,8 +75,8 @@ The gate only reads data and writes its own results table. Its gate run ID comes
 
 ## When to change the gate
 
-Change the required-validator list in step 2 of the notebook, in the same pull request, when you add, remove, or rename a validator or a validated table. `tests/test_quality_gate.py` fails if a validator task in the job is missing from the list.
+Change the required-validator list in step 2 when a validator or validated table is added, removed, or renamed. Make that change in the same pull request. `tests/test_quality_gate.py` fails if a validator task in the job is missing from the list.
 
 ## Tests
 
-`tests/test_quality_gate.py` runs this exact notebook on local Spark with Delta against small synthetic tables. It never touches Databricks. It covers all validators passing, a failed STOP check, a FLAG, missing evidence, a missing table, evidence from another snapshot or run, stale evidence, evaluating twice, a failed gate, recovery, and the budget checks. These tests prove the logic. They do not replace a Databricks run, which is still required before we call the gate accepted.
+`tests/test_quality_gate.py` runs this exact notebook on local Spark with Delta against small synthetic tables. It never touches Databricks. It covers passing validators, a failed STOP check, a FLAG, missing evidence, and a missing table. It also covers evidence from another snapshot or run, stale evidence, repeated evaluation, gate failure, recovery, and budget checks. These tests prove the logic. They do not replace a Databricks run. That run is still required before the gate is accepted.

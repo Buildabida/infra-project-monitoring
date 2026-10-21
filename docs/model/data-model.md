@@ -12,7 +12,7 @@ Gold contains the facts and dimensions used to answer the project questions.
 | Bronze | Implemented | The six source tables, `load_log`, and Bronze validation results exist. |
 | Silver | Implemented | All governed Silver transformations and validators are implemented. Empty exception tables remain valid until a reviewer approves an exception. |
 | Gold | Implemented | Ten notebooks in `notebooks/03_gold` build eight dimensions and four facts. `09_validation_gold` validates the regional model, and `09a_validation_gold_province_reporting` validates the reporting-area extension. The [Gold model](gold_model.md) holds the exact table definitions and runtime evidence. |
-| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026; awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
+| Analytics | Implemented and runtime-validated on Databricks on October 16, 2026. Awaiting team approval | Governed Analytics views in `05-analytics`, one per capstone insight (D-56, proposed). They report region and the D-57 province reporting area. One notebook builds them from current-snapshot Gold. The eleven-view design (D-50, D-51, D-54), the D-55 progress view, and the five first reporting-area views are retired. See [Analytics views](../../notebooks/05_analytics/README.md). |
 
 ```text
 R2 source snapshots → Bronze → Silver matching and reconciliation → Gold facts/dimensions → Analytics views
@@ -207,7 +207,7 @@ silver_mgb_flood_area
 
 Required Silver uniqueness: `object_id`, `mgb_source_snapshot_id`, `parse_rule_version`.
 
-`mgb_flood_area_key` is a deterministic SHA-256 key. Codes stay raw; Tables 14
+`mgb_flood_area_key` is a deterministic SHA-256 key. Codes stay raw. Tables 14
 and 15 apply the approved mapping. See [Silver MGB flood areas](../silver/silver_mgb_flood_area.md)
 for the parser, skip rule, and validation.
 
@@ -439,9 +439,9 @@ cities with no selected PSGC province parent, NCR, and Unknown. It does not
 replace region. Region remains the parent, national reconciliation level, BARMM
 control, and existing consumer contract.
 
-Silver publishes one reporting-area reference and boundary-status row per area,
-one population row per area/year/source/run, and exactly one project mapping row
-per canonical project. Only reconciled `ACCEPTED_PRIMARY` Table C barangays
+Silver publishes one reporting-area reference and boundary-status row per area.
+It publishes one population row per area/year/source/run and one project mapping
+row per canonical project. Only reconciled `ACCEPTED_PRIMARY` Table C barangays
 enter population. Raw DPWH province text is never a foreign key.
 
 Gold adds `dim_province_reporting_area`, its boundary dimension,
@@ -452,8 +452,8 @@ status fields to `fact_project_snapshot`. The fact keeps `region_key`, unchanged
 Analytics reads the reporting area in the D-56 Analytics views. View 1 reports both
 levels, region and reporting area, each from its own Gold key. View 2 compares
 investment and population per reporting area. Views 4, 5, and 6 carry the
-reporting area per project, and view 6 shows where the project region and the
-parent region of its reporting area disagree. Unknown stays visible in views 4,
+reporting area per project. View 6 shows where the project region disagrees with
+the parent region of its reporting area. Unknown stays visible in views 4,
 5, and 6 and in the key `0` checks. The five `analytics_reporting_area_*` views
 first built for D-57 are retired. Province flood exposure is not part of this
 implementation, and regional exposure is never allocated to reporting areas.

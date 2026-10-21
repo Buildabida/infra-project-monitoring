@@ -171,7 +171,7 @@ for every geographic member.
 #### `dim_province_reporting_area_boundary`
 
 Grain: one selected boundary-status row per reporting area and boundary version.
-Unavailable or unsafe geometry stays `NULL`; its status is never presented as
+Unavailable or unsafe geometry stays `NULL`. Its status is never presented as
 zero area or a valid boundary.
 
 | Key | Column | Type |
@@ -270,7 +270,7 @@ Uniqueness: `region_key`, `reference_year`, `source_name`.
 | None | `run_id` | STRING |
 | None | `source_load_ts` | TIMESTAMP |
 
-As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The gap of 4,789 people (0.004 percent) is two Table C barangays that Silver leaves `UNMATCHED`: `Sawata` in Sawata, Davao del Norte (4,152 people, Region XI), and `San Rafael` in the City of Calaca, Batangas (637 people, Region IV-A). No PSGC barangay in either place has a close name, so they need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](../silver/silver_geography_population.md#known-limitations).
+As of the Oct 9 run, the 18 regions total 112,722,987 people for 2024. The national census total is 112,727,776. The 4,789-person gap (0.004 percent) comes from two Table C barangays that Silver leaves `UNMATCHED`. The first is `Sawata` in Sawata, Davao del Norte, with 4,152 people in Region XI. The second is `San Rafael` in the City of Calaca, Batangas, with 637 people in Region IV-A. No PSGC barangay in either place has a close name. They need a source check before any alias. Silver adds only `ACCEPTED_PRIMARY` barangay rows to a region, so these rows are in no region total. See [Silver geography and population](../silver/silver_geography_population.md#known-limitations).
 
 Before the issue #88 fix, the gap was 3,783,955 people (3.4 percent), and NCR had no Manila population.
 
@@ -475,7 +475,7 @@ Before you finish any Gold task, check that:
 
 ### Province reporting area on October 16, 2026
 
-The full pipeline ran on Databricks in job run `1077732256280159`. `09a_validation_gold_province_reporting` saved 24 checks under rule `gold-province-reporting-validation-v2` and validation run `5a863b35c04a16aba4c76bbe652a69c927f61c26652d672c1ce419c3ea275f4e`. All 22 STOP checks passed, including the three population reconciliations against `fact_region_population` and key `0` holding exactly the unresolved and non-geographic projects. The two FLAG checks found 2,709 projects whose region differs from the parent region of their reporting area and 64,974 projects with an official region but no reporting area. They were saved as `FAIL` with action `flag` before the status fix, and did not block the run.
+The full pipeline ran on Databricks in job run `1077732256280159`. `09a_validation_gold_province_reporting` saved 24 checks under rule `gold-province-reporting-validation-v2`. Its validation run was `5a863b35c04a16aba4c76bbe652a69c927f61c26652d672c1ce419c3ea275f4e`. All 22 STOP checks passed, including three population reconciliations against `fact_region_population`. Key `0` held exactly the unresolved and non-geographic projects. One FLAG found 2,709 projects whose region differs from the parent region of their reporting area. Another found 64,974 projects with an official region but no reporting area. Before the status fix, these findings were saved as `FAIL` with action `flag`. They did not block the run.
 
 The run needed two Gold fixes: `01a_gold_dim_province_reporting_area` now sets SRID 4326 on boundary geometry in its `MERGE`, and `07_gold_fact_project_snapshot` escapes quotes inside its dynamic `ALTER TABLE` string with `\'`. This evidence does not record the `09_validation_gold` check counts of that run. See the [Analytics evidence](../evidence/analytics-2026-10-16/README.md).
 

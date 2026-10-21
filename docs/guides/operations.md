@@ -96,7 +96,7 @@ WHERE gate_run_id = (
 ORDER BY layer;
 ```
 
-**Freshness.** The gate proves the published data was validated in its own pipeline run. We have **not** agreed how old a DPWH snapshot may be before it counts as stale for users, so there is no freshness SLA and no freshness alert. If the team sets one, add it as a FLAG in the gate first.
+**Freshness.** The gate proves the published data was validated in its own pipeline run. The team has **not** agreed when a DPWH snapshot becomes stale for users. There is no freshness SLA or alert. If the team sets one, add it as a FLAG in the gate first.
 
 ## Recover from a failure
 
@@ -127,7 +127,7 @@ Write every production failure up in the run's evidence folder with these four p
 | Part | What happened |
 | --- | --- |
 | Incident | Job run `1077732256280159` stopped on its first attempts in four province notebooks. Every later task was skipped, so no partial data was published. |
-| Problem | Four Databricks SQL errors: two ambiguous column names after a join, a `MERGE` that dropped the geometry SRID, and a `''` escape that Spark SQL does not read as a quote. The notebooks had never run in a job before. |
+| Problem | Four Databricks SQL errors occurred. Two column names were ambiguous after a join. A `MERGE` dropped the geometry SRID. Spark SQL did not read a `''` escape as a quote. The notebooks had never run in a job before. |
 | Resolution | Fixed in the workspace, ported to the repository with tests, then Repair 2 of the same run finished all 49 tasks. See the [evidence](../evidence/analytics-2026-10-16/README.md#runtime-fixes-found-by-this-run). |
 | Prevention | The bundle now deploys exactly what is in `main`, so the workspace can't drift from the repository. CI checks the job and bundle on every pull request. |
 
