@@ -59,7 +59,10 @@ databricks bundle deploy -t prod --var alert_email=<team address>
 ```
 
 > [!NOTE]
-> Not tested yet: the bundle has not been validated or deployed against the workspace. The October 19, 2026 runs used the job created by hand, with notebooks under `/Workspace/Shared/infra-project-monitoring/`. Before the first `prod` deploy, run `databricks bundle validate -t dev`, then `databricks bundle deploy -t dev`, and run the dev copy once. Record the result here.
+> The development bundle was deployed and run twice in a separate Free Edition
+> workspace on October 21, 2026. Both 50-task runs succeeded, including the
+> quality gate and dashboard task. This proves the `dev` path. It does not
+> replace the one-time production bind or prove a `prod` deployment.
 
 After the bind, the old `/Workspace/Shared/infra-project-monitoring/` notebook folder is no longer used by the job. Keep it until one production run passes, then remove it.
 
@@ -76,3 +79,10 @@ This happened on October 16, 2026. The first attempts stopped on four Databricks
 The 49-task job ran in full on October 16, 2026, in job run `1077732256280159`. See the [Analytics evidence](../docs/evidence/analytics-2026-10-16/README.md).
 
 The 50-task job with the end-to-end gate first ran on October 19, 2026, in job run `457335378856032`. Its first attempt stopped at the gate because of a gate bug, which was fixed. The repaired run passed. See the [end-to-end gate evidence](../docs/evidence/end-to-end-gate-2026-10-19/README.md). A second run on unchanged data, job run `880939659105900`, gave the same gate result and totals.
+
+The bundle-managed development job then ran end to end in a separate workspace
+on October 21, 2026. Job runs `702857652434494` and `937376856057683` both
+succeeded. Both used source snapshot `metadata-6321c7aa6f2a14e12f4c` and saved
+the same gate result: 566 passed checks, 109 governed flags, no failed STOP
+checks, and no missing checks. See the
+[dev-bundle evidence](../docs/evidence/dev-bundle-2026-10-21/README.md).

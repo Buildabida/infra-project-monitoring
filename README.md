@@ -167,6 +167,13 @@ See the [Analytics evidence](docs/evidence/analytics-2026-10-16/README.md).
 
 The 50-task job with the end-to-end gate first ran on October 19, 2026, in job run `457335378856032`. After a repair it passed with no failed STOP check, and Silver, Gold, and Analytics agree on 265,582 projects and their reported budget. See the [end-to-end gate evidence](docs/evidence/end-to-end-gate-2026-10-19/README.md). A second run on unchanged data, job run `880939659105900`, gave the same gate result and totals.
 
+On October 21, 2026, the Asset Bundle development target was also deployed in
+a separate Free Edition workspace. Its two complete job runs,
+`702857652434494` and `937376856057683`, both succeeded from setup through the
+dashboard. They used the same source snapshot and produced the same gate
+counts: 566 pass, 109 flag, 0 failed STOP, and 0 missing. See the
+[dev-bundle and clean-workspace evidence](docs/evidence/dev-bundle-2026-10-21/README.md).
+
 ## Known limits
 
 - **Budget is not payment.** We report the reported project or contract budget. The source has no usable payment data, so we never show disbursement (D-28).

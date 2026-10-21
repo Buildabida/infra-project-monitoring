@@ -16,12 +16,13 @@ Start here to find any doc about our pipeline. We draft in the team Google Doc f
 | Review project-to-reporting-area precedence, configuration, spatial rules, lineage, and validation | [Silver project-to-reporting-area mapping](silver/silver_project_province_mapping.md) |
 | Review the completed D-57 Databricks acceptance and exact-rerun results | [Province-reporting runtime evidence](evidence/province-reporting/README.md) |
 | Review the first Databricks run of the Analytics views and the v2 province validators | [Analytics evidence](evidence/analytics-2026-10-16/README.md) |
+| Review the clean-workspace Asset Bundle deployment, two successful runs, and matching gate summaries | [Dev-bundle evidence](evidence/dev-bundle-2026-10-21/README.md) |
 | Review the parsed MGB flood polygons (`silver_mgb_flood_area`), the Esri parser, the skip rule, and validation | [Silver MGB flood areas](silver/silver_mgb_flood_area.md) |
 | Review regional MGB flood exposure, the equal-area CRS, zero versus no data, overlap, lineage, and validation | [Silver regional flood exposure](silver/silver_region_flood_exposure.md) |
 | Review project-to-MGB flood classification (`silver_project_flood_map`), ambiguity without severity precedence, lineage, and validation | [Silver project flood mapping](silver/silver_project_flood_mapping.md) |
 | Review Databricks evidence for Silver fixes | [Silver validation evidence](evidence/silver/README.md) |
 | Know what each Analytics view answers, its grain, and its limits | [Analytics views](../notebooks/05_analytics/README.md) |
-| Review the four-tab dashboard, its datasets, and its check values | [Dashboard specification](../dashboard/dashboard_spec.md) |
+| Review the five-page dashboard, its datasets, and its check values | [Dashboard specification](../dashboard/dashboard_spec.md) |
 | Run the full pipeline as one Databricks job, and deploy it with the bundle | [Pipeline job](../resources/README.md) |
 | Monitor a run, get failure emails, recover with Repair run, and set up GitHub | [Operations guide](guides/operations.md) |
 | Know what the end-to-end quality gate checks and how to read its result | [Quality gate](../notebooks/06_data_quality/README.md) |

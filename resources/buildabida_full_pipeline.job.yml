@@ -366,7 +366,7 @@ resources:
           # an attachment field the bundle schema does not support, so it was removed
           dashboard_task:
             warehouse_id: ${var.warehouse_id}
-            dashboard_id: 01f1cccbc17f18dfa1e647d354b2d4a3
+            dashboard_id: ${var.dashboard_id}
       queue:
         enabled: true
       environments:

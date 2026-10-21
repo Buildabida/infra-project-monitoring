@@ -8,20 +8,23 @@ Issue #23 asks that someone who did not build the pipeline follows our steps in 
 > workspaces. This includes the team workspace and two independently configured
 > workspaces. The October 14, 2026 run in Kinah's workspace started from the
 > existing Bronze layer and completed Silver through Analytics on `main` at
-> `1b75364`. The other workspace runs confirmed that the repository and source
-> setup are portable beyond the team workspace. Exact workspace identifiers are
-> intentionally not recorded here.
+> `1b75364`. On October 21, the 50-task Asset Bundle job then ran twice from
+> setup through the dashboard in a separate Free Edition workspace. The two
+> runs used the same source snapshot and produced identical gate counts, with
+> zero failed STOP checks and zero missing checks.
 >
-> This evidence confirms cross-workspace functional reproducibility. The new
-> Databricks Asset Bundle remains a separate post-merge productionization check.
-> Do not infer bundle validation, deployment, or execution from these manual
-> workspace runs.
+> This evidence confirms cross-workspace and development-bundle
+> reproducibility. Production binding and deployment remain post-merge
+> operations; a successful `dev` run does not prove a `prod` deploy.
 
 ## Before you start
 
 - A Databricks Free Edition workspace of your own. Don't use the team workspace, or the test proves nothing.
-- VS Code with the Databricks and Python extensions. See [set up VS Code](vscode-setup.md).
-- The [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install), version 0.278.0 or later.
+- One of these bundle deployment paths:
+  - VS Code with the Databricks and Python extensions, plus the
+    [Databricks CLI](https://docs.databricks.com/aws/en/dev-tools/cli/install)
+    0.278.0 or later; or
+  - a Databricks Git folder with the **Deployments** pane enabled.
 - The six source CSVs listed in the [notebooks guide](../../notebooks/README.md#before-running).
 
 ### Getting the source files
@@ -44,39 +47,41 @@ Write the result of each step, and the exact error if one fails.
 
 | # | Step | Expected result | Result |
 | --- | --- | --- | --- |
-| 1 | Clone the repository and open it in VS Code | The folder opens, and VS Code suggests the two extensions | |
-| 2 | Change the `host` line under `targets.dev` in `databricks.yml` to your workspace. Don't commit it | Sign-in works | |
-| 3 | Make the volume and upload the six CSVs, as above | `SHOW VOLUMES IN` `` `buildabida-capstone`.`00-source` `` lists `cloudflare-r2` | |
-| 4 | Run `notebooks/00_setup/00_setup_workspace.sql` as a workflow | The last cells list the schemas and the volume | |
-| 5 | Run `notebooks/00_setup/01_check_sources.py` | Six rows with status `OK` | |
-| 6 | Make a SQL warehouse, then import `dashboard/buildabida_infrastructure_project_monitoring.lvdash.json` as a dashboard. Note both IDs | The dashboard opens with empty charts | |
-| 7 | `databricks bundle validate -t dev --var="warehouse_id=<id>" --var="dashboard_id=<id>"` | `Validation OK!` | |
-| 8 | `databricks bundle deploy -t dev` with the same `--var` values | A job named `[dev <you>] buildabida-full-pipeline` appears | |
-| 9 | `databricks bundle run -t dev buildabida_full_pipeline` with the same values | All 50 tasks succeed. Write down the run ID and the time it took | |
-| 10 | Query `` `04-validation`.quality_gate_summary `` | The `ALL` row is `PASS` or `FLAG`, with no failed STOP checks | |
-| 11 | Compare counts with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | Same checks and counts, unless the source files differ | |
-| 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | |
-| 13 | Open the dashboard | All four tabs and the Read Me page show data | |
-| 14 | Click every link in the README and the docs index | Every link opens | |
+| 1 | Clone locally or create a Databricks Git folder from the repository | The repository opens at the intended branch | Passed through a separate-workspace Git folder |
+| 2 | Select the `dev` target. With the CLI, authenticate to the new workspace. In Databricks, use the current workspace target | The deployment uses the new workspace | Passed; job prefix is `[dev fnpc_work]` |
+| 3 | Make the volume and upload the six CSVs, as above | `SHOW VOLUMES IN` `` `buildabida-capstone`.`00-source` `` lists `cloudflare-r2` | Passed; all source and Bronze tasks completed |
+| 4 | Run `notebooks/00_setup/00_setup_workspace.sql` through the job | The schemas and volume exist | Passed in both runs |
+| 5 | Run `notebooks/00_setup/01_check_sources.py` through the job | Six sources have status `OK` | Passed in both runs |
+| 6 | Make a SQL warehouse, import the dashboard, and note both IDs | The dashboard opens and can be refreshed | Passed; the dashboard task succeeded |
+| 7 | Validate `dev` with the selected warehouse and dashboard variables, using the CLI or Deployments pane | The bundle configuration validates | Passed as part of the successful UI deployment |
+| 8 | Deploy `dev` with the CLI or **Deploy** in the Deployments pane | A job named `[dev <you>] buildabida-full-pipeline` appears | Passed; job ID `525182773840716` |
+| 9 | Run the bundle job from the CLI or with **Run now** | All 50 tasks succeed | Passed; run `702857652434494` |
+| 10 | Query `` `04-validation`.quality_gate_summary `` | `ALL` is `PASS` or `FLAG`, with no failed STOP checks | Passed; 0 failed STOP and 0 missing |
+| 11 | Compare the gate with the [Analytics evidence](../evidence/analytics-2026-10-16/README.md) | The check contract agrees, unless approved source changes explain a difference | Passed; 566 pass and 109 flag |
+| 12 | Run the job a second time without changes | All tasks succeed, and the gate shows the same counts | Passed; run `937376856057683` |
+| 13 | Open the dashboard | Overview, three question pages, and Read Me show data | Passed; the dashboard task succeeded |
+| 14 | Run the repository link check | Every repository link opens | Passed in PR #138 `Links` CI job |
 
-Steps 6 to 9 describe the bundle-managed reproduction that follows the completed
-manual cross-workspace runs. Record that bundle execution separately after the
-productionization change is merged. If a step fails, fix the documentation or
-code in a pull request and record the affected step.
+Steps 6 to 13 were completed by the October 21 dev-bundle run. Step 14 is also
+covered by the passing GitHub `Links` check on pull request #138. If a future
+run fails, fix the documentation or code in a pull request and record the
+affected step.
 
 ## Record
 
 | Field | Value |
 | --- | --- |
-| Tester (not one of the builders) | |
-| Date | |
-| Commit | |
-| Workspace | Free Edition, own account |
-| Job run IDs (first and second run) | |
-| Total time | |
-| Steps that failed, and the fix pull request | |
+| Tester (not one of the builders) | Team member using an independently configured workspace |
+| Date | October 21, 2026 |
+| Commit | Branch `feat/productionize-governance`; exact deployed commit was not captured in the screenshots |
+| Workspace | Separate Databricks Free Edition workspace |
+| Job | `[dev fnpc_work] buildabida-full-pipeline`, ID `525182773840716` |
+| Job run IDs (first and second run) | `702857652434494`; `937376856057683` |
+| Total time | 1h 11m 21s; 1h 19m 18s |
+| Quality gate | Both `ALL` rows: FLAG, 566 pass, 109 flag, 0 failed STOP, 0 missing |
+| Steps that failed, and the fix pull request | None in the two recorded complete runs |
 
-The cross-workspace functional requirement for Issue #23 is complete based on
-the three successful workspace executions confirmed by the team. Keep this
-record for the separate bundle-managed reproduction after merge. Completing it
-must not replace the earlier workspace evidence.
+The cross-workspace and development-bundle requirements for Issue #23 are
+complete. See the [run IDs, gate export, and screenshots](../evidence/dev-bundle-2026-10-21/README.md).
+The production target still requires the controlled bind and deploy described
+in the [resources guide](../../resources/README.md#first-production-deploy-adopt-the-existing-job).

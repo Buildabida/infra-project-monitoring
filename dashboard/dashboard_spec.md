@@ -1,8 +1,16 @@
 # Dashboard specification
 
-This spec describes the capstone dashboard as exported on October 20, 2026. The exported file is [`buildabida_infrastructure_project_monitoring.lvdash.json`](buildabida_infrastructure_project_monitoring.lvdash.json). The dashboard is written for citizens: every title, note, and label uses plain words.
+This spec describes the latest capstone dashboard supplied on October 21, 2026.
+The canonical file is
+[`buildabida_infrastructure_project_monitoring.lvdash.json`](buildabida_infrastructure_project_monitoring.lvdash.json).
+The dashboard is written for citizens: titles, notes, and labels use plain
+words.
 
-It answers one business question: **How can DPWH better monitor where its infrastructure investments go?** After a mentor review on October 19, it has four tabs: an overview, then one tab per analytics question, plus a Read Me page. Most charts compare two things at once, such as region and year, or flood risk and completion. The view contracts are in the [Analytics views guide](../notebooks/05_analytics/README.md).
+It answers one business question: **How can DPWH better monitor where its
+infrastructure investments go?** It has five visible pages: an overview, one
+page per analytics question, and Read Me. Most charts compare two things at
+once, such as region and year, or flood risk and completion. The view contracts
+are in the [Analytics views guide](../notebooks/05_analytics/README.md).
 
 Build or refresh it only after `10_validation_analytics` and the end-to-end quality gate pass. The `business_dashboard` task of the [pipeline job](../resources/buildabida_full_pipeline.job.yml) runs after both.
 
@@ -22,41 +30,31 @@ Build or refresh it only after `10_validation_analytics` and the end-to-end qual
 
 | Setting | Value |
 | --- | --- |
-| Colors | Navy, orange, and light blue: `#1A1B41`, `#F79820`, `#1B5B93`, `#87CBEB`, `#41497B`, `#F7B055`, `#0D2C54`, `#B8DEEF`, `#5C6B8A`, `#2E3A59` |
-| Canvas and widget background | `#FFFFFF` |
-| Widget outline and grid lines | `#E4EAF2` |
-| Text | `#1A1B41` |
-| Maps and heat maps | Custom sequential scale from `#87CBEB` (low) to `#1A1B41` (high) |
+| Visualization colors | `#077A9D`, `#FFAB00`, `#00A972`, `#FF3621`, `#8BCAE7`, `#AB4057`, `#99DDB4`, `#FCA4A1`, `#919191`, `#BF7080` |
+| Canvas background | `#F6F5FA` in light mode; `#11171C` in dark mode |
+| Widget background and outline | `#FFFFFF` in light mode; `#11171C` in dark mode |
+| Text | `#11171C` in light mode; `#E8ECF0` in dark mode |
+| Selection | `#2272B4` in light mode; `#8ACAFF` in dark mode |
+| Font | Space Grotesk |
+| Widget spacing | 20-pixel margin, left-aligned headers |
 | Number format | Money as PHP with compact numbers, such as PHP 6.5T. Percentages with 1 decimal place. Counts with thousands separators |
 
 ## Datasets
 
-| Dataset | Reads | Used on |
+The canonical export contains 38 datasets. Six unused Lakeview datasets were
+removed from the supplied live export because they read Gold facts directly.
+Three active support datasets were rewritten against Analytics without changing
+their output columns. The exact live export remains in the
+[dev-bundle evidence](../docs/evidence/dev-bundle-2026-10-21/README.md#dashboard-export).
+
+| Dataset group | Datasets | Governed sources |
 | --- | --- | --- |
-| `national_totals` | views 3 and 4 | Overview counters |
-| `data_connections` | views 4 and 5 | Overview "Why connecting the data mattered" |
-| `region_money_by_year` | view 1 at `REGION` level, region boundaries | Overview map, AQ1 map, AQ3 map |
-| `d01_region_budget_by_year` | view 1, region by project year | AQ1 line charts and ranking |
-| `d02_region_completion` | view 4, BARMM left out | AQ1 completion heat map |
-| `d03_flagged_by_type_year` | view 4, BARMM left out | AQ1 and AQ2 flagged charts |
-| `d09_region_share_by_year` | view 1 | AQ1 region by year heat map |
-| `d10_region_money_vs_completion` | views 1 and 4 | AQ1 money vs completion scatter |
-| `regional_review_by_cohort` | views 1 and 4 | AQ1 no-progress and long-running heat maps |
-| `top3_region_share` | view 1, one row per region first | AQ1 top-3 counter |
-| `project_check_list` | view 4, flagged projects only | AQ1 projects to check |
-| `d04_type_budget_by_year` | view 4 | AQ2 type line charts and status bar |
-| `d05_months_to_complete` | view 4, completed projects with both dates | AQ2 months to finish |
-| `d06_province_flood_vs_completion` | view 5 | AQ2 flood vs completion scatter |
-| `d11_region_type_mix` | views 1 and 4 | AQ2 region by type heat map |
-| `d12_type_completion_by_year` | view 4 | AQ2 type by year heat map |
-| `d13_province_type_map` | view 5, province boundaries | AQ2 province map by type |
-| `flood_completion` | view 5 | AQ2 completion by flood risk |
-| `d07_region_need_vs_money` | views 1, 3, and 5 | AQ3 flood risk vs money per person |
-| `d08_places_left_behind` | view 2, compared places only | AQ3 least money per person |
-| `d14_province_per_person_map` | view 2, province boundaries | AQ3 budget per person map |
-| `d15_province_people_vs_money` | view 2 | AQ3 people share vs money share |
-| `region_flood_map` | view 3, region boundaries | AQ3 flood risk map |
-| `flood_risk_by_region` | view 3 | AQ3 flood-control budget by risk |
+| Headline and connection measures | `national_totals`, `data_connections`, `project_mix` | views 3, 4, and 5 |
+| Region and province investment | `region_money_by_year`, `province_money_by_year`, `d01_region_budget_by_year`, `d09_region_share_by_year`, `top3_region_share`, `7d88fca9` | view 1 and boundary tables where a map needs geometry |
+| Completion and review | `d02_region_completion`, `d03_flagged_by_type_year`, `d05_months_to_complete`, `d10_region_money_vs_completion`, `d12_type_completion_by_year`, `regional_review_by_cohort`, `project_check_list`, `7434c3a7`, `c5574c4d`, `b774fc89` | views 1, 4, and 5 |
+| Project type and location | `d04_type_budget_by_year`, `d11_region_type_mix`, `d13_province_type_map`, `6d056075`, `4760d7d1` | views 1, 4, and 5, plus boundary tables for maps |
+| Population comparison | `d08_places_left_behind`, `d14_province_per_person_map`, `d15_province_people_vs_money`, `region_budget_per_person_by_year` | views 1, 2, and 5, plus province boundaries |
+| Flood alignment | `region_flood_map`, `d06_province_flood_vs_completion`, `d07_region_need_vs_money`, `flood_completion`, `flood_risk_by_region`, `flood_risk_per_project`, `4b45dfd2`, `flood_risk_by_province`, `completion_by_flood_risk`, `flood_budget_by_risk_year` | views 1, 2, 3, and 5, plus boundary tables where a map needs geometry |
 
 Views: 1 `analytics_investment_distribution`, 2 `analytics_population_equity`, 3 `analytics_flood_alignment`, 4 `analytics_implementation_monitoring`, 5 `analytics_infrastructure_network`, 6 `analytics_integration_coverage`.
 
@@ -65,44 +63,42 @@ Views: 1 `analytics_investment_distribution`, 2 `analytics_population_equity`, 3
 ### Overview
 
 - The business question and the national counters
-- What this shows that the DPWH portal doesn't
-- How the six source datasets connect, with connection counters
-- A one-line answer for each question
-- The map of where the money goes
+- Region map, regional budget ranking, and budget by project type
+- Project completion by region
+- Region and province summary tables
 
-### AQ1: Where is the money going?
+### Where is the money going?
 
 Which regions get the most money, how that changed, and how well each region finishes its projects.
 
-- Region lines by year, the region by year heat map, and the top-3 share
-- The latest-year map and the region ranking
-- The completion heat map and the money vs completion scatter
-- Flagged projects by region and type
-- No-progress and long-running heat maps, and the projects to check first
+- Budget trend by region, the region-by-year share heat map, and the latest map
+- Most-funded and least-funded region, total budget, completion, and top type
+- Region ranking and a region filter
+- Budget by status and flood-risk classification, including a yearly trend
 
-### AQ2: What are we building?
+### What are we building?
 
 What kinds of projects get the money, where they are built, how long they take, and how they do in flood-risk areas.
 
-- Type lines by year: budget, completed, ongoing, not started, and flagged
-- Status by type and usual months to finish
-- Region by type and type by year heat maps
-- The province map by type
-- The flood vs completion scatter and completion by flood risk
+- Project-count, budget, completion, and average-completion counters
+- Counts, budgets, and completion by project type and project-year cohort
+- Completed, ongoing, and flagged maps by region
+- Region-by-type mix, duration comparisons, and completion by flood risk
+- Flagged project types by region
 
-### AQ3: Who are we leaving behind?
+### Who are we leaving behind?
 
 Money compared with people and flood risk.
 
-- Flood risk vs money per person, by region
-- Budget per person by province, beside flood risk by region
-- Places with the least money per person, and people share vs money share
-- Flood-control budget by flood risk level
-- What DPWH can do next, and what other questions we can ask
+- Population versus budget by province
+- Budget per person and total budget maps and rankings for regions and provinces
+- Budget per person by flood-risk level
+- Provinces and cities to examine first
 
 ### Read Me
 
-Page guide, glossary, caveats, and BARMM coverage.
+Page guide, glossary, caveats, BARMM coverage, connection measures, and data
+lineage notes.
 
 ## Check values
 

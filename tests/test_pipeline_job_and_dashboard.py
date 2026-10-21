@@ -20,9 +20,9 @@ BOUNDARY_TABLES = {"dim_region_boundary", "dim_province_reporting_area_boundary"
 # plus the Read Me page
 TABS = [
     "Overview",
-    "AQ1: Where is the money going?",
-    "AQ2: What are we building?",
-    "AQ3: Who are we leaving behind?",
+    "Where is the money going?",
+    "What are we building?",
+    "Who are we leaving behind?",
     "Read Me",
 ]
 

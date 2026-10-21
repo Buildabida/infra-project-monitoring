@@ -740,7 +740,7 @@ def test_40_validation_results_persist_before_stop_gate():
     assert "silver-project-flood-map-validation-v2" in validation
 
 
-def test_41_docs_mark_table_15_implemented_and_gold_status():
+def test_41_docs_mark_table_15_and_gold_implemented():
     contract = CONTRACT_DOC.read_text(encoding="utf-8")
     for phrase in [
         "`02-silver.silver_project_flood_map`",
@@ -756,7 +756,7 @@ def test_41_docs_mark_table_15_implemented_and_gold_status():
     data_model = (ROOT / "docs/model/data-model.md").read_text(encoding="utf-8")
     assert "Project-flood mapping remains planned" not in data_model
     assert "| Gold | Planned |" not in data_model
-    assert "| Gold | Partially implemented |" in data_model
+    assert "| Gold | Implemented |" in data_model
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "Project-flood mapping and Gold remain planned" not in readme
     assert "Gold remains planned" not in readme
