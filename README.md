@@ -233,7 +233,7 @@ Team members are Kinah, Bri, Nadine, Sam, and Tricia. Carmi is the mentor, and S
 | --- | --- |
 | Oct 3 | Bronze ingestion and reviewed draft schema |
 | Oct 10 | Silver and Gold tables with validation |
-| Oct 17 | Dashboard and Databricks Associate exam. Genie was dropped ([#21](https://github.com/Buildabida/infra-project-monitoring/issues/21)) |
+| Oct 17 | Dashboard |
 | Oct 24 | Final Capstone Showcase and graduation |
 
 Tasks are tracked on the [project board](https://github.com/orgs/Buildabida/projects/1).
