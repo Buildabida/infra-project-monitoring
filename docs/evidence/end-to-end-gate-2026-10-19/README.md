@@ -16,7 +16,7 @@ The 50-task `buildabida-full-pipeline` job ran in the team workspace on October 
 | --- | --- |
 | Incident | After 1h 6m 44s, `end_to_end_quality_gate` failed and `business_dashboard` was skipped. The failure email arrived. |
 | Problem | The gate said `silver_validation_geography_population` was missing `silver_psgc_place` and `silver_population_place_reconciliation`, although its 8 saved checks all passed. The gate grouped each validator's rows by `validation_run_id`, but that validator gives each of its three tables its own run ID. So the gate found only one table under the run ID it looked up. The data was fine. The gate was wrong. |
-| Resolution | Commit `adb3a1f` made the geography validator use one run ID for all three tables, and a repair of the same job run passed the gate. The gate itself was then changed to group a validator's rows by its save time (`run_ts`): every validator saves all its rows in one write with one timestamp. That works with either run-ID recipe. |
+| Resolution | Commit `adb3a1f` gave all three tables one run ID. A repair then passed. The gate now groups evidence by save time (`run_ts`). Each validator saves its rows once with one timestamp. This supports either run-ID recipe. |
 | Prevention | `tests/test_quality_gate.py` now gives each validator its own save time, and gives the geography validator one run ID per table, as real runs do. Three regression tests were added. Against the old gate, two of them fail the same way Databricks did. |
 
 The failure path itself behaved as designed. The gate saved its result before it failed, Databricks skipped the dashboard refresh, and the failure email arrived.

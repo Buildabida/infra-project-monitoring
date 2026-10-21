@@ -4,7 +4,7 @@
 
 # Infrastructure Project Monitoring
 
-A Databricks pipeline that shows where Philippine public infrastructure money goes, what it builds, and which places get relatively little compared with their population and flood risk.
+A Databricks pipeline that shows where Philippine public infrastructure money goes and what it builds. It also highlights places receiving relatively little for their population and flood risk.
 
 [![Checks](https://github.com/Buildabida/infra-project-monitoring/actions/workflows/checks.yml/badge.svg)](https://github.com/Buildabida/infra-project-monitoring/actions/workflows/checks.yml)
 

@@ -37,12 +37,11 @@ per job run: one row for each layer and one `ALL` row.
 | end_to_end | PASS | 4 | 0 | 0 | 0 |
 | **ALL** | **FLAG** | **566** | **109** | **0** | **0** |
 
-`FLAG` is publishable under the governed contract: known source limitations
-remain visible, while no STOP check failed and no required evidence was
-missing. Matching layer counts across both runs prove that the gate result is
-repeatable for the selected snapshot. This export does not by itself prove
-that every table-level run ID stayed unchanged; make that narrower claim only
-when the table-level query output is retained.
+`FLAG` is publishable under the governed contract. Known source limitations
+remain visible. No STOP check failed, and all required evidence was present.
+Matching layer counts show a repeatable result for this snapshot. This export
+does not prove that every table-level run ID stayed unchanged. Make that
+narrower claim only when the table-level query output is retained.
 
 ## Dashboard export
 
@@ -54,9 +53,9 @@ Its SHA-256 is
 The repository's canonical dashboard export is based on that file, with three
 governance corrections before commit:
 
-- six unused Lakeview datasets that read Gold facts directly were removed;
+- six unused Lakeview datasets that read Gold facts directly were removed
 - three active support datasets were redirected to the governed Analytics
-  views without changing their output column names;
+  views without changing their output column names
 - the unqualified Analytics table and long-dash characters were normalized so
   the dashboard contract tests can verify them.
 

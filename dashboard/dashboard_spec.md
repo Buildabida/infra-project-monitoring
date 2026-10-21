@@ -31,10 +31,10 @@ Build or refresh it only after `10_validation_analytics` and the end-to-end qual
 | Setting | Value |
 | --- | --- |
 | Visualization colors | `#077A9D`, `#FFAB00`, `#00A972`, `#FF3621`, `#8BCAE7`, `#AB4057`, `#99DDB4`, `#FCA4A1`, `#919191`, `#BF7080` |
-| Canvas background | `#F6F5FA` in light mode; `#11171C` in dark mode |
-| Widget background and outline | `#FFFFFF` in light mode; `#11171C` in dark mode |
-| Text | `#11171C` in light mode; `#E8ECF0` in dark mode |
-| Selection | `#2272B4` in light mode; `#8ACAFF` in dark mode |
+| Canvas background | Light mode: `#F6F5FA`. Dark mode: `#11171C` |
+| Widget background and outline | Light mode: `#FFFFFF`. Dark mode: `#11171C` |
+| Text | Light mode: `#11171C`. Dark mode: `#E8ECF0` |
+| Selection | Light mode: `#2272B4`. Dark mode: `#8ACAFF` |
 | Font | Space Grotesk |
 | Widget spacing | 20-pixel margin, left-aligned headers |
 | Number format | Money as PHP with compact numbers, such as PHP 6.5T. Percentages with 1 decimal place. Counts with thousands separators |
