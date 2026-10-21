@@ -1099,6 +1099,27 @@
       }
     },
     {
+      "name": "8edca0a1",
+      "displayName": "duration_by_type",
+      "config": {
+        "version": "1.1",
+        "source": "WITH d AS (\n  SELECT\n    COALESCE(standardized_sector, 'No type assigned') AS project_type,\n    datediff(source_completion_date, start_date) AS duration_days\n  FROM `buildabida-capstone`.`05-analytics`.analytics_implementation_monitoring\n  WHERE status_group = 'FINISHED'\n    AND start_date IS NOT NULL\n    AND source_completion_date IS NOT NULL\n)\nSELECT\n  project_type,\n  CASE WHEN project_type = 'No type assigned' THEN 'Unmapped' ELSE 'Mapped' END AS bar_type,\n  COUNT(*) AS completed_projects,\n  percentile_approx(duration_days, 0.5) AS median_days,\n  ROUND(AVG(duration_days)) AS avg_days\nFROM d\nWHERE duration_days >= 0\nGROUP BY project_type\nHAVING COUNT(*) >= 30",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
       "name": "6d056075",
       "displayName": "Type Map Points",
       "queryLines": [
@@ -1136,6 +1157,69 @@
       "config": {
         "version": "1.1",
         "source": "SELECT\n  region_short_name AS region_short,\n  CONCAT(flood_point_class, ' risk') AS flood_risk,\n  flood_severity_rank AS severity_rank,\n  COUNT(*) AS total_projects,\n  COUNT_IF(status_group = 'FINISHED') AS completed_projects,\n  ROUND(\n    try_divide(COUNT_IF(status_group = 'FINISHED'), COUNT(*)),\n    4\n  ) AS completion_rate\nFROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network\nWHERE region_key <> 0\n  AND flood_severity_rank >= 3\nGROUP BY 1, 2, 3\nHAVING COUNT(*) >= 100\n",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "e273b06c",
+      "displayName": "flood_best",
+      "config": {
+        "version": "1.1",
+        "source": "WITH t AS (\n  SELECT\n    region_short_name AS region_short,\n    CONCAT(flood_point_class, ' risk') AS flood_risk,\n    COUNT(*) AS total_projects,\n    COUNT_IF(status_group = 'FINISHED') AS completed_projects,\n    ROUND(try_divide(COUNT_IF(status_group = 'FINISHED'), COUNT(*)), 4) AS completion_rate\n  FROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network\n  WHERE region_key <> 0\n    AND flood_severity_rank >= 3\n  GROUP BY 1, 2\n  HAVING COUNT(*) >= 100\n)\nSELECT *,\n  CONCAT(region_short, ' / ', flood_risk, ' / ', format_number(completed_projects, 0),\n    ' of ', format_number(total_projects, 0), ' completed') AS detail\nFROM t\nORDER BY completion_rate DESC\nLIMIT 1",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ddbe86e2",
+      "displayName": "flood_worst",
+      "config": {
+        "version": "1.1",
+        "source": "WITH t AS (\n  SELECT\n    region_short_name AS region_short,\n    CONCAT(flood_point_class, ' risk') AS flood_risk,\n    COUNT(*) AS total_projects,\n    COUNT_IF(status_group = 'FINISHED') AS completed_projects,\n    ROUND(try_divide(COUNT_IF(status_group = 'FINISHED'), COUNT(*)), 4) AS completion_rate\n  FROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network\n  WHERE region_key <> 0\n    AND flood_severity_rank >= 3\n  GROUP BY 1, 2\n  HAVING COUNT(*) >= 100\n)\nSELECT *,\n  CONCAT(region_short, ' / ', flood_risk, ' / ', format_number(completed_projects, 0),\n    ' of ', format_number(total_projects, 0), ' completed') AS detail\nFROM t\nORDER BY completion_rate ASC\nLIMIT 1",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "e58b7701",
+      "displayName": "headline_kpis",
+      "config": {
+        "version": "1.1",
+        "source": "WITH p AS (\n  SELECT\n    region_name,\n    reporting_area_name AS province_name,\n    COALESCE(standardized_sector, 'No type assigned') AS project_type,\n    reported_budget_pesos,\n    CASE WHEN status_group = 'FINISHED' THEN 1 ELSE 0 END AS is_completed,\n    CASE WHEN review_active_long_running OR review_active_zero_progress THEN 1 ELSE 0 END AS is_flagged\n  FROM `buildabida-capstone`.`05-analytics`.analytics_implementation_monitoring\n  WHERE region_key <> 0\n),\nregion_rank AS (\n  SELECT\n    region_name,\n    SUM(reported_budget_pesos) AS budget_php,\n    ROW_NUMBER() OVER (ORDER BY SUM(reported_budget_pesos) DESC) AS rank_most,\n    ROW_NUMBER() OVER (ORDER BY SUM(reported_budget_pesos) ASC) AS rank_least\n  FROM p\n  GROUP BY region_name\n),\nprovince_rank AS (\n  SELECT\n    province_name,\n    MAX(region_name) AS region_name,\n    COUNT(*) AS province_projects,\n    SUM(reported_budget_pesos) AS budget_php,\n    ROW_NUMBER() OVER (ORDER BY SUM(reported_budget_pesos) DESC) AS rank_most,\n    ROW_NUMBER() OVER (ORDER BY SUM(reported_budget_pesos) ASC) AS rank_least\n  FROM p\n  WHERE province_name IS NOT NULL\n    AND province_name <> 'Unknown or unresolved reporting area'\n  GROUP BY province_name\n  HAVING COUNT(*) >= 50\n),\ntype_rank AS (\n  SELECT\n    project_type,\n    COUNT(*) AS type_projects,\n    SUM(reported_budget_pesos) AS budget_php,\n    ROW_NUMBER() OVER (ORDER BY SUM(reported_budget_pesos) DESC) AS rank_most\n  FROM p\n  GROUP BY project_type\n)\nSELECT\n  ROUND(SUM(p.reported_budget_pesos) / 1e9, 1) AS total_budget_billion_php,\n  SUM(p.reported_budget_pesos) AS total_budget_php,\n  COUNT(*) AS total_projects,\n  SUM(p.is_flagged) AS flagged_projects,\n  ROUND(try_divide(SUM(p.is_flagged), COUNT(*)), 4) AS flagged_share,\n  ROUND(try_divide(SUM(p.is_completed), COUNT(*)), 4) AS completion_rate,\n  (SELECT region_name FROM region_rank WHERE rank_most = 1) AS top_region,\n  (SELECT region_name FROM region_rank WHERE rank_most = 1) AS top_region_short,\n  (SELECT budget_php FROM region_rank WHERE rank_most = 1) AS top_region_budget_php,\n  (SELECT ROUND(budget_php / 1e9, 1) FROM region_rank WHERE rank_most = 1) AS top_region_budget_billion_php,\n  (SELECT region_name FROM region_rank WHERE rank_least = 1) AS bottom_region,\n  (SELECT region_name FROM region_rank WHERE rank_least = 1) AS bottom_region_short,\n  (SELECT budget_php FROM region_rank WHERE rank_least = 1) AS bottom_region_budget_php,\n  (SELECT province_name FROM province_rank WHERE rank_most = 1) AS top_province,\n  (SELECT budget_php FROM province_rank WHERE rank_most = 1) AS top_province_budget_php,\n  (SELECT province_name FROM province_rank WHERE rank_least = 1) AS bottom_province,\n  (SELECT budget_php FROM province_rank WHERE rank_least = 1) AS bottom_province_budget_php,\n  (SELECT project_type FROM type_rank WHERE rank_most = 1) AS top_project_type,\n  (SELECT budget_php FROM type_rank WHERE rank_most = 1) AS top_project_type_budget_php,\n  (SELECT type_projects FROM type_rank WHERE rank_most = 1) AS top_project_type_projects,\n  (SELECT ROUND(try_divide(budget_php, SUM(budget_php) OVER ()), 4)\n    FROM type_rank WHERE rank_most = 1) AS top_project_type_budget_share\nFROM p",
         "dimensions": [
           {
             "expr": "source.*"
@@ -1308,6 +1392,27 @@
       ]
     },
     {
+      "name": "061ee83b",
+      "displayName": "budget_by_status",
+      "config": {
+        "version": "1.1",
+        "source": "WITH s AS (\n  SELECT\n    standardized_status AS project_status,\n    COUNT(*) AS projects,\n    SUM(reported_budget_pesos) AS budget_php\n  FROM `buildabida-capstone`.`05-analytics`.analytics_implementation_monitoring\n  WHERE region_key <> 0\n    AND standardized_status IS NOT NULL\n  GROUP BY standardized_status\n)\nSELECT\n  project_status,\n  projects,\n  budget_php,\n  ROUND(budget_php / 1e9, 1) AS budget_billion_php,\n  ROUND(try_divide(budget_php, SUM(budget_php) OVER ()), 4) AS budget_share,\n  ROUND(try_divide(projects, SUM(projects) OVER ()), 4) AS project_share,\n  ROUND(try_divide(budget_php, projects) / 1e6, 2) AS avg_budget_per_project_million_php\nFROM s\nORDER BY budget_php DESC",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
+    },
+    {
       "name": "4760d7d1",
       "displayName": "Region Map by Type",
       "queryLines": [
@@ -1375,6 +1480,27 @@
         "LEFT JOIN boundary b ON t.region_key = b.region_key\r\n",
         "WHERE t.project_type <> 'Type not mapped'"
       ]
+    },
+    {
+      "name": "a707dccd",
+      "displayName": "budget_by_flood_risk",
+      "config": {
+        "version": "1.1",
+        "source": "WITH s AS (\n  SELECT\n    flood_point_class AS flood_risk,\n    flood_severity_rank AS severity_rank,\n    COUNT(*) AS projects,\n    SUM(reported_budget_pesos) AS budget_php,\n    COUNT_IF(status_group = 'FINISHED') AS completed_projects\n  FROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network\n  WHERE region_key <> 0\n  GROUP BY flood_point_class, flood_severity_rank\n)\nSELECT\n  flood_risk,\n  severity_rank,\n  projects,\n  budget_php,\n  ROUND(budget_php / 1e9, 1) AS budget_billion_php,\n  ROUND(try_divide(budget_php, SUM(budget_php) OVER ()), 4) AS budget_share,\n  ROUND(try_divide(projects, SUM(projects) OVER ()), 4) AS project_share,\n  ROUND(try_divide(completed_projects, projects), 4) AS completion_rate\nFROM s\nORDER BY severity_rank DESC",
+        "dimensions": [
+          {
+            "expr": "source.*"
+          }
+        ],
+        "measures": [
+          {
+            "name": "count",
+            "expr": "COUNT(*)",
+            "comment": "Represents the total number of rows in the dataset. Use this measure to count all",
+            "displayName": "Count"
+          }
+        ]
+      }
     },
     {
       "name": "b774fc89",
@@ -1624,12 +1750,28 @@
           "datasetName": "c5574c4d"
         },
         {
+          "name": "Untitled_dataset_3",
+          "datasetName": "8edca0a1"
+        },
+        {
           "name": "Untitled_dataset_4",
           "datasetName": "6d056075"
         },
         {
           "name": "Untitled_dataset_5",
           "datasetName": "4b45dfd2"
+        },
+        {
+          "name": "Untitled_dataset_6",
+          "datasetName": "e273b06c"
+        },
+        {
+          "name": "Untitled_dataset_7",
+          "datasetName": "ddbe86e2"
+        },
+        {
+          "name": "Untitled_dataset_8",
+          "datasetName": "e58b7701"
         },
         {
           "name": "Province_Budget_Per_Person_by_Year",
@@ -1640,8 +1782,16 @@
           "datasetName": "flood_risk_by_province"
         },
         {
+          "name": "Untitled_dataset_9",
+          "datasetName": "061ee83b"
+        },
+        {
           "name": "Untitled_dataset_10",
           "datasetName": "4760d7d1"
+        },
+        {
+          "name": "Untitled_dataset_11",
+          "datasetName": "a707dccd"
         },
         {
           "name": "Untitled_dataset_12",
@@ -2370,60 +2520,67 @@
             ],
             "spec": {
               "frame": {
-                "showTitle": true,
                 "showDescription": false,
+                "showTitle": true,
                 "title": {
-                  "value": "<span style=\"font-size:24px\">Project completion rate by region</span>",
-                  "fields": []
+                  "fields": [],
+                  "value": "<span style=\"font-size:24px\">Project completion rate by region</span>"
                 }
               },
               "version": 3,
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "Region_Completion__region_short_name",
-                  "displayName": "Region",
-                  "scale": {
-                    "type": "categorical",
-                    "sort": {
-                      "by": "y-reversed"
-                    }
-                  }
-                },
-                "y": {
                   "fieldName": "max(Region_Completion__pct_of_region_projects)",
-                  "format": {
-                    "type": "number-plain",
-                    "decimalPlaces": {
-                      "type": "exact",
-                      "places": 1
-                    },
-                    "abbreviation": "none"
-                  },
-                  "formatTemplate": "{{ @formatted }}%",
                   "axis": {
                     "hideGrid": true,
                     "title": "Completion rate (%)"
                   },
+                  "format": {
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "places": 1,
+                      "type": "exact"
+                    },
+                    "type": "number-plain"
+                  },
+                  "formatTemplate": "{{ @formatted }}%",
                   "displayName": "Completion Rate (%)",
                   "scale": {
-                    "type": "quantitative",
                     "domain": {
-                      "type": "custom",
+                      "max": 100,
                       "min": 0,
-                      "max": 100
+                      "type": "custom"
+                    },
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "Region_Completion__region_short_name",
+                  "axis": {
+                    "title": "Region"
+                  },
+                  "displayName": "Region",
+                  "scale": {
+                    "categorySize": {
+                      "number": 17,
+                      "type": "number-of-categories"
+                    },
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
                     }
                   }
                 },
                 "color": {
                   "fieldName": "max(Region_Completion__pct_of_region_projects)",
                   "format": {
-                    "type": "number-plain",
+                    "abbreviation": "none",
                     "decimalPlaces": {
-                      "type": "exact",
-                      "places": 1
+                      "places": 1,
+                      "type": "exact"
                     },
-                    "abbreviation": "none"
+                    "type": "number-plain"
                   },
                   "displayName": "Completion Rate (%)",
                   "scale": {
@@ -2596,7 +2753,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 16,
             "width": 4,
             "height": 12
           }
@@ -2839,7 +2996,7 @@
           },
           "position": {
             "x": 4,
-            "y": 17,
+            "y": 16,
             "width": 8,
             "height": 12
           }
@@ -2917,7 +3074,7 @@
           },
           "position": {
             "x": 0,
-            "y": 29,
+            "y": 28,
             "width": 12,
             "height": 8
           }
@@ -3198,7 +3355,7 @@
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 9,
             "width": 12,
             "height": 7
           }
@@ -3278,7 +3435,7 @@
             "x": 4,
             "y": 2,
             "width": 4,
-            "height": 4
+            "height": 3
           }
         },
         {
@@ -3320,7 +3477,8 @@
                   },
                   "style": {
                     "fontWeight": 700,
-                    "fontStyle": "normal"
+                    "fontStyle": "normal",
+                    "fontSize": 36
                   }
                 }
               },
@@ -3331,7 +3489,7 @@
           },
           "position": {
             "x": 0,
-            "y": 6,
+            "y": 5,
             "width": 4,
             "height": 4
           }
@@ -3527,7 +3685,7 @@
           },
           "position": {
             "x": 8,
-            "y": 6,
+            "y": 5,
             "width": 4,
             "height": 2
           }
@@ -3588,7 +3746,7 @@
             "x": 0,
             "y": 2,
             "width": 4,
-            "height": 4
+            "height": 3
           }
         },
         {
@@ -3666,7 +3824,7 @@
             "x": 8,
             "y": 2,
             "width": 4,
-            "height": 4
+            "height": 3
           }
         },
         {
@@ -3718,7 +3876,8 @@
                   "fieldName": "Untitled_dataset_8__top_project_type_budget_php",
                   "style": {
                     "fontWeight": 700,
-                    "fontStyle": "normal"
+                    "fontStyle": "normal",
+                    "fontSize": 36
                   },
                   "format": {
                     "type": "number-currency",
@@ -3738,7 +3897,7 @@
           },
           "position": {
             "x": 4,
-            "y": 6,
+            "y": 5,
             "width": 4,
             "height": 4
           }
@@ -3848,7 +4007,7 @@
           },
           "position": {
             "x": 0,
-            "y": 37,
+            "y": 36,
             "width": 6,
             "height": 8
           }
@@ -3927,7 +4086,7 @@
           },
           "position": {
             "x": 6,
-            "y": 37,
+            "y": 36,
             "width": 6,
             "height": 8
           }
@@ -4066,7 +4225,7 @@
           },
           "position": {
             "x": 0,
-            "y": 45,
+            "y": 44,
             "width": 12,
             "height": 8
           }
@@ -4175,7 +4334,7 @@
           },
           "position": {
             "x": 8,
-            "y": 8,
+            "y": 7,
             "width": 4,
             "height": 2
           }
@@ -7742,7 +7901,7 @@
               },
               "jsonSpec": {
                 "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"grid\":false}},\"transform\":[{\"calculate\":\"'National Average: ₱' + format(datum['max(Flood_Risk_by_Province__national_budget_per_person_pesos)'], ',.0f')\",\"as\":\"avg_label\"},{\"calculate\":\"'n = ' + format(datum['count(Flood_Risk_by_Province__province_or_city)'], ',.0f')\",\"as\":\"n_label\"}],\"layer\":[{\"mark\":{\"type\":\"rule\",\"stroke\":{\"expr\":\"colors.textPrimary.default\"},\"strokeWidth\":1.5,\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"axis\":{\"title\":\"Dominant flood risk level\",\"labelAngle\":0}},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"scale\":{\"domain\":{\"data\":\"databricks_query\",\"fields\":[\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\"]}},\"axis\":{\"title\":\"Budget per person (pesos)\",\"format\":\",.0s\"}},\"y2\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"}}},{\"mark\":{\"type\":\"bar\",\"opacity\":0.9},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"y2\":{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"},\"fill\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"range\":[\"#077A9D\",\"#FFAB00\",\"#00A972\",\"#FF3621\"]},\"legend\":null},\"tooltip\":[{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lowest province\"},{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lower quartile\"},{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Median\"},{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Upper quartile\"},{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Highest province\"},{\"field\":\"count(Flood_Risk_by_Province__province_or_city)\",\"type\":\"quantitative\",\"title\":\"Provinces\"}]}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":3},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#EAB308\",\"strokeWidth\":4},\"encoding\":{\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"left\",\"dx\":10,\"dy\":-10,\"fontSize\":12,\"fontWeight\":\"bold\",\"color\":\"#A16207\"},\"encoding\":{\"x\":{\"value\":\"Low\"},\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"avg_label\",\"type\":\"nominal\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"center\",\"dy\":-10,\"fontSize\":11,\"fontWeight\":\"bold\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"n_label\",\"type\":\"nominal\"}}}],\"type\":\"vega-lite\"}"
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"config\":{\"axis\":{\"grid\":false},\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"}},\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"layer\":[{\"mark\":{\"opacity\":0.75,\"stroke\":{\"expr\":\"colors.textPrimary.default\"},\"strokeWidth\":1.5,\"type\":\"rule\"},\"encoding\":{\"x\":{\"axis\":{\"labelAngle\":0,\"title\":\"Dominant flood risk level\"},\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"type\":\"nominal\"},\"y\":{\"axis\":{\"format\":\",.0s\",\"title\":\"Budget per person (pesos)\"},\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"scale\":{\"domain\":{\"data\":\"databricks_query\",\"fields\":[\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\"]}},\"type\":\"quantitative\"},\"y2\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"}}},{\"mark\":{\"opacity\":0.9,\"type\":\"bar\"},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"type\":\"nominal\"},\"y\":{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"y2\":{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"},\"fill\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"legend\":null,\"scale\":{\"domain\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"range\":[\"#077A9D\",\"#FFAB00\",\"#00A972\",\"#FF3621\"]},\"type\":\"nominal\"},\"tooltip\":[{\"field\":\"lowest_label\",\"title\":\"\",\"type\":\"nominal\"},{\"field\":\"q1_label\",\"title\":\"\",\"type\":\"nominal\"},{\"field\":\"median_label\",\"title\":\"\",\"type\":\"nominal\"},{\"field\":\"q3_label\",\"title\":\"\",\"type\":\"nominal\"},{\"field\":\"highest_label\",\"title\":\"\",\"type\":\"nominal\"},{\"field\":\"n_label\",\"title\":\"\",\"type\":\"nominal\"}]}},{\"mark\":{\"color\":{\"expr\":\"colors.textPrimary.default\"},\"orient\":\"horizontal\",\"thickness\":3,\"type\":\"tick\"},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"type\":\"nominal\"},\"y\":{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"color\":{\"expr\":\"colors.textPrimary.default\"},\"orient\":\"horizontal\",\"size\":24,\"thickness\":2,\"type\":\"tick\"},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"type\":\"nominal\"},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"color\":{\"expr\":\"colors.textPrimary.default\"},\"orient\":\"horizontal\",\"size\":24,\"thickness\":2,\"type\":\"tick\"},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"type\":\"nominal\"},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"color\":\"#EAB308\",\"strokeWidth\":4,\"type\":\"rule\"},\"encoding\":{\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"}}}],\"transform\":[{\"as\":\"lowest_label\",\"calculate\":\"'Lowest province budget per person: ₱' + format(datum['min(Flood_Risk_by_Province__overall_budget_per_person_pesos)'], ',.0f')\"},{\"as\":\"q1_label\",\"calculate\":\"'Lower quartile budget per person: ₱' + format(datum['q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)'], ',.0f')\"},{\"as\":\"median_label\",\"calculate\":\"'Median budget per person: ₱' + format(datum['median(Flood_Risk_by_Province__overall_budget_per_person_pesos)'], ',.0f')\"},{\"as\":\"q3_label\",\"calculate\":\"'Upper quartile budget per person: ₱' + format(datum['q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)'], ',.0f')\"},{\"as\":\"highest_label\",\"calculate\":\"'Highest province budget per person: ₱' + format(datum['max(Flood_Risk_by_Province__overall_budget_per_person_pesos)'], ',.0f')\"},{\"as\":\"n_label\",\"calculate\":\"'Number of provinces in the group: ' + format(datum['count(Flood_Risk_by_Province__province_or_city)'], ',.0f')\"}]}"
               },
               "version": 1,
               "widgetType": "custom-vega-viz",
