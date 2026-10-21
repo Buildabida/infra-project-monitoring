@@ -264,6 +264,7 @@ resources:
         - task_key: gold_fact_region_population
           depends_on:
             - task_key: gold_dim_region
+            - task_key: gold_dim_flood_susceptibility
             - task_key: silver_validation_geography_population
           notebook_task:
             notebook_path: ../notebooks/03_gold/05_gold_fact_region_population.ipynb
@@ -365,7 +366,7 @@ resources:
           # an attachment field the bundle schema does not support, so it was removed
           dashboard_task:
             warehouse_id: ${var.warehouse_id}
-            dashboard_id: ${var.dashboard_id}
+            dashboard_id: 01f1cccbc17f18dfa1e647d354b2d4a3
       queue:
         enabled: true
       environments:
