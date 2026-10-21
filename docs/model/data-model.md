@@ -143,9 +143,9 @@ erDiagram
 GitHub draws the diagram above with keys and main measures only. The team's
 full diagram shows every column of all twelve tables:
 
-![Gold constellation schema with all twelve tables and every column](../images/constellation-schema.png)
+![Gold constellation schema with all twelve tables and every column](../images/gold-constellation-schema-2026-10-21.png)
 
-For slides, use [constellation-schema.png](../images/constellation-schema.png).
+For slides, use [gold-constellation-schema-2026-10-21.png](../images/gold-constellation-schema-2026-10-21.png).
 [gold-model-erd.png](../images/gold-model-erd.png) is the smaller diagram above,
 saved as an image.
 
