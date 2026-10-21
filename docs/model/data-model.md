@@ -259,7 +259,7 @@ area, flood level, and date, so they form a constellation. The
 [Gold model](gold_model.md#relationships) lists every column and relationship
 in the diagram.
 
-![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/constellation-schema.png)
+![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](../images/gold-constellation-schema-2026-10-21.png)
 
 ## Gold fact tables (implemented)
 

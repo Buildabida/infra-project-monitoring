@@ -108,7 +108,7 @@ Gold is a star schema with four facts that share dimensions. They share region, 
 
 The dimensions are `dim_project`, `dim_project_status`, `dim_date` (used for three roles), `dim_region`, `dim_province_reporting_area`, `dim_flood_susceptibility`, and two boundary tables.
 
-![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](docs/images/constellation-schema.png)
+![Gold constellation schema: four fact tables and eight dimensions, with their keys and relationships](docs/images/gold-constellation-schema-2026-10-21.png)
 
 - Keys are deterministic, so a rerun never changes them (D-33).
 - Key `0` holds Central Office, unmatched, and unresolved records, so nothing is dropped.
