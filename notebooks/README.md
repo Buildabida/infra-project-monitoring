@@ -52,7 +52,7 @@ For the complete current run order from setup to the dashboard, use the
 | 22 | `04_validation/05_validation_silver_source_reconciliation` | Validate source preservation, exact matching, cost protection, and lineage. |
 | 23 | `02_silver/08_silver_project_region_map` | Publish one governed region-mapping result for every canonical project. |
 | 24 | `04_validation/06_validation_silver_project_region_map` | Validate project preservation, precedence, targets, conflicts, boundary quality, lineage, and coverage. |
-| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`; skip the parse when the snapshot and parse rule are unchanged. |
+| 25 | `02_silver/08a_silver_mgb_flood_area` | Parse every selected MGB polygon once into `silver_mgb_flood_area`. Skip the parse when the snapshot and parse rule are unchanged. |
 | 26 | `04_validation/06a_validation_silver_mgb_flood_area` | Validate one-to-one accounting against Bronze, raw codes, keys, lineage, and usable geometry rebuilt from WKB. |
 | 27 | `02_silver/09_silver_region_flood_exposure` | Clip approved MGB polygons to safe official region boundaries once and publish equal-area regional exposure. |
 | 28 | `04_validation/07_validation_silver_region_flood_exposure` | Validate source accounting, the region × level grid, CRS, zero versus no data, overlap, lineage, and coverage. |
@@ -322,14 +322,14 @@ current Silver project, PSGC, boundary, and project-region checks pass:
 1. `02_silver/08b_profile_project_province_readiness.ipynb`
 
 The notebook creates temporary views only. It extracts DPWH
-`location.province` as source evidence, compares it with official PSGC province
-names by normalized exact equality, and performs one longitude-first
-`ST_COVERS` join against selected province boundaries. Candidate fan-out is
+`location.province` as source evidence. It compares the values with official
+PSGC province names by normalized exact equality. It also performs one
+longitude-first `ST_COVERS` join against selected province boundaries. Candidate fan-out is
 collapsed immediately to one row per canonical project.
 
 Export every result set before the team chooses strict provinces or governed
 province reporting areas. The notebook asserts that project count and reported
-budget do not change, but it does not publish a mapping table or claim that a
+budget do not change. It does not publish a mapping table or claim that a
 candidate is approved.
 
 See [province reporting readiness](../docs/silver/province_reporting_readiness.md) for
@@ -448,8 +448,8 @@ Gold runs no spatial matching. `01_gold_dim_region` reads region shapes from `01
 
 Analytics lives in one notebook, `05_analytics/01_business_questions.ipynb`. After `09_validation_gold` passes, run:
 
-1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. Then it creates the `05-analytics` schema if it does not exist, drops the retired views, and builds the persisted Analytics views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data, so a rerun only replaces their definitions.
-2. `04_validation/10_validation_analytics.ipynb` first stops unless the latest Gold validation passed and covers the current project, population, and exposure facts. It also stops unless the latest province Gold validation passed. Then it proves that `05-analytics` holds exactly the Analytics views, rebuilds every view from Gold, compares them row by row, and saves its results to `04-validation.analytics_dq_results` before its STOP gate.
+1. `05_analytics/01_business_questions.ipynb` runs after `09_validation_gold` and `09a_validation_gold_province_reporting` pass. It stops unless current Gold holds exactly one DPWH snapshot. It creates the `05-analytics` schema when needed and drops the retired views. It then builds the persisted Analytics views, one per capstone insight (D-56, proposed). The views read only current-snapshot Gold and hold no data. A rerun only replaces their definitions.
+2. `04_validation/10_validation_analytics.ipynb` requires the latest Gold validation to pass. That validation must cover the current project, population, and exposure facts. The latest province Gold validation must also pass. The notebook proves that `05-analytics` holds exactly the Analytics views. It rebuilds every view from Gold and compares them row by row. Before its STOP gate, it saves results to `04-validation.analytics_dq_results`.
 
 The retired regional progress notebooks (`02_regional_project_progress` and `11_validation_regional_project_progress`, D-55) are removed. Their one-snapshot run stays as [retired evidence](../docs/evidence/regional-project-progress/README.md).
 
@@ -555,8 +555,8 @@ files as 50 dependent tasks, and its last task refreshes the dashboard after the
 end-to-end quality gate passes. `databricks.yml` includes the job, so
 `databricks bundle deploy` keeps it in step with this repository. To run the
 files by hand, use this dependency order. Stop immediately after any
-failed STOP gate; no Gold reporting-area task may bypass Silver validation, and
-no reporting-area Analytics task may bypass Gold validation.
+failed STOP gate. No Gold reporting-area task may bypass Silver validation.
+No reporting-area Analytics task may bypass Gold validation.
 
 1. `00_setup/00_setup_workspace.sql`
 2. `00_setup/01_check_sources.py`
@@ -607,10 +607,10 @@ no reporting-area Analytics task may bypass Gold validation.
     dashboard refreshes. See the [quality gate guide](06_data_quality/README.md).
 
 Step 44 is the compact PR evidence publisher. It materializes the latest D-57
-Silver, Gold, and Analytics checks, project and reported-budget coverage,
-mapping-method totals, separate NCR, independent-city, and BARMM totals,
-population coverage and exclusions, selected versions, and a mapping-identity
-checksum. Its outputs do not reinterpret or remap any project.
+Silver, Gold, and Analytics checks. It includes project and reported-budget
+coverage, mapping-method totals, and separate NCR, independent-city, and BARMM
+totals. It also records population coverage, exclusions, selected versions, and
+a mapping-identity checksum. Its outputs do not reinterpret or remap any project.
 
 For exact-rerun evidence, run step 44 once, rerun steps 22 and 23 with unchanged
 inputs, and then run step 44 again. The final `exact_rerun_status` must be
@@ -621,23 +621,23 @@ separate Databricks feasibility run proves that the reporting-area boundary and
 MGB intersection is safe and affordable. Regional flood tasks remain required
 for the unchanged regional model and existing Analytics.
 
-Expected D-57 outcomes are persisted PASS rows for every STOP check, with FLAG
-rows allowed for real coverage limitations. Capture mapped and unmapped project
-and budget coverage, mappings by method, conflicts, ambiguity, missing
-coordinates, NCR, independent-city, BARMM, population coverage, excluded
-population, selected versions, and exact-rerun identities. Do not claim runtime
+Expected D-57 outcomes are persisted PASS rows for every STOP check. FLAG rows
+are allowed for real coverage limitations. Capture mapped and unmapped project
+and budget coverage. Also capture mappings by method, conflicts, ambiguity,
+missing coordinates, NCR, independent-city, BARMM, and population coverage.
+Record excluded population, selected versions, and exact-rerun identities. Do not claim runtime
 approval until `03b`, `09a`, and `10_validation_analytics` have executed and their saved evidence
 passes. The evidence publisher must also show no blocking failures. A claim of
 exact-rerun stability requires two captures with the same project-map run ID
 and mapping-identity checksum.
 
-The October 15, 2026 run satisfied those conditions: 43 checks passed,
-five non-blocking Silver coverage flags remained visible, and two captures
+The October 15, 2026 run satisfied those conditions. Forty-three checks passed,
+and five non-blocking Silver coverage flags remained visible. Two captures
 retained one project-map run ID and one mapping checksum. See the
 [province-reporting runtime evidence](../docs/evidence/province-reporting/README.md).
 
-The October 16, 2026 run of the full order, with the v2 province validators and
-the Analytics views, also satisfied them: 159 checks were published with no
-failed STOP check, and the exact rerun passed against the October 15 capture.
+The October 16, 2026 full run used the v2 province validators and Analytics
+views. It published 159 checks with no failed STOP check. The exact rerun passed
+against the October 15 capture.
 That run found four Databricks SQL errors, fixed in steps 8, 22, 32, and 39. See
 the [Analytics evidence](../docs/evidence/analytics-2026-10-16/README.md).

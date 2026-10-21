@@ -44,11 +44,12 @@ validator checks the tables after a run.
 ## `test_quality_gate.py`
 
 Runs the real end-to-end gate notebook on local Spark with Delta, against small
-synthetic tables, through `spark_harness.py`. The harness only renames the hyphenated
-schemas, which open-source Spark rejects, and skips `USE CATALOG`. It covers every
-validator passing, a failed STOP check, an `ERROR`, FLAG findings, missing evidence,
-a missing table, evidence from another snapshot or an older fact run, stale evidence,
-evaluating twice, recovery, and the count and budget reconciliation.
+synthetic tables, through `spark_harness.py`. The harness renames the hyphenated
+schemas because open-source Spark rejects them. It also skips `USE CATALOG`.
+Coverage includes every validator passing, a failed STOP check, an `ERROR`, and
+FLAG findings. It also covers missing evidence, a missing table, stale evidence,
+and evidence from another snapshot or older fact run. Other cases cover repeated
+evaluation, recovery, and count and budget reconciliation.
 
 These tests need `pyspark` and `delta-spark`. Without them the scenario tests skip,
 and the contract tests still run. CI runs them in the `Quality gate (Spark)` job:
@@ -60,9 +61,9 @@ python -m pytest -q tests/test_quality_gate.py
 
 ## `test_pipeline_job_and_dashboard.py` and `test_repository_structure.py`
 
-These check the job graph, the bundle targets, the failure email, the dashboard
-dependencies, required files, notebook headers, CODEOWNERS paths, and that no
-token or private key is committed.
+These check the job graph, bundle targets, failure email, and dashboard
+dependencies. They also check required files, notebook headers, CODEOWNERS paths,
+and that no token or private key is committed.
 
 ## Boundary between tests and data quality
 

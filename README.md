@@ -97,7 +97,35 @@ One [Databricks job](resources/README.md) runs it all as 50 tasks, in dependency
 
 ## Data model
 
-Gold is a star schema with four facts that share dimensions. They share region, reporting area, flood level, and date, so they form a constellation.
+Gold has four fact tables connected through shared geography and flood dimensions. Project, status, and date dimensions support the project fact. Together, they form a fact constellation.
+
+### Gold constellation schema
+
+```mermaid
+flowchart TB
+    PROJECT["dim_project"] --> PROJECT_FACT["fact_project_snapshot"]
+    STATUS["dim_project_status"] --> PROJECT_FACT
+    DATE["dim_date<br/>snapshot, start, and completion roles"] --> PROJECT_FACT
+    FLOOD["dim_flood_susceptibility"] --> PROJECT_FACT
+    REGION["dim_region"] --> PROJECT_FACT
+    AREA["dim_province_reporting_area"] --> PROJECT_FACT
+
+    REGION --> REGION_POP["fact_region_population"]
+    REGION --> REGION_FLOOD["fact_region_flood_exposure"]
+    FLOOD --> REGION_FLOOD
+    AREA --> AREA_POP["fact_province_reporting_area_population"]
+
+    REGION --> AREA
+    REGION --> REGION_BOUNDARY["dim_region_boundary"]
+    AREA --> AREA_BOUNDARY["dim_province_reporting_area_boundary"]
+
+    classDef fact fill:#FFF2BF,stroke:#2B2A4C,color:#2B2A4C,stroke-width:2px
+    classDef dimension fill:#D7E8FF,stroke:#2B2A4C,color:#2B2A4C
+    class PROJECT_FACT,REGION_POP,REGION_FLOOD,AREA_POP fact
+    class PROJECT,STATUS,DATE,FLOOD,REGION,AREA,REGION_BOUNDARY,AREA_BOUNDARY dimension
+```
+
+Each arrow represents a one-to-many relationship from a dimension to a fact or another dimension. `dim_date` is role-playing and joins to the project fact through three date keys.
 
 | Fact | One row per | Main measures |
 | --- | --- | --- |
@@ -112,7 +140,7 @@ The dimensions are `dim_project`, `dim_project_status`, `dim_date` (used for thr
 - Key `0` holds Central Office, unmatched, and unresolved records, so nothing is dropped.
 - Every fact keeps `source_snapshot_id` and `run_id` (D-29).
 
-The full columns, keys, and relationships are in the [Gold model](docs/model/gold_model.md). The diagram is in the [data model](docs/model/data-model.md).
+The full columns, keys, lineage, and relationship rules are in the [Gold model](docs/model/gold_model.md) and [data model](docs/model/data-model.md).
 
 ## Quickstart
 
@@ -233,7 +261,7 @@ Team members are Kinah, Bri, Nadine, Sam, and Tricia. Carmi is the mentor, and S
 | --- | --- |
 | Oct 3 | Bronze ingestion and reviewed draft schema |
 | Oct 10 | Silver and Gold tables with validation |
-| Oct 17 | Dashboard |
+| Oct 17 | Dashboard and Databricks Associate exam. Genie was dropped ([#21](https://github.com/Buildabida/infra-project-monitoring/issues/21)) |
 | Oct 24 | Final Capstone Showcase and graduation |
 
 Tasks are tracked on the [project board](https://github.com/orgs/Buildabida/projects/1).
