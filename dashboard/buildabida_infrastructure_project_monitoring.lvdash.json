@@ -1483,7 +1483,7 @@
       "displayName": "Flood Budget by Risk Year",
       "config": {
         "version": "1.1",
-        "source": "SELECT CASE flood_point_class WHEN 'Low' THEN '1 Low' WHEN 'Moderate' THEN '2 Moderate' WHEN 'High' THEN '3 High' WHEN 'Very High' THEN '4 Very High' END AS flood_risk, infra_year AS project_year, reported_budget_pesos AS budget_pesos FROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network WHERE is_mappable AND flood_point_class IN ('Low', 'Moderate', 'High', 'Very High') AND infra_year IS NOT NULL",
+        "source": "SELECT CASE flood_point_class WHEN 'Low' THEN 'Low' WHEN 'Moderate' THEN 'Moderate' WHEN 'High' THEN 'High' WHEN 'Very High' THEN 'Very High' END AS flood_risk, infra_year AS project_year, reported_budget_pesos AS budget_pesos FROM `buildabida-capstone`.`05-analytics`.analytics_infrastructure_network WHERE is_mappable AND flood_point_class IN ('Low', 'Moderate', 'High', 'Very High') AND infra_year IS NOT NULL",
         "dimensions": [
           {
             "expr": "source.*"
@@ -1998,7 +1998,7 @@
                   "fieldName": "sum(Region_Budget_by_Year__budget_pesos)",
                   "axis": {
                     "hideLabels": false,
-                    "title": "Total Budget",
+                    "title": "Total budget",
                     "hideGrid": true
                   },
                   "scale": {
@@ -2401,6 +2401,10 @@
                     "abbreviation": "none"
                   },
                   "formatTemplate": "{{ @formatted }}%",
+                  "axis": {
+                    "hideGrid": true,
+                    "title": "Completion rate (%)"
+                  },
                   "displayName": "Completion Rate (%)",
                   "scale": {
                     "type": "quantitative",
@@ -2539,7 +2543,7 @@
                 "showDescription": false,
                 "showTitle": true,
                 "title": {
-                  "value": "Where the money is now",
+                  "value": "<span style=\"font-size: 24px;\">Where the money is now</span>",
                   "fields": []
                 }
               },
@@ -2592,7 +2596,7 @@
           },
           "position": {
             "x": 0,
-            "y": 15,
+            "y": 17,
             "width": 4,
             "height": 12
           }
@@ -2622,7 +2626,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Total budget by region",
+                  "value": "<span style=\"font-size: 24px;\">Total budget by region</span>",
                   "fields": []
                 }
               },
@@ -2646,6 +2650,9 @@
                       "type": "exact"
                     },
                     "type": "number-currency"
+                  },
+                  "axis": {
+                    "hideGrid": true
                   },
                   "displayName": "Budget",
                   "scale": {
@@ -2820,6 +2827,9 @@
                       }
                     ]
                   }
+                },
+                "label": {
+                  "show": true
                 }
               },
               "data": {
@@ -2829,7 +2839,7 @@
           },
           "position": {
             "x": 4,
-            "y": 15,
+            "y": 17,
             "width": 8,
             "height": 12
           }
@@ -2864,7 +2874,7 @@
                 "showDescription": false,
                 "showTitle": true,
                 "title": {
-                  "value": "Regional share of each year's budget",
+                  "value": "<span style=\"font-size: 24px;\">Regional share of each year's budget</span>",
                   "fields": []
                 },
                 "description": {
@@ -2907,7 +2917,7 @@
           },
           "position": {
             "x": 0,
-            "y": 27,
+            "y": 29,
             "width": 12,
             "height": 8
           }
@@ -2950,7 +2960,7 @@
                 "showTitle": true,
                 "showDescription": false,
                 "title": {
-                  "value": "Budget per year, by region, 2016–2026",
+                  "value": "<span style=\"font-size: 24px;\">Budget per year, by region, 2016–2026</span>",
                   "fields": []
                 }
               },
@@ -3145,6 +3155,20 @@
                           "themeColorType": "visualizationColors",
                           "position": 9
                         }
+                      },
+                      {
+                        "value": "CAR",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "SOCCSKSARGEN",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
                       }
                     ]
                   }
@@ -3174,25 +3198,9 @@
           },
           "position": {
             "x": 0,
-            "y": 8,
+            "y": 10,
             "width": 12,
             "height": 7
-          }
-        },
-        {
-          "widget": {
-            "name": "3a1dac23",
-            "multilineTextboxSpec": {
-              "lines": [
-                "<span style=\"text-align:center;display:block\"><span style=\"font-size: 60px;line-height: 1.5;\">**WHERE IS THE MONEY GOING?**</span></span>"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 0,
-            "width": 12,
-            "height": 2
           }
         },
         {
@@ -3228,7 +3236,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"text-align:center;display:block\">Region with the most budget<br><span style=\"font-size:18px\">{{ field:ref1 }}</span></span>",
+                  "value": "<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">Region with the most budget</span><br><span style=\"font-size:24px\">{{ field:ref1 }}</span></span>",
                   "fields": [
                     {
                       "queryName": "frame_title_q_",
@@ -3270,7 +3278,7 @@
             "x": 4,
             "y": 2,
             "width": 4,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -3294,7 +3302,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"text-align:center;display:block;\">National completion rate</span>",
+                  "value": "<span style=\"text-align:center;display:block\"><span style=\"font-size: 24px;\">National completion rate</span></span>",
                   "fields": []
                 }
               },
@@ -3323,9 +3331,9 @@
           },
           "position": {
             "x": 0,
-            "y": 5,
+            "y": 6,
             "width": 4,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -3333,7 +3341,7 @@
             "name": "region1",
             "queries": [
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa7a7499d2ebdcf97fc_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a99ab96dec602e39fb7_region_short",
                 "query": {
                   "datasetName": "7d88fca9",
                   "fields": [
@@ -3350,7 +3358,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9e8750697e296e9782_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a87a5e5b4c779c265c1_region_short",
                 "query": {
                   "datasetName": "d01_region_budget_by_year",
                   "fields": [
@@ -3367,7 +3375,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9a818237a08996f9c5_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a7c9104c9c26ae53ab2_region_short",
                 "query": {
                   "datasetName": "region_money_by_year",
                   "fields": [
@@ -3384,7 +3392,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa28779a02302f173fc_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a90bc466f5e93c9f091_region_short",
                 "query": {
                   "datasetName": "d09_region_share_by_year",
                   "fields": [
@@ -3401,7 +3409,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa78304f495cc9e8776_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9a95a74b69e83d2442_region_short",
                 "query": {
                   "datasetName": "7434c3a7",
                   "fields": [
@@ -3418,7 +3426,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9c90b599c177150488_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a83b59d2f4dec4cb5e6_region_short",
                 "query": {
                   "datasetName": "d03_flagged_by_type_year",
                   "fields": [
@@ -3435,7 +3443,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa896959833df71382d_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9b8e84bbdf87285bce_region_short",
                 "query": {
                   "datasetName": "c5574c4d",
                   "fields": [
@@ -3452,7 +3460,7 @@
                 }
               },
               {
-                "name": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa9bfe9b646ee43e3f5_region_short",
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9f914dbf41209b8c68_region_short",
                 "query": {
                   "datasetName": "4b45dfd2",
                   "fields": [
@@ -3483,35 +3491,35 @@
                 "fields": [
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa7a7499d2ebdcf97fc_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a99ab96dec602e39fb7_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9e8750697e296e9782_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a87a5e5b4c779c265c1_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9a818237a08996f9c5_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a7c9104c9c26ae53ab2_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa28779a02302f173fc_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a90bc466f5e93c9f091_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa78304f495cc9e8776_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9a95a74b69e83d2442_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1a9c90b599c177150488_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a83b59d2f4dec4cb5e6_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa896959833df71382d_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9b8e84bbdf87285bce_region_short"
                   },
                   {
                     "fieldName": "region_short",
-                    "queryName": "dashboards/01f1cc7d31b91bf8812ad8792f1cb7a3/datasets/01f1ccb3436b1aa9bfe9b646ee43e3f5_region_short"
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a9f914dbf41209b8c68_region_short"
                   }
                 ]
               }
@@ -3519,9 +3527,9 @@
           },
           "position": {
             "x": 8,
-            "y": 5,
+            "y": 6,
             "width": 4,
-            "height": 3
+            "height": 2
           }
         },
         {
@@ -3545,7 +3553,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"text-align:center;display:block;\">Recorded budget (pesos)</span>",
+                  "value": "<span style=\"text-align:center;display:block\"><span style=\"font-size: 24px;\">Recorded budget (pesos)</span></span>",
                   "fields": []
                 }
               },
@@ -3580,7 +3588,7 @@
             "x": 0,
             "y": 2,
             "width": 4,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -3616,7 +3624,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"text-align:center;display:block\">Region with the least budget<br><span style=\"font-size:18px\">{{ field:ref1 }}</span></span>",
+                  "value": "<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">Region with the least budget</span></span>\n\n<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">{{ field:ref1 }}</span></span>",
                   "fields": [
                     {
                       "queryName": "frame_title_q_",
@@ -3658,7 +3666,7 @@
             "x": 8,
             "y": 2,
             "width": 4,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -3694,7 +3702,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"text-align:center;display:block\">Highest funded project type<br><span style=\"font-size:18px\">{{ field:ref1 }}</span></span>",
+                  "value": "<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">Highest funded project type</span></span>\n\n<span style=\"text-align:center;display:block\"><span style=\"font-size:24px\">{{ field:ref1 }}</span></span>",
                   "fields": [
                     {
                       "queryName": "frame_title_q_",
@@ -3730,9 +3738,9 @@
           },
           "position": {
             "x": 4,
-            "y": 5,
+            "y": 6,
             "width": 4,
-            "height": 3
+            "height": 4
           }
         },
         {
@@ -3772,7 +3780,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Budget by status",
+                  "value": "<span style=\"font-size: 24px;\">Budget by status</span>",
                   "fields": []
                 }
               },
@@ -3781,6 +3789,9 @@
               "encodings": {
                 "x": {
                   "fieldName": "sum(Untitled_dataset_9__budget_php)",
+                  "axis": {
+                    "hideGrid": true
+                  },
                   "displayName": "Budget",
                   "scale": {
                     "type": "quantitative"
@@ -3808,6 +3819,9 @@
                     "type": "categorical"
                   }
                 },
+                "label": {
+                  "show": true
+                },
                 "extra": [
                   {
                     "fieldName": "sum(Untitled_dataset_9__budget_share)",
@@ -3834,7 +3848,7 @@
           },
           "position": {
             "x": 0,
-            "y": 35,
+            "y": 37,
             "width": 6,
             "height": 8
           }
@@ -3869,7 +3883,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "<span style=\"font-size: 14px;\">Where the money goes, by flood-risk level</span>",
+                  "value": "<span style=\"font-size: 24px;\">Where the money goes, by flood-risk level</span>",
                   "fields": []
                 }
               },
@@ -3894,6 +3908,9 @@
                 },
                 "y": {
                   "fieldName": "sum(Untitled_dataset_11__budget_php)",
+                  "axis": {
+                    "hideGrid": true
+                  },
                   "displayName": "Budget",
                   "scale": {
                     "type": "quantitative"
@@ -3910,7 +3927,7 @@
           },
           "position": {
             "x": 6,
-            "y": 35,
+            "y": 37,
             "width": 6,
             "height": 8
           }
@@ -3945,7 +3962,7 @@
                 "showDescription": true,
                 "showTitle": true,
                 "title": {
-                  "value": "Where the money goes, by flood-risk classification, year by year",
+                  "value": "<span style=\"font-size: 24px;\">Where the money goes, by flood-risk classification, year by year</span>",
                   "fields": []
                 },
                 "description": {
@@ -4006,6 +4023,34 @@
                       {
                         "color": "#DE3A3A",
                         "value": "4 Very High"
+                      },
+                      {
+                        "value": "High",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 1
+                        }
+                      },
+                      {
+                        "value": "Low",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        }
+                      },
+                      {
+                        "value": "Moderate",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
+                      },
+                      {
+                        "value": "Very High",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 2
+                        }
                       }
                     ]
                   }
@@ -4021,9 +4066,136 @@
           },
           "position": {
             "x": 0,
-            "y": 43,
+            "y": 45,
             "width": 12,
             "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "year1",
+            "queries": [
+              {
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a99ab96dec602e39fb7_project_year",
+                "query": {
+                  "datasetName": "7d88fca9",
+                  "fields": [
+                    {
+                      "name": "project_year",
+                      "expression": "`project_year`"
+                    },
+                    {
+                      "name": "project_year_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a87a5e5b4c779c265c1_project_year",
+                "query": {
+                  "datasetName": "d01_region_budget_by_year",
+                  "fields": [
+                    {
+                      "name": "project_year",
+                      "expression": "`project_year`"
+                    },
+                    {
+                      "name": "project_year_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a90bc466f5e93c9f091_project_year",
+                "query": {
+                  "datasetName": "d09_region_share_by_year",
+                  "fields": [
+                    {
+                      "name": "project_year",
+                      "expression": "`project_year`"
+                    },
+                    {
+                      "name": "project_year_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761aa9a797f86a879c7f19_project_year",
+                "query": {
+                  "datasetName": "flood_budget_by_risk_year",
+                  "fields": [
+                    {
+                      "name": "project_year",
+                      "expression": "`project_year`"
+                    },
+                    {
+                      "name": "project_year_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Project Year"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "project_year",
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a99ab96dec602e39fb7_project_year"
+                  },
+                  {
+                    "fieldName": "project_year",
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a87a5e5b4c779c265c1_project_year"
+                  },
+                  {
+                    "fieldName": "project_year",
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761a90bc466f5e93c9f091_project_year"
+                  },
+                  {
+                    "fieldName": "project_year",
+                    "queryName": "dashboards/01f1ccc8afb01dffbacf529005031867/datasets/01f1cd0b97761aa9a797f86a879c7f19_project_year"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 8,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "8dc9e302",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\"><span style=\"font-family:Space Grotesk;font-size:35px;line-height:1.5;text-transform:uppercase\">Where is the money going?</span></span>\n",
+                "\n",
+                "<span style=\"text-align:center;display:block\"><span style=\"font-family:Space Grotesk;font-size:24px\">Regions, budget shares, and how well each one finishes its projects over the years.</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
           }
         }
       ],
@@ -4490,7 +4662,7 @@
                 "showDescription": true,
                 "showTitle": true,
                 "title": {
-                  "value": "Median months to finish, by project type",
+                  "value": "<span style=\"font-size: 24px;\">Median months to finish, by project type</span>",
                   "fields": []
                 },
                 "description": {
@@ -4512,7 +4684,8 @@
                 "x": {
                   "fieldName": "median(Untitled_dataset_12__months_to_finish)",
                   "axis": {
-                    "title": "Median Months"
+                    "title": "Median months",
+                    "hideGrid": true
                   },
                   "displayName": "Usual months (median)",
                   "scale": {
@@ -4521,6 +4694,9 @@
                 },
                 "y": {
                   "fieldName": "Untitled_dataset_12__project_type",
+                  "axis": {
+                    "title": "Project type"
+                  },
                   "displayName": "Project Type",
                   "scale": {
                     "type": "categorical",
@@ -4614,15 +4790,11 @@
             ],
             "spec": {
               "frame": {
-                "showDescription": true,
+                "showDescription": false,
                 "showTitle": true,
                 "title": {
-                  "fields": [],
-                  "value": "Do projects in riskier flood areas get finished?"
-                },
-                "description": {
-                  "fields": [],
-                  "value": "Each bar is a flood-risk level from the MGB flood map, based on where the project is. Use the dropdown to see all projects or flood-control projects only."
+                  "value": "<span style=\"font-size: 24px;\">Completion rate, by flood risk level</span>",
+                  "fields": []
                 }
               },
               "version": 3,
@@ -4639,7 +4811,8 @@
                 "x": {
                   "fieldName": "Completion_by_Flood_Risk__flood_risk",
                   "axis": {
-                    "title": "How risky the area is for flooding"
+                    "title": "Flood risk level",
+                    "hideLabels": false
                   },
                   "displayName": "Flood risk",
                   "scale": {
@@ -4658,7 +4831,8 @@
                 "y": {
                   "fieldName": "measure(Completion_by_Flood_Risk__completion_rate)",
                   "axis": {
-                    "title": "Projects completed (%)"
+                    "title": "Projects completed (%)",
+                    "hideGrid": true
                   },
                   "format": {
                     "decimalPlaces": {
@@ -4749,7 +4923,7 @@
                 "showTitle": true,
                 "showDescription": true,
                 "title": {
-                  "value": "Where each type is built",
+                  "value": "<span style=\"font-size: 24px;\">Where each type is built</span>",
                   "fields": []
                 },
                 "description": {
@@ -4848,13 +5022,9 @@
             "spec": {
               "frame": {
                 "showTitle": true,
-                "showDescription": true,
+                "showDescription": false,
                 "title": {
-                  "value": "Completion by year and project type",
-                  "fields": []
-                },
-                "description": {
-                  "value": "Each cell shows the share of that type and year's projects that are completed. Older years should be greener.",
+                  "value": "<span style=\"font-size: 24px;\">Completion by year and project type</span>",
                   "fields": []
                 }
               },
@@ -4934,7 +5104,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Number of projects by type",
+                  "value": "<span style=\"font-size: 24px;\">Number of projects by type</span>",
                   "fields": []
                 }
               },
@@ -4944,7 +5114,7 @@
                 "x": {
                   "fieldName": "sum(Type_Budget_by_Year__projects)",
                   "axis": {
-                    "title": "Number of Projects",
+                    "title": "Number of projects",
                     "hideLabels": false,
                     "hideGrid": true
                   },
@@ -4971,7 +5141,37 @@
                     "hide": true
                   },
                   "scale": {
-                    "type": "categorical"
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Bridges",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Multi-sector",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Septage and Sewerage Plants",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Water Provision and Storage",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      }
+                    ]
                   }
                 },
                 "label": {
@@ -5020,7 +5220,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Total budget by type",
+                  "value": "<span style=\"font-size: 24px;\">Total budget by type</span>",
                   "fields": []
                 }
               },
@@ -5055,7 +5255,37 @@
                     "hide": true
                   },
                   "scale": {
-                    "type": "categorical"
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Bridges",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Multi-sector",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Water Provision and Storage",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Septage and Sewerage Plants",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      }
+                    ]
                   }
                 },
                 "label": {
@@ -5111,7 +5341,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Budget of completed projects, by type, year by year",
+                  "value": "<span style=\"font-size: 24px;\">Budget of completed projects, by type, year by year</span>",
                   "fields": []
                 }
               },
@@ -5239,10 +5469,13 @@
               "frame": {
                 "showDescription": true,
                 "showTitle": true,
-                "title": "Completed projects by region",
+                "title": {
+                  "value": "<span style=\"font-size: 24px;\">Completed projects by region</span>",
+                  "fields": []
+                },
                 "description": {
-                  "fields": [],
-                  "value": "Color shows completed projects across all project types. Hover a region for its per-type counts (roads, bridges, etc.), share of the Philippines, and dominant type."
+                  "value": "Color shows completed projects across all project types. Hover a region for its per-type counts (roads, bridges, etc.), share of the Philippines, and dominant type.",
+                  "fields": []
                 }
               },
               "version": 1,
@@ -5541,22 +5774,6 @@
         },
         {
           "widget": {
-            "name": "2e14c994",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## <span style=\"text-align:center;display:block\"><span style=\"font-family: Space Grotesk;font-size: 60px;line-height: 1.5;text-transform: capitalize;\">WHAT ARE WE BUILDING?</span></span>"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 0,
-            "width": 12,
-            "height": 2
-          }
-        },
-        {
-          "widget": {
             "name": "92c51738",
             "queries": [
               {
@@ -5826,7 +6043,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Average budget per project, by type",
+                  "value": "<span style=\"font-size: 24px;\">Average budget per project, by type</span>",
                   "fields": []
                 }
               },
@@ -5836,7 +6053,7 @@
                 "x": {
                   "fieldName": "measure(Type_Budget_by_Year__avg_budget_per_project)",
                   "axis": {
-                    "title": "Average Budget per Project",
+                    "title": "Average budget per project",
                     "hideGrid": true
                   },
                   "format": {
@@ -5871,7 +6088,37 @@
                     "hide": true
                   },
                   "scale": {
-                    "type": "categorical"
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Roads",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Bridges",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Buildings and Facilities",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Water Provision and Storage",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      }
+                    ]
                   }
                 },
                 "label": {
@@ -5968,10 +6215,13 @@
               "frame": {
                 "showDescription": true,
                 "showTitle": true,
-                "title": "Ongoing projects by region",
+                "title": {
+                  "value": "<span style=\"font-size: 24px;\">Ongoing projects by region</span>",
+                  "fields": []
+                },
                 "description": {
-                  "fields": [],
-                  "value": "Color shows ongoing projects across all project types. Hover a region for its per-type counts (roads, bridges, etc.), share of the Philippines, and dominant type."
+                  "value": "<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n",
+                  "fields": []
                 }
               },
               "version": 1,
@@ -6213,10 +6463,13 @@
               "frame": {
                 "showDescription": true,
                 "showTitle": true,
-                "title": "Flagged projects by region",
+                "title": {
+                  "value": "<span style=\"font-size: 24px;\">Flagged projects by region</span>",
+                  "fields": []
+                },
                 "description": {
-                  "fields": [],
-                  "value": "Color shows flagged projects across all project types. Hover a region for its per-type counts (roads, bridges, etc.), share of the Philippines, and dominant type."
+                  "value": "<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n",
+                  "fields": []
                 }
               },
               "version": 1,
@@ -6423,7 +6676,11 @@
                 "showDescription": true,
                 "showTitle": true,
                 "title": {
-                  "value": "Median months to finish, by region",
+                  "value": "<span style=\"font-size: 24px;\">Median months to finish, by region</span>",
+                  "fields": []
+                },
+                "description": {
+                  "value": "<p>&nbsp;</p>\n\n<p>&nbsp;</p>\n",
                   "fields": []
                 }
               },
@@ -6441,7 +6698,8 @@
                 "x": {
                   "fieldName": "median(Untitled_dataset_12__months_to_finish)",
                   "axis": {
-                    "title": "Median Months"
+                    "title": "Median months",
+                    "hideGrid": true
                   },
                   "displayName": "Usual months (median)",
                   "scale": {
@@ -6555,7 +6813,7 @@
                 "showDescription": true,
                 "showTitle": true,
                 "title": {
-                  "value": "Median months to finish, by flood risk",
+                  "value": "<span style=\"font-size: 24px;\">Median months to finish, by flood risk</span>",
                   "fields": []
                 }
               },
@@ -6573,7 +6831,8 @@
                 "x": {
                   "fieldName": "median(Untitled_dataset_12__months_to_finish)",
                   "axis": {
-                    "title": "Median Months"
+                    "title": "Median months",
+                    "hideGrid": true
                   },
                   "displayName": "Usual months (median)",
                   "scale": {
@@ -6582,6 +6841,9 @@
                 },
                 "y": {
                   "fieldName": "Untitled_dataset_12__flood_risk",
+                  "axis": {
+                    "title": "Flood risk"
+                  },
                   "displayName": "Flood Risk",
                   "scale": {
                     "type": "categorical",
@@ -6755,7 +7017,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Most flagged project type, by region",
+                  "value": "<span style=\"font-size: 24px;\">Most flagged project type, by region</span>",
                   "fields": []
                 }
               },
@@ -6765,7 +7027,8 @@
                 "x": {
                   "fieldName": "sum(Untitled_dataset_1__flagged_projects)",
                   "axis": {
-                    "title": "Flagged Projects"
+                    "title": "Flagged projects",
+                    "hideGrid": true
                   },
                   "format": {
                     "abbreviation": "none",
@@ -6892,7 +7155,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Flagged projects by type",
+                  "value": "<span style=\"font-size: 24px;\">Flagged projects by type</span>",
                   "fields": []
                 }
               },
@@ -6900,54 +7163,82 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "Flagged_by_Type_Year__project_type",
-                  "displayName": "Project type",
-                  "scale": {
-                    "type": "categorical"
-                  }
-                },
-                "y": {
                   "fieldName": "sum(Flagged_by_Type_Year__flagged_projects)",
+                  "axis": {
+                    "hideGrid": true
+                  },
                   "displayName": "Flagged projects",
                   "scale": {
                     "type": "quantitative"
                   }
                 },
+                "y": {
+                  "fieldName": "Flagged_by_Type_Year__project_type",
+                  "displayName": "Project type",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                },
                 "color": {
                   "fieldName": "Flagged_by_Type_Year__project_type",
                   "legend": {
-                    "position": "bottom"
+                    "position": "bottom",
+                    "hide": true
                   },
                   "displayName": "Project type",
                   "scale": {
                     "mappings": [
                       {
-                        "color": "#3987E5",
-                        "value": "Roads"
+                        "value": "Roads",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 5
+                        }
                       },
                       {
-                        "color": "#D95926",
-                        "value": "Buildings and Facilities"
+                        "value": "Buildings and Facilities",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 2
+                        }
                       },
                       {
-                        "color": "#199E70",
-                        "value": "Flood Control and Drainage"
+                        "value": "Flood Control and Drainage",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
                       },
                       {
-                        "color": "#C98500",
-                        "value": "Bridges"
+                        "value": "Bridges",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
                       },
                       {
-                        "color": "#D55181",
-                        "value": "Multi-sector"
+                        "value": "Multi-sector",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
                       },
                       {
-                        "color": "#008300",
-                        "value": "Water Provision and Storage"
+                        "value": "Water Provision and Storage",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
                       },
                       {
-                        "color": "#9085E9",
-                        "value": "Septage and Sewerage Plants"
+                        "value": "Septage and Sewerage Plants",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
                       },
                       {
                         "color": "#6B7280",
@@ -7010,14 +7301,10 @@
             "spec": {
               "frame": {
                 "showTitle": true,
-                "showDescription": true,
+                "showDescription": false,
                 "title": {
-                  "value": "Completion rate by year and project type",
+                  "value": "<span style=\"font-size: 24px;\">Completion rate by year and project type</span>",
                   "fields": []
-                },
-                "description": {
-                  "fields": [],
-                  "value": "Each cell shows the share of that type and year's projects that are completed. Older years should be greener. 2026 is partial."
                 }
               },
               "version": 3,
@@ -7091,7 +7378,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Completion rate by region",
+                  "value": "<span style=\"font-size: 24px;\">Completion rate by region</span>",
                   "fields": []
                 }
               },
@@ -7112,14 +7399,15 @@
                   "scale": {
                     "type": "categorical",
                     "sort": {
-                      "by": "natural-order"
+                      "by": "y-reversed"
                     }
                   }
                 },
                 "y": {
                   "fieldName": "sum(Untitled_dataset_2__completion_rate)",
                   "axis": {
-                    "title": "Completion rate"
+                    "title": "Completion rate",
+                    "hideGrid": true
                   },
                   "format": {
                     "decimalPlaces": {
@@ -7253,7 +7541,10 @@
                           "position": 1
                         }
                       }
-                    ]
+                    ],
+                    "sort": {
+                      "by": "y-reversed"
+                    }
                   }
                 },
                 "label": {
@@ -7270,6 +7561,24 @@
             "y": 27,
             "width": 12,
             "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "4da77f94",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\"><span style=\"font-family:Space Grotesk;font-size:35px;line-height:1.5;text-transform:uppercase\">What are we building?</span></span>\n",
+                "\n",
+                "<span style=\"text-align:center;display:block\"><span style=\"font-size: 24px;\">Project types, where they are built, how long they take, and how they perform in flood-risk areas.</span></span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
           }
         }
       ],
@@ -7432,8 +7741,8 @@
                 }
               },
               "jsonSpec": {
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"}},\"transform\":[{\"calculate\":\"'National Average: ₱' + format(datum['max(Flood_Risk_by_Province__national_budget_per_person_pesos)'], ',.0f')\",\"as\":\"avg_label\"},{\"calculate\":\"'n = ' + format(datum['count(Flood_Risk_by_Province__province_or_city)'], ',.0f')\",\"as\":\"n_label\"}],\"layer\":[{\"mark\":{\"type\":\"rule\",\"stroke\":{\"expr\":\"colors.textPrimary.default\"},\"strokeWidth\":1.5,\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"axis\":{\"title\":\"Dominant flood risk level\",\"labelAngle\":0}},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"scale\":{\"domain\":{\"data\":\"databricks_query\",\"fields\":[\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\"]}},\"axis\":{\"title\":\"Budget per person (pesos)\",\"format\":\",.0s\"}},\"y2\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"}}},{\"mark\":{\"type\":\"bar\",\"opacity\":0.9},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"y2\":{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"},\"fill\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"range\":[\"#199E70\",\"#C98500\",\"#D95926\",\"#DE3A3A\"]},\"legend\":null},\"tooltip\":[{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lowest province\"},{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lower quartile\"},{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Median\"},{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Upper quartile\"},{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Highest province\"},{\"field\":\"count(Flood_Risk_by_Province__province_or_city)\",\"type\":\"quantitative\",\"title\":\"Provinces\"}]}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":3},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#EAB308\",\"strokeWidth\":4},\"encoding\":{\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"left\",\"dx\":10,\"dy\":-10,\"fontSize\":12,\"fontWeight\":\"bold\",\"color\":\"#A16207\"},\"encoding\":{\"x\":{\"value\":\"Low\"},\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"avg_label\",\"type\":\"nominal\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"center\",\"dy\":-10,\"fontSize\":11,\"fontWeight\":\"bold\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"n_label\",\"type\":\"nominal\"}}}]}",
-                "type": "vega-lite"
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"grid\":false}},\"transform\":[{\"calculate\":\"'National Average: ₱' + format(datum['max(Flood_Risk_by_Province__national_budget_per_person_pesos)'], ',.0f')\",\"as\":\"avg_label\"},{\"calculate\":\"'n = ' + format(datum['count(Flood_Risk_by_Province__province_or_city)'], ',.0f')\",\"as\":\"n_label\"}],\"layer\":[{\"mark\":{\"type\":\"rule\",\"stroke\":{\"expr\":\"colors.textPrimary.default\"},\"strokeWidth\":1.5,\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"axis\":{\"title\":\"Dominant flood risk level\",\"labelAngle\":0}},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"scale\":{\"domain\":{\"data\":\"databricks_query\",\"fields\":[\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\"]}},\"axis\":{\"title\":\"Budget per person (pesos)\",\"format\":\",.0s\"}},\"y2\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"}}},{\"mark\":{\"type\":\"bar\",\"opacity\":0.9},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"y2\":{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\"},\"fill\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"Low\",\"Moderate\",\"High\",\"Very High\"],\"range\":[\"#077A9D\",\"#FFAB00\",\"#00A972\",\"#FF3621\"]},\"legend\":null},\"tooltip\":[{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lowest province\"},{\"field\":\"q1(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Lower quartile\"},{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Median\"},{\"field\":\"q3(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Upper quartile\"},{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\",\"title\":\"Highest province\"},{\"field\":\"count(Flood_Risk_by_Province__province_or_city)\",\"type\":\"quantitative\",\"title\":\"Provinces\"}]}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":3},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"median(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"min(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"tick\",\"orient\":\"horizontal\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"thickness\":2,\"size\":24},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#EAB308\",\"strokeWidth\":4},\"encoding\":{\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"left\",\"dx\":10,\"dy\":-10,\"fontSize\":12,\"fontWeight\":\"bold\",\"color\":\"#A16207\"},\"encoding\":{\"x\":{\"value\":\"Low\"},\"y\":{\"field\":\"max(Flood_Risk_by_Province__national_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"avg_label\",\"type\":\"nominal\"}}},{\"mark\":{\"type\":\"text\",\"align\":\"center\",\"dy\":-10,\"fontSize\":11,\"fontWeight\":\"bold\",\"color\":{\"expr\":\"colors.textPrimary.default\"},\"opacity\":0.75},\"encoding\":{\"x\":{\"field\":\"Flood_Risk_by_Province__dominant_flood_risk\",\"type\":\"nominal\",\"sort\":[\"Low\",\"Moderate\",\"High\",\"Very High\"]},\"y\":{\"field\":\"max(Flood_Risk_by_Province__overall_budget_per_person_pesos)\",\"type\":\"quantitative\"},\"text\":{\"field\":\"n_label\",\"type\":\"nominal\"}}}],\"type\":\"vega-lite\"}"
               },
               "version": 1,
               "widgetType": "custom-vega-viz",
@@ -8013,12 +8322,12 @@
                 "query": {
                   "fields": [
                     {
-                      "name": "sum(Province_Money_by_Year__total_reported_budget_pesos)",
-                      "expression": "SUM(`Province_Money_by_Year`.`total_reported_budget_pesos`)"
+                      "name": "Province_Money_by_Year__province_short_name",
+                      "expression": "`Province_Money_by_Year`.`province_short_name`"
                     },
                     {
-                      "name": "Province_Money_by_Year__province_or_city",
-                      "expression": "`Province_Money_by_Year`.`province_or_city`"
+                      "name": "sum(Province_Money_by_Year__total_reported_budget_pesos)",
+                      "expression": "SUM(`Province_Money_by_Year`.`total_reported_budget_pesos`)"
                     }
                   ],
                   "disaggregated": false
@@ -8042,8 +8351,8 @@
               "mark": {
                 "colors": [
                   {
-                    "themeColorType": "visualizationColors",
-                    "position": 1
+                    "position": 1,
+                    "themeColorType": "visualizationColors"
                   }
                 ]
               },
@@ -8060,6 +8369,10 @@
                     },
                     "type": "number-currency"
                   },
+                  "axis": {
+                    "hideGrid": true,
+                    "title": "Total budget (pesos)"
+                  },
                   "displayName": "Total Budget (pesos)",
                   "scale": {
                     "type": "quantitative",
@@ -8069,7 +8382,12 @@
                   }
                 },
                 "y": {
-                  "fieldName": "Province_Money_by_Year__province_or_city",
+                  "fieldName": "Province_Money_by_Year__province_short_name",
+                  "axis": {
+                    "hideLabels": false,
+                    "hideTitle": false,
+                    "title": "Province or city"
+                  },
                   "displayName": "Province or city",
                   "scale": {
                     "categorySize": {
@@ -8080,6 +8398,426 @@
                     "sort": {
                       "by": "x-reversed"
                     }
+                  }
+                },
+                "color": {
+                  "fieldName": "Province_Money_by_Year__province_short_name",
+                  "legend": {
+                    "hide": true
+                  },
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "color": {
+                          "position": 1,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "National Capital Region (NCR)"
+                      },
+                      {
+                        "color": {
+                          "position": 2,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "Bulacan"
+                      },
+                      {
+                        "color": {
+                          "position": 3,
+                          "themeColorType": "visualizationColors"
+                        },
+                        "value": "Cebu"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Pampanga"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Tarlac"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Zambales"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Aurora"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Batangas"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Cavite"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Laguna"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Quezon"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Rizal"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Marinduque"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Davao del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Davao Oriental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Davao de Oro"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Davao Occidental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Cotabato"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "South Cotabato"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Sultan Kudarat"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Sarangani"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Agusan del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Agusan del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Surigao del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Surigao del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Dinagat Islands"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Basilan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Lanao del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Tawi-Tawi"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Maguindanao del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Maguindanao del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Eastern Samar"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Leyte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Northern Samar"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Samar"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Southern Leyte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Batanes"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Cagayan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Isabela"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Nueva Vizcaya"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Quirino"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Bataan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Nueva Ecija"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Biliran"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Zamboanga del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Zamboanga del Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Zamboanga Sibugay"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Bukidnon"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Camiguin"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Lanao del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Misamis Occidental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Misamis Oriental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Davao del Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Occidental Mindoro"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Oriental Mindoro"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Palawan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Romblon"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Albay"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Camarines Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Camarines Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Catanduanes"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Masbate"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Sorsogon"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Aklan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Antique"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Capiz"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Iloilo"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Guimaras"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Bohol"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Abra"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Benguet"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Ifugao"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Kalinga"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Mountain Province"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Apayao"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Ilocos Norte"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Ilocos Sur"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "La Union"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Pangasinan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Sulu"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Negros Occidental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Negros Oriental"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "Siquijor"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Angeles"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Olongapo"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Lucena"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Davao"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of General Santos"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Butuan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Cebu"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Lapu-Lapu"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Mandaue"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Tacloban"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Isabela"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Zamboanga"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Cagayan De Oro"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Iligan"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Puerto Princesa"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Iloilo"
+                      },
+                      {
+                        "color": "#919191",
+                        "value": "City of Bacolod"
+                      }
+                    ]
                   }
                 },
                 "label": {
@@ -8107,12 +8845,12 @@
                 "query": {
                   "fields": [
                     {
-                      "name": "sum(Region_Money_by_Year__total_reported_budget_pesos)",
-                      "expression": "SUM(`Region_Money_by_Year`.`total_reported_budget_pesos`)"
+                      "name": "Region_Money_by_Year__region_short",
+                      "expression": "`Region_Money_by_Year`.`region_short`"
                     },
                     {
-                      "name": "Region_Money_by_Year__region_name",
-                      "expression": "`Region_Money_by_Year`.`region_name`"
+                      "name": "sum(Region_Money_by_Year__total_reported_budget_pesos)",
+                      "expression": "SUM(`Region_Money_by_Year`.`total_reported_budget_pesos`)"
                     }
                   ],
                   "disaggregated": false
@@ -8154,13 +8892,16 @@
                     },
                     "type": "number-currency"
                   },
+                  "axis": {
+                    "hideGrid": true
+                  },
                   "displayName": "Total Budget (pesos)",
                   "scale": {
                     "type": "quantitative"
                   }
                 },
                 "y": {
-                  "fieldName": "Region_Money_by_Year__region_name",
+                  "fieldName": "Region_Money_by_Year__region_short",
                   "displayName": "Region",
                   "scale": {
                     "categorySize": {
@@ -8168,6 +8909,133 @@
                       "type": "number-of-categories"
                     },
                     "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                },
+                "color": {
+                  "fieldName": "Region_Money_by_Year__region_short",
+                  "legend": {
+                    "hide": true
+                  },
+                  "displayName": "Region",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Zamboanga Peninsula",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Central Luzon",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 1
+                        }
+                      },
+                      {
+                        "value": "CALABARZON",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 2
+                        }
+                      },
+                      {
+                        "value": "Bicol",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
+                      },
+                      {
+                        "value": "Cagayan Valley",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "CAR",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Caraga",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Western Visayas",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Northern Mindanao",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "NIR",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "SOCCSKSARGEN",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "NCR",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Ilocos",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Davao",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "Central Visayas",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      },
+                      {
+                        "value": "MIMAROPA",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 9
+                        }
+                      }
+                    ],
                     "sort": {
                       "by": "x-reversed"
                     }

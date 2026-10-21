@@ -73,7 +73,7 @@ Which regions get the most money, how that changed, and how well each region fin
 
 - Budget trend by region, the region-by-year share heat map, and the latest map
 - Most-funded and least-funded region, total budget, completion, and top type
-- Region ranking and a region filter
+- Region ranking, a region filter, and a project-year filter
 - Budget by status and flood-risk classification, including a yearly trend
 
 ### What are we building?
